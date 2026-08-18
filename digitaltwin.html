@@ -2730,7 +2730,13 @@ const organH = (cat) => cat.hFrac * BODY_H * ORGAN_SCALE;
 /* hFrac  organ height as a fraction of body height
    seat   height of its centre, same fraction
    x, z   offset from the trunk centreline at that height, in body heights
-   yaw    correction for the source file's own axis convention            */
+   yaw    correction for the source file's own axis convention
+   pitch  the same, about the body's left-right axis, in degrees. Optional.
+          yaw alone was never enough: it can point a model the right way round
+          and still leave it tipped, and nothing in the schema could say so.
+          Applied after yaw — three's default XYZ Euler order gives Rx·Ry, so
+          this tips the already-seated organ forward or back in body space
+          rather than in the model's own frame.                            */
 const CATS = [
   /* Named for the organ, not for the clinical domain, and named the way
      organ-body-full.html already names the same seven files, so the two pages
@@ -2766,8 +2772,20 @@ const CATS = [
     hFrac:0.150, seat:0.560, x:0,      z:0.010, yaw:0,   colour:'#c4855f', dist:0.92,
     rows:[['Species found','312'],['Variety','68 of 100'],['Out of range','4']],
     note:'Read from a stool sample, then placed against a large group of other people.' },
+  /* This model rests nose-down. Measured against the mesh, its diaphragmatic
+     surface falls 31.6 degrees front-to-back, which at a straight-on framing
+     reads as an organ dropped in crooked. The figure lab has the same number
+     and never corrected it — its orbit view simply never showed it.
+
+     pitch -14 takes most of that out. Not the full 31.6: the fit saturates
+     around -12 past about -22 because a liver genuinely is a wedge, thick at
+     the back and tapering forward, so levelling the fit exactly would tip the
+     organ backwards instead. z moves with it, from -0.004 to 0.013 — rotating
+     about the organ's own centre swings its posterior corner back, and at
+     -0.004 that corner left the body through the spine. At 0.013 the mesh
+     clears the back wall by 0.014 and the front by 0.123. */
   { id:'detox',  name:'Liver & Gallbladder', file:'human_liver_and_gallbladder.glb',
-    hFrac:0.098, seat:0.620, x:-0.032, z:-0.004, yaw:-90, colour:'#a04b3c', dist:0.78,
+    hFrac:0.098, seat:0.620, x:-0.032, z:0.013, yaw:-90, pitch:-14, colour:'#a04b3c', dist:0.78,
     rows:[['Liver markers','6'],['Fat in the liver','None'],['Substances screened','38']],
     note:'The blood markers and the scan are read together. Neither settles it alone.' },
   { id:'horm',   name:'Kidneys',        file:'human_kidney.glb',
@@ -2964,9 +2982,11 @@ async function organFor(cat) {
     holder.traverse((o) => { if (o.isMesh) { o.material = mat; o.renderOrder = 5; } });
     const t = centreAt(rec.cl, cat.seat * BODY_H);
     holder.position.copy(seatOf(cat, t));
-    /* cat.yaw is the source file's own axis correction and nothing else — the
-       view's yaw belongs to the pivot, which this now rides on */
-    holder.rotation.y = cat.yaw * Math.PI / 180;
+    /* cat.yaw and cat.pitch are the source file's own axis corrections and
+       nothing else — the view's yaw belongs to the pivot, which this now
+       rides on. Order matters: the default XYZ Euler applies Rx after Ry, so
+       the pitch tips the seated organ in body space, not in its own frame. */
+    holder.rotation.set((cat.pitch || 0) * Math.PI / 180, cat.yaw * Math.PI / 180, 0);
     holder.visible = false;
     rec.pivot.add(holder);
     rec.organs[cat.id] = { holder, mat };

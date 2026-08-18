@@ -2530,18 +2530,38 @@ try {
 
 <style>
   /* ---------- stage ---------- */
-  #labWrap{position:fixed;inset:0;overflow:hidden;background:#c9d7ee}
+  #labWrap{position:fixed;inset:0;overflow:hidden;background:var(--phenome-blue-200)}
   #labGL{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
   #labGL.drag{cursor:grabbing}
 
-  /* the wash behind the figure: three tinted lobes that drift, which is what
-     keeps a flat gradient from reading as a flat gradient */
+  /* The wash behind the figure: three tinted lobes that drift, which is what
+     keeps a flat gradient from reading as a flat gradient.
+
+     Every hue here now comes off the brand ramp. What it replaces was a
+     lilac — #dcc2e8 into #cbb9e2 — that appears in no ramp in this file, so
+     the one full-bleed surface in the product was the one surface not
+     speaking the palette.
+
+     The ramp does the work a studio backdrop does, and it deliberately keeps
+     its light end away from the middle: the figure is a near-white pearl, so
+     the ground it is read against has to be darker than it is, not lighter.
+     So the wash runs blue-200 to blue-300 straight down the centre, and the
+     one blue-100 lift sits out in the top-left corner where no body is —
+     atmosphere, not a band across the chest. The deep corner is also what
+     gives the category rail's glass something to sit against.
+
+     The single accent is the cyan that opens --gradient-brand, in the same
+     corner the home page puts its own cyan lobe, so both pages are lit from
+     the same place. */
   #labBg{position:absolute;inset:-10%;pointer-events:none;
     background:
-      radial-gradient(58% 52% at 20% 24%, #b6c9f2 0%, transparent 60%),
-      radial-gradient(52% 48% at 84% 28%, #dcc2e8 0%, transparent 62%),
-      radial-gradient(66% 58% at 62% 90%, #b9cef1 0%, transparent 64%),
-      linear-gradient(166deg,#8fb0e6 0%,#a9c0ea 34%,#cbb9e2 68%,#a8c3ee 100%)}
+      radial-gradient(52% 46% at 8% 12%, #e6e9f2a8 0%, transparent 70%),
+      radial-gradient(52% 48% at 88% 24%, #30b0cd3d 0%, transparent 62%),
+      radial-gradient(70% 60% at 58% 96%, #7185bd5c 0%, transparent 66%),
+      linear-gradient(166deg,
+        var(--phenome-blue-200) 0%,
+        var(--phenome-blue-200) 42%,
+        var(--phenome-blue-300) 100%)}
   #labBg i{position:absolute;border-radius:50%;background:#ffffff2e;
     box-shadow:inset 0 0 22px #ffffff45;animation:labFloat linear infinite}
   #labBg i:nth-child(1){width:16px;height:16px;left:14%;top:24%;animation-duration:23s}
@@ -2829,41 +2849,63 @@ function organMaterial(colour) {
 const bodies = {};
 let sex = 'Male';
 
-/* Median x per horizontal slab ignores the arms in a way a mean cannot, and
-   the depth centre is measured only near that midline, so shoulders and hands
-   stay out of it. Without this the liver ends up outside the abdomen. */
+/* One trunk centre per horizontal slab, so each organ is seated against the
+   body's own axis at its own height rather than against one chest-level
+   guess — the abdomen's centreline is not the chest's.
+
+   A trunk half-width. Measured on these meshes: the torso spans ±0.22 at
+   every height from chest to hip, and in an A-pose the nearest arm vertex is
+   past 0.3, so this window is the whole trunk and none of the arms. */
+const TRUNK_HALF = BODY_H * 0.085;   // 0.221
+
 function centreline(root) {
   const slabs = 96, step = BODY_H / slabs;
+  const v = new THREE.Vector3();
+  root.updateMatrixWorld(true);
+
+  /* Collect every vertex. These bodies carry about 15k, so there is nothing
+     to gain by decimating — and decimating is precisely what broke this. The
+     old pass took every third vertex and then read a plain median, which only
+     ever found the trunk because the two arms cancelled each other out. At
+     hip height five of every six vertices in a slab belong to the arms, so
+     one-in-three sampling breaks that cancellation and the median lands on a
+     forearm: 0.21 off axis, which seated the kidneys outside the body. */
+  const px = [], py = [], pz = [];
+  root.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    const p = o.geometry.getAttribute('position');
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld);
+      px.push(v.x); py.push(v.y); pz.push(v.z);
+    }
+  });
+  const median = (a) => { a.sort((m, n) => m - n); return a[a.length >> 1]; };
+
+  /* The body axis, taken over the whole figure at once. Trunk, head and legs
+     outnumber the arms across the entire body, so this finds the axis without
+     needing the arms to be symmetric about it. */
+  const axisX = px.length ? median(px.slice()) : 0;
+
+  /* Now measure each slab using only what lies within a trunk half-width of
+     that axis. This gate already existed on the depth pass; putting it on x
+     as well is the actual repair, and z falls out of it — z was being sampled
+     in a window centred on whatever wrong x the ungated median returned. */
   const xs = Array.from({ length: slabs }, () => []);
   const zlo = new Float64Array(slabs).fill(Infinity);
   const zhi = new Float64Array(slabs).fill(-Infinity);
-  const v = new THREE.Vector3();
-  root.updateMatrixWorld(true);
-  root.traverse((o) => {
-    if (!o.isMesh || !o.geometry) return;
-    const p = o.geometry.getAttribute('position');
-    for (let i = 0; i < p.count; i += 3) {
-      v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld);
-      const k = Math.floor(v.y / step);
-      if (k >= 0 && k < slabs) xs[k].push(v.x);
-    }
-  });
-  const midX = xs.map((a) => { if (a.length < 12) return null; a.sort((m, n) => m - n); return a[a.length >> 1]; });
-  root.traverse((o) => {
-    if (!o.isMesh || !o.geometry) return;
-    const p = o.geometry.getAttribute('position');
-    for (let i = 0; i < p.count; i += 3) {
-      v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld);
-      const k = Math.floor(v.y / step);
-      if (k < 0 || k >= slabs || midX[k] === null) continue;
-      if (Math.abs(v.x - midX[k]) > BODY_H * 0.085) continue;
-      if (v.z < zlo[k]) zlo[k] = v.z;
-      if (v.z > zhi[k]) zhi[k] = v.z;
-    }
-  });
+  for (let i = 0; i < px.length; i++) {
+    const k = Math.floor(py[i] / step);
+    if (k < 0 || k >= slabs) continue;
+    if (Math.abs(px[i] - axisX) > TRUNK_HALF) continue;
+    xs[k].push(px[i]);
+    if (pz[i] < zlo[k]) zlo[k] = pz[i];
+    if (pz[i] > zhi[k]) zhi[k] = pz[i];
+  }
   const line = [];
   for (let k = 0; k < slabs; k++) {
-    line.push(midX[k] === null || !isFinite(zlo[k]) ? null : { x: midX[k], z: (zlo[k] + zhi[k]) / 2 });
+    line.push(xs[k].length < 8 || !isFinite(zlo[k])
+      ? null
+      : { x: median(xs[k]), z: (zlo[k] + zhi[k]) / 2 });
   }
   return { step, line };
 }
@@ -3130,6 +3172,14 @@ function frame(now) {
   }
 }
 requestAnimationFrame(frame);
+
+/* A handle for calibrating placement from the console, the same way the home
+   page exposes __rig. Anatomy is checked by measuring, not by eye. */
+window.__body = {
+  THREE, scene, stage, camera, bodies, CATS, view,
+  BODY_H, ORGAN_SCALE, organH, seatOf, centreAt, organAnchor, organFor,
+  get sex() { return sex; },
+};
 
 /* ------------------------------------------------------------- ignition */
 let booted = false;

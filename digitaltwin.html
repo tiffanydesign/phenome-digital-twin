@@ -3072,7 +3072,11 @@ async function go(next, cat) {
     L('#labBack').classList.remove('on');
     L('#labBar').classList.remove('on');
     L('#labCard').classList.remove('on');
-    for (const c of CATS) { hots[c.id].classList.remove('gone', 'named'); }
+    /* The whole figure carries no pins. Six pulsing dots on an untouched body
+       is six claims competing with the body itself, and the rail beside it
+       already names every organ — the pin's job is to mark the one organ that
+       is open, so it earns its place only once something is. */
+    for (const c of CATS) { hots[c.id].classList.add('gone'); hots[c.id].classList.remove('named'); }
     const rec = bodies[sex];
     for (const k in rec.organs) rec.organs[k].holder.userData.fade = 0;
     return;

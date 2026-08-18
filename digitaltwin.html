@@ -122,6 +122,29 @@
   --font-numeral:"New Science Mono Hairline","New Science Mono Thin","New Science Mono ExtraLight",
                  "New Science Mono Light","New Science Mono","NewScienceMono","New Science",
                  ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+
+  /* NEW · figure stage. Both pages that carry a figure stand it on this, so
+     the home page and the body page are the same room seen twice.
+
+     Taken from organ-body-full.html, which paints a sky sphere: #d6e7f8 above,
+     #fbfdff below, plus a #9edcff bloom just above centre at 0.18 strength.
+     Those exact values were built for a page whose figure is a dark point
+     cloud. Under a near-white pearl they invert the problem: at #fbfdff the
+     body page's legs and feet had nothing to separate from. So both ends step
+     down, and the bottom steps down further than the top — that is where the
+     figure actually stands. The bloom is kept exactly as it was. */
+  --stage-top:#c4d8f1;      /* was #d6e7f8 */
+  --stage-bottom:#dde8f6;   /* was #fbfdff */
+  --stage-glow:#9edcff;     /* unchanged — it is added, not mixed */
+}
+
+/* One recipe, used by both stages. The sphere's uTop maps to the top of the
+   frame and its bloom sits slightly above centre, so the DOM version is a
+   plain vertical ramp with one soft lobe over it. */
+.stage-wash{
+  background:
+    radial-gradient(56% 44% at 50% 38%, #9edcff30 0%, transparent 72%),
+    linear-gradient(180deg, var(--stage-top) 0%, var(--stage-bottom) 100%);
 }
 
 /* ============================================================ */
@@ -153,7 +176,10 @@ body{
 /* ============================================================
    VIEW 1 · EXAMPLE  (fixed 1366 x 1024, iPad 13" landscape)
    ============================================================ */
-#scanWrap{position:relative;margin:0 auto;overflow:hidden}
+/* The stage wash sits behind the composition rather than on <body>, so the
+   design-system document — which shares that body — keeps its own paper. */
+#scanBg{position:fixed;inset:0;z-index:0;pointer-events:none}
+#scanWrap{position:relative;z-index:1;margin:0 auto;overflow:hidden}
 #stage{position:absolute;top:0;left:0;width:1366px;height:1024px;transform-origin:top left}
 
 #figure{position:absolute;inset:0;z-index:2;
@@ -670,6 +696,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
 <!-- ══════════════════ VIEW 1 · SCAN SUMMARY ══════════════════ -->
 <div class="view is-on" id="viewScan">
+  <div id="scanBg" class="stage-wash"></div>
   <div id="scanWrap">
     <div id="stage">
 
@@ -2496,7 +2523,7 @@ try {
      ============================================================ -->
 <div class="view" id="viewLab">
   <div id="labWrap">
-    <div id="labBg"><i></i><i></i><i></i><i></i><i></i></div>
+    <div id="labBg" class="stage-wash"></div>
     <canvas id="labGL"></canvas>
     <div id="labHot"></div>
 
@@ -2530,50 +2557,15 @@ try {
 
 <style>
   /* ---------- stage ---------- */
-  #labWrap{position:fixed;inset:0;overflow:hidden;background:var(--phenome-blue-200)}
+  #labWrap{position:fixed;inset:0;overflow:hidden;background:var(--stage-bottom)}
   #labGL{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
   #labGL.drag{cursor:grabbing}
 
-  /* The wash behind the figure: three tinted lobes that drift, which is what
-     keeps a flat gradient from reading as a flat gradient.
-
-     Every hue here now comes off the brand ramp. What it replaces was a
-     lilac — #dcc2e8 into #cbb9e2 — that appears in no ramp in this file, so
-     the one full-bleed surface in the product was the one surface not
-     speaking the palette.
-
-     The ramp does the work a studio backdrop does, and it deliberately keeps
-     its light end away from the middle: the figure is a near-white pearl, so
-     the ground it is read against has to be darker than it is, not lighter.
-     So the wash runs blue-200 to blue-300 straight down the centre, and the
-     one blue-100 lift sits out in the top-left corner where no body is —
-     atmosphere, not a band across the chest. The deep corner is also what
-     gives the category rail's glass something to sit against.
-
-     The single accent is the cyan that opens --gradient-brand, in the same
-     corner the home page puts its own cyan lobe, so both pages are lit from
-     the same place. */
-  #labBg{position:absolute;inset:-10%;pointer-events:none;
-    background:
-      radial-gradient(52% 46% at 8% 12%, #e6e9f2a8 0%, transparent 70%),
-      radial-gradient(52% 48% at 88% 24%, #30b0cd3d 0%, transparent 62%),
-      radial-gradient(70% 60% at 58% 96%, #7185bd5c 0%, transparent 66%),
-      linear-gradient(166deg,
-        var(--phenome-blue-200) 0%,
-        var(--phenome-blue-200) 42%,
-        var(--phenome-blue-300) 100%)}
-  #labBg i{position:absolute;border-radius:50%;background:#ffffff2e;
-    box-shadow:inset 0 0 22px #ffffff45;animation:labFloat linear infinite}
-  #labBg i:nth-child(1){width:16px;height:16px;left:14%;top:24%;animation-duration:23s}
-  #labBg i:nth-child(2){width:9px;height:9px;left:71%;top:18%;animation-duration:31s;animation-delay:-6s}
-  #labBg i:nth-child(3){width:22px;height:22px;left:84%;top:62%;animation-duration:27s;animation-delay:-12s}
-  #labBg i:nth-child(4){width:11px;height:11px;left:26%;top:74%;animation-duration:35s;animation-delay:-3s}
-  #labBg i:nth-child(5){width:7px;height:7px;left:47%;top:12%;animation-duration:29s;animation-delay:-18s}
-  @keyframes labFloat{
-    0%{transform:translate3d(0,0,0)}
-    50%{transform:translate3d(18px,-34px,0)}
-    100%{transform:translate3d(0,0,0)}
-  }
+  /* The same .stage-wash the home page stands on, so the two figures read as
+     one room. The drifting white specks that used to float over it are gone:
+     they were the only moving thing on a page whose whole subject is meant to
+     be still, and they read as dust on the lens. */
+  #labBg{position:absolute;inset:0;pointer-events:none}
 
   /* ---------- shared glass ---------- */
   #labWrap .glass{background:#ffffffa6;border:1px solid #ffffffcc;
@@ -2739,11 +2731,14 @@ const organH = (cat) => cat.hFrac * BODY_H * ORGAN_SCALE;
    x, z   offset from the trunk centreline at that height, in body heights
    yaw    correction for the source file's own axis convention            */
 const CATS = [
-  { id:'neuro',  name:'Neurology',      file:'pink_brain.glb',
+  /* Named for the organ, not for the clinical domain, and named the way
+     organ-body-full.html already names the same seven files, so the two pages
+     do not disagree about what a model is called. */
+  { id:'neuro',  name:'Brain',          file:'pink_brain.glb',
     hFrac:0.058, seat:0.948, x:0,      z:0.000, yaw:-90, colour:'#d9829b', dist:0.62,
     rows:[['Neurotransmitters','42'],['Cognitive domains','6'],['RNA age gap','−3 y']],
     note:'Brain markers are read from plasma proteins and the cognitive battery, not from imaging.' },
-  { id:'cardio', name:'Cardiovascular', file:'realistic_human_heart.glb',
+  { id:'cardio', name:'Heart',          file:'realistic_human_heart.glb',
     hFrac:0.069, seat:0.715, x:0.022,  z:0.028, yaw:-12, colour:'#d6455a', dist:0.60,
     rows:[['Measuring points','10'],['Blood pressure','118/76'],['ApoB','0.74 g/L']],
     note:'Ten pressure and rhythm points, read against the fixed adult thresholds.' },
@@ -2752,7 +2747,7 @@ const CATS = [
      a shorter, broader model without it — came out far too wide for the
      same 0.185 and burst through the rib cage on both sides. Same file as
      the lab now, which makes the fraction correct by construction. */
-  { id:'resp',   name:'Respiratory',    file:'realistic_human_lungs.glb',
+  { id:'resp',   name:'Lungs',          file:'realistic_human_lungs.glb',
     hFrac:0.185, seat:0.748, x:0,      z:0.002, yaw:0,   colour:'#c9748c', dist:0.95,
     rows:[['FEV₁','3.18 L'],['SpO₂','98 %'],['Limit for age','3.10 L']],
     note:'Lung volume is judged against a limit computed from age, height and sex.' },
@@ -2761,15 +2756,15 @@ const CATS = [
      sitting on the perineum rather than ending at the pelvic brim, which is
      what read as too low. 0.560 puts the bottom at 1.284, inside the lower
      pelvis, and the transverse colon back up at navel height. */
-  { id:'gut',    name:'Gut Health',     file:'small_and_large_intestine.glb',
+  { id:'gut',    name:'Intestines',     file:'small_and_large_intestine.glb',
     hFrac:0.150, seat:0.560, x:0,      z:0.010, yaw:0,   colour:'#c4855f', dist:0.92,
     rows:[['Species found','312'],['Diversity','68th pct'],['Off target','4']],
     note:'Shotgun sequencing of the stool sample, scored against the reference cohort.' },
-  { id:'detox',  name:'Detox',          file:'human_liver_and_gallbladder.glb',
+  { id:'detox',  name:'Liver & Gallbladder', file:'human_liver_and_gallbladder.glb',
     hFrac:0.098, seat:0.620, x:-0.032, z:-0.004, yaw:-90, colour:'#a04b3c', dist:0.78,
     rows:[['Liver enzymes','6'],['Steatosis grade','S0'],['Toxin panel','38']],
     note:'Enzymes and the ultrasound grade read together: neither is conclusive alone.' },
-  { id:'horm',   name:'Hormones',       file:'human_kidney.glb',
+  { id:'horm',   name:'Kidneys',        file:'human_kidney.glb',
     hFrac:0.083, seat:0.583, x:0,      z:-0.032, yaw:0,   colour:'#b8535e', dist:0.72,
     rows:[['Hormones assayed','24'],['eGFR','96'],['Cortisol curve','4 points']],
     note:'Adrenal output is sampled four times across one day, not once.' },

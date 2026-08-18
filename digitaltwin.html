@@ -2680,6 +2680,25 @@ const { THREE, loadGLB, fitToFloor } = await (async () => {
 const BODY_H = 2.6;
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
+/* Real-sized viscera do not fit inside a trunk with gaps between them — the
+   figure lab settled this at 0.88, the most shrink that still reads as
+   anatomical, applied about each organ's own centre so nothing leaves its
+   seat. Carried over verbatim rather than re-derived. */
+const ORGAN_SCALE = 0.88;
+const organH = (cat) => cat.hFrac * BODY_H * ORGAN_SCALE;
+
+/* The figure dissolves into the page instead of ending at the frame edge.
+   The ramp is in world height, so it is a property of the body rather than
+   of the window, and a short viewport can no longer chop the legs off.
+   Both ends are solved against something real rather than chosen by eye.
+   The top end is the content: the intestines are the lowest thing on the
+   figure and reach to 0.464 of body height once ORGAN_SCALE is applied, so
+   the solid zone has to clear that. The bottom end is the frame: the ramp
+   must reach zero above the bottom of the overview camera's view, or the
+   dissolve is itself cut off and the problem has only moved. */
+const FADE_HI = 0.44 * BODY_H;   // 1.144 — solid above; gut bottom is 1.206
+const FADE_LO = 0.28 * BODY_H;   // 0.728 — gone by upper thigh, frame ends at 0.63
+
 /* hFrac  organ height as a fraction of body height
    seat   height of its centre, same fraction
    x, z   offset from the trunk centreline at that height, in body heights
@@ -2693,7 +2712,12 @@ const CATS = [
     hFrac:0.069, seat:0.715, x:0.022,  z:0.028, yaw:-12, colour:'#d6455a', dist:0.60,
     rows:[['Measuring points','10'],['Blood pressure','118/76'],['ApoB','0.74 g/L']],
     note:'Ten pressure and rhythm points, read against the fixed adult thresholds.' },
-  { id:'resp',   name:'Respiratory',    file:'lungs.glb',
+  /* The figure lab measured hFrac against realistic_human_lungs.glb, which
+     includes the trachea. Fitting is by height, so the lighter lungs.glb —
+     a shorter, broader model without it — came out far too wide for the
+     same 0.185 and burst through the rib cage on both sides. Same file as
+     the lab now, which makes the fraction correct by construction. */
+  { id:'resp',   name:'Respiratory',    file:'realistic_human_lungs.glb',
     hFrac:0.185, seat:0.748, x:0,      z:0.002, yaw:0,   colour:'#c9748c', dist:0.95,
     rows:[['FEV₁','3.18 L'],['SpO₂','98 %'],['Limit for age','3.10 L']],
     note:'Lung volume is judged against a limit computed from age, height and sex.' },
@@ -2774,6 +2798,33 @@ if ('iridescence' in bodyMat) {
   bodyMat.iridescenceIOR = 1.32;
   bodyMat.iridescenceThicknessRange = [120, 440];
 }
+
+/* The half-body ramp, grafted onto the pearl rather than replacing it: the
+   same smoothstep over world Y the figure lab uses, multiplied into the
+   final alpha so every other term in the physical material is untouched.
+   The uniform objects are shared with the compiled program, so the range
+   stays tunable from the console.
+
+   depthWrite goes off with it. A surface that is half dissolved must not
+   lay down depth, or the far side of the hip punches a hole in the near
+   side once both are partly transparent. */
+const fadeU = { uFadeLo:{ value:FADE_LO }, uFadeHi:{ value:FADE_HI } };
+bodyMat.depthWrite = false;
+bodyMat.onBeforeCompile = (shader) => {
+  shader.uniforms.uFadeLo = fadeU.uFadeLo;
+  shader.uniforms.uFadeHi = fadeU.uFadeHi;
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying float vFadeY;')
+    /* project_vertex is always present and `transformed` is in scope there */
+    .replace('#include <project_vertex>',
+             '#include <project_vertex>\n  vFadeY = (modelMatrix * vec4(transformed, 1.0)).y;');
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>',
+             '#include <common>\nvarying float vFadeY;\nuniform float uFadeLo, uFadeHi;')
+    /* dithering is the last chunk, so this is the final alpha */
+    .replace('#include <dithering_fragment>',
+             '#include <dithering_fragment>\n  gl_FragColor.a *= smoothstep(uFadeLo, uFadeHi, vFadeY);');
+};
 
 function organMaterial(colour) {
   const m = new THREE.MeshPhysicalMaterial({
@@ -2858,7 +2909,7 @@ async function organFor(cat) {
   loading.classList.add('on');
   try {
     const root = await loadGLB(`GLB/organ/${cat.file}`);
-    const holder = fitToFloor(root, cat.hFrac * BODY_H);
+    const holder = fitToFloor(root, organH(cat));
     holder.userData.srcH = BODY_H;
     const mat = organMaterial(cat.colour);
     holder.traverse((o) => { if (o.isMesh) { o.material = mat; o.renderOrder = 5; } });
@@ -2875,9 +2926,13 @@ async function organFor(cat) {
 }
 
 /* ------------------------------------------------------------- the camera */
+/* Reframed for the dissolved figure. What is left on screen runs from the
+   crown at 2.6 down to about 1.14, so the frame is centred on 1.82 and
+   pulled in to 4.15, which puts the bottom edge at 0.63 — below the point
+   the ramp reaches zero, so the dissolve completes inside the picture. */
 const view = {
-  pos: new THREE.Vector3(0, 1.34, 5.4),
-  tgt: new THREE.Vector3(0, 1.32, 0),
+  pos: new THREE.Vector3(0, 1.88, 4.15),
+  tgt: new THREE.Vector3(0, 1.82, 0),
   yaw: 0,
 };
 const flight = { on:false, t:0, dur:1.15, fromP:new THREE.Vector3(), fromT:new THREE.Vector3(), toP:new THREE.Vector3(), toT:new THREE.Vector3() };
@@ -2887,14 +2942,14 @@ function flyTo(pos, tgt, dur) {
   flight.toP.copy(pos); flight.toT.copy(tgt);
   flight.t = 0; flight.dur = dur || 1.15; flight.on = true;
 }
-const OVERVIEW = { pos:new THREE.Vector3(0, 1.34, 5.4), tgt:new THREE.Vector3(0, 1.32, 0) };
+const OVERVIEW = { pos:new THREE.Vector3(0, 1.88, 4.15), tgt:new THREE.Vector3(0, 1.82, 0) };
 
 /* the fitter leaves a model standing on its own origin, so the seat height is
    reached by dropping it half its height */
 function seatOf(cat, t) {
   return new THREE.Vector3(
     t.x + cat.x * BODY_H,
-    cat.seat * BODY_H - cat.hFrac * BODY_H * 0.5,
+    cat.seat * BODY_H - organH(cat) * 0.5,
     t.z + cat.z * BODY_H
   );
 }
@@ -2903,7 +2958,7 @@ function organAnchor(cat) {
   const t = centreAt(rec.cl, cat.seat * BODY_H);
   const p = seatOf(cat, t);
   /* the pin belongs on the organ's middle, not on the base it is seated from */
-  p.y += cat.hFrac * BODY_H * 0.5;
+  p.y += organH(cat) * 0.5;
   return p;
 }
 function framing(cat, close) {

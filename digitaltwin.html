@@ -2756,8 +2756,13 @@ const CATS = [
     hFrac:0.185, seat:0.748, x:0,      z:0.002, yaw:0,   colour:'#c9748c', dist:0.95,
     rows:[['FEV₁','3.18 L'],['SpO₂','98 %'],['Limit for age','3.10 L']],
     note:'Lung volume is judged against a limit computed from age, height and sex.' },
+  /* seat raised from the lab's 0.530. At 0.530 the mass bottomed out at 1.206,
+     and the legs of this mesh separate at 1.20 — so the intestines were
+     sitting on the perineum rather than ending at the pelvic brim, which is
+     what read as too low. 0.560 puts the bottom at 1.284, inside the lower
+     pelvis, and the transverse colon back up at navel height. */
   { id:'gut',    name:'Gut Health',     file:'small_and_large_intestine.glb',
-    hFrac:0.150, seat:0.530, x:0,      z:0.010, yaw:0,   colour:'#c4855f', dist:0.92,
+    hFrac:0.150, seat:0.560, x:0,      z:0.010, yaw:0,   colour:'#c4855f', dist:0.92,
     rows:[['Species found','312'],['Diversity','68th pct'],['Off target','4']],
     note:'Shotgun sequencing of the stool sample, scored against the reference cohort.' },
   { id:'detox',  name:'Detox',          file:'human_liver_and_gallbladder.glb',
@@ -2919,13 +2924,26 @@ function centreAt(cl, y) {
   return { x:0, z:0 };
 }
 
+/* Body and organs hang off one pivot, and the pivot is the only thing that
+   ever turns. Rotating them separately means keeping two transforms in
+   agreement by hand, which is what went wrong before: the body used three's
+   own Y rotation while the organ seats were orbited by a hand-written matrix
+   of the opposite handedness, so at yaw 0 they agreed and everywhere else
+   they did not — worst at a side view, where four of six organs left the
+   body. Parenting removes the second transform rather than correcting it.
+
+   The pivot stays at identity scale, so the centreline sampled through it
+   and the seats expressed against it share one set of units. */
 async function loadBodyFor(name) {
   if (bodies[name]) return bodies[name];
   const holder = fitToFloor(await loadGLB(`GLB/${name}.glb`), BODY_H);
   holder.traverse((o) => { if (o.isMesh) { o.material = bodyMat; o.renderOrder = 20; } });
-  const rec = { holder, cl: centreline(holder), organs: {} };
+  const pivot = new THREE.Group();
+  pivot.add(holder);
+  stage.add(pivot);
+  pivot.updateMatrixWorld(true);
+  const rec = { pivot, holder, cl: centreline(holder), organs: {} };
   holder.visible = false;
-  stage.add(holder);
   bodies[name] = rec;
   return rec;
 }
@@ -2945,9 +2963,11 @@ async function organFor(cat) {
     holder.traverse((o) => { if (o.isMesh) { o.material = mat; o.renderOrder = 5; } });
     const t = centreAt(rec.cl, cat.seat * BODY_H);
     holder.position.copy(seatOf(cat, t));
+    /* cat.yaw is the source file's own axis correction and nothing else — the
+       view's yaw belongs to the pivot, which this now rides on */
     holder.rotation.y = cat.yaw * Math.PI / 180;
     holder.visible = false;
-    stage.add(holder);
+    rec.pivot.add(holder);
     rec.organs[cat.id] = { holder, mat };
     return rec.organs[cat.id];
   } finally {
@@ -2979,6 +2999,8 @@ function seatOf(cat, t) {
     t.z + cat.z * BODY_H
   );
 }
+/* The organ's middle, in the pivot's own space — the space the seats and the
+   centreline are both expressed in. */
 function organAnchor(cat) {
   const rec = bodies[sex];
   const t = centreAt(rec.cl, cat.seat * BODY_H);
@@ -2987,8 +3009,16 @@ function organAnchor(cat) {
   p.y += organH(cat) * 0.5;
   return p;
 }
+/* ...and the same point in world space. Anything outside the pivot — the
+   camera, a projected hotspot — has to ask for it this way rather than
+   re-deriving the rotation, which is the mistake this replaces. */
+function organAnchorWorld(cat, into) {
+  const rec = bodies[sex];
+  const p = (into || new THREE.Vector3()).copy(organAnchor(cat));
+  return rec ? rec.pivot.localToWorld(p) : p;
+}
 function framing(cat, close) {
-  const a = organAnchor(cat);
+  const a = organAnchorWorld(cat);
   const d = close ? cat.dist : cat.dist * 2.1;
   return { pos:new THREE.Vector3(a.x * 0.4, a.y + d * 0.12, a.z + d), tgt:a.clone() };
 }
@@ -3138,20 +3168,14 @@ function frame(now) {
 
   const rec = bodies[sex];
   if (rec) {
-    rec.holder.rotation.y = view.yaw;
+    /* one turn, on the parent. The body and every organ are children, so they
+       cannot drift apart no matter what the yaw is. */
+    rec.pivot.rotation.y = view.yaw;
     for (const k in rec.organs) {
       const o = rec.organs[k];
       const want = o.holder.userData.fade || 0;
       o.mat.opacity += (want - o.mat.opacity) * Math.min(dt * 4, 1);
       o.holder.visible = o.mat.opacity > 0.01;
-      o.holder.rotation.y = (CATS.find((c) => c.id === k).yaw * Math.PI / 180) + view.yaw;
-      const cat = CATS.find((c) => c.id === k);
-      const t = centreAt(rec.cl, cat.seat * BODY_H);
-      const a = seatOf(cat, t);
-      o.holder.position.set(
-        a.x * Math.cos(view.yaw) - a.z * Math.sin(view.yaw), a.y,
-        a.x * Math.sin(view.yaw) + a.z * Math.cos(view.yaw)
-      );
     }
   }
 
@@ -3163,8 +3187,7 @@ function frame(now) {
   for (const c of CATS) {
     const el = hots[c.id];
     if (!el) continue;
-    const a = organAnchor(c);
-    tmp.set(a.x * Math.cos(view.yaw) - a.z * Math.sin(view.yaw), a.y, a.x * Math.sin(view.yaw) + a.z * Math.cos(view.yaw));
+    organAnchorWorld(c, tmp);
     tmp.project(camera);
     const x = (tmp.x * 0.5 + 0.5) * window.innerWidth;
     const y = (-tmp.y * 0.5 + 0.5) * window.innerHeight;
@@ -3177,7 +3200,8 @@ requestAnimationFrame(frame);
    page exposes __rig. Anatomy is checked by measuring, not by eye. */
 window.__body = {
   THREE, scene, stage, camera, bodies, CATS, view,
-  BODY_H, ORGAN_SCALE, organH, seatOf, centreAt, organAnchor, organFor,
+  BODY_H, ORGAN_SCALE, organH, seatOf, centreAt,
+  organAnchor, organAnchorWorld, organFor,
   get sex() { return sex; },
 };
 

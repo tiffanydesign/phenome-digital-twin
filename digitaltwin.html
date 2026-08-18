@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Phenome · Example and design system</title>
+<title>Phenome · Digital Twin</title>
 <style>
 /* ============================================================
    TYPE
@@ -1146,8 +1146,8 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 </div>
 
 <div class="toggle" role="group" aria-label="Switch view">
-  <button id="tabScan" aria-pressed="true">Example</button>
-  <button id="tabLab" aria-pressed="false">Example 2</button>
+  <button id="tabScan" aria-pressed="true">Home page</button>
+  <button id="tabLab" aria-pressed="false">Body page</button>
   <button id="tabSpec" aria-pressed="false">Design system</button>
 </div>
 
@@ -2074,30 +2074,57 @@ scene.add(stage);
 const camera = new THREE.PerspectiveCamera(FRAME.fov, STAGE_W / STAGE_H, 0.05, 200);
 
 /* pass 1 · shade the body into a buffer */
+/* The legs used to stop dead where the stage ends. They now thin out into
+   the page instead, using the ramp the figure lab already carries: a
+   smoothstep over WORLD height, so it belongs to the body rather than to
+   the viewport.
+
+   It rides on alpha, not on colour, because alpha is what this pipeline
+   reads as coverage. A cell that is half covered gets a smaller dot, so
+   the body goes sparse and then absent — which is the same mechanism the
+   silhouette already uses at its edges, not a new effect bolted on.
+
+   Both ends are measured against the frame rather than picked by eye. The
+   stage bottom sits at world 0.774 (target 1.760 less dist*tan(fov/2)), so
+   the ramp has to reach zero above that or the dissolve is itself cut off
+   and nothing has been solved. */
+const FADE_HI = 0.46 * BODY_H;   // 1.196 — solid above the hip
+const FADE_LO = 0.31 * BODY_H;   // 0.806 — gone just inside the stage edge
+
 const matTone = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,
+  /* NoBlending, so the buffer takes this fragment verbatim. Under
+     NormalBlending a faded fragment would premultiply its own colour
+     towards black, the halftone pass would read that as a darker tone,
+     and an inverted screen turns darker into MORE ink — the fade would
+     fight itself. With alpha at 1 everywhere this is identical to what
+     the pass did before. */
+  blending: THREE.NoBlending,
   uniforms: {
     uLightMix: { value: 0 },
     uLightDir: { value: new THREE.Vector3(0.5, 0.7, 0.5) },
+    uFadeLo: { value: FADE_LO },
+    uFadeHi: { value: FADE_HI },
   },
   vertexShader: `
-    varying vec3 vN; varying vec3 vV;
+    varying vec3 vN; varying vec3 vV; varying float vY;
     void main() {
       vec4 mv = modelViewMatrix * vec4(position, 1.0);
       vN = normalize(normalMatrix * normal);
       vV = normalize(-mv.xyz);
+      vY = (modelMatrix * vec4(position, 1.0)).y;
       gl_Position = projectionMatrix * mv;
     }`,
   fragmentShader: `
-    varying vec3 vN; varying vec3 vV;
-    uniform float uLightMix;
+    varying vec3 vN; varying vec3 vV; varying float vY;
+    uniform float uLightMix, uFadeLo, uFadeHi;
     uniform vec3 uLightDir;
     void main() {
       vec3 nv = normalize(vN);
       float facing = clamp(abs(dot(nv, normalize(vV))), 0.0, 1.0);
       float ndl = clamp(dot(nv, normalize(uLightDir)) * 0.5 + 0.5, 0.0, 1.0);
       float bright = mix(facing, ndl, uLightMix);
-      gl_FragColor = vec4(bright, bright, bright, 1.0);
+      gl_FragColor = vec4(bright, bright, bright, smoothstep(uFadeLo, uFadeHi, vY));
     }`,
 });
 
@@ -2647,7 +2674,7 @@ try {
 
 <script type="module">
 /* ---------------------------------------------------------------------------
-   Example 2 · guided body.
+   Body page · guided body.
 
    Three states and one camera. Every transition is the same easing on the same
    two vectors, so the whole experience is one flight function rather than a
@@ -2674,7 +2701,7 @@ const { THREE, loadGLB, fitToFloor } = await (async () => {
     if (window.__glb) return window.__glb;
     await new Promise((r) => setTimeout(r, 50));
   }
-  throw new Error('Example 2 needs the shared GLB reader, which never arrived');
+  throw new Error('The body page needs the shared GLB reader, which never arrived');
 })();
 
 const BODY_H = 2.6;
@@ -2686,18 +2713,6 @@ const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
    seat. Carried over verbatim rather than re-derived. */
 const ORGAN_SCALE = 0.88;
 const organH = (cat) => cat.hFrac * BODY_H * ORGAN_SCALE;
-
-/* The figure dissolves into the page instead of ending at the frame edge.
-   The ramp is in world height, so it is a property of the body rather than
-   of the window, and a short viewport can no longer chop the legs off.
-   Both ends are solved against something real rather than chosen by eye.
-   The top end is the content: the intestines are the lowest thing on the
-   figure and reach to 0.464 of body height once ORGAN_SCALE is applied, so
-   the solid zone has to clear that. The bottom end is the frame: the ramp
-   must reach zero above the bottom of the overview camera's view, or the
-   dissolve is itself cut off and the problem has only moved. */
-const FADE_HI = 0.44 * BODY_H;   // 1.144 — solid above; gut bottom is 1.206
-const FADE_LO = 0.28 * BODY_H;   // 0.728 — gone by upper thigh, frame ends at 0.63
 
 /* hFrac  organ height as a fraction of body height
    seat   height of its centre, same fraction
@@ -2799,33 +2814,6 @@ if ('iridescence' in bodyMat) {
   bodyMat.iridescenceThicknessRange = [120, 440];
 }
 
-/* The half-body ramp, grafted onto the pearl rather than replacing it: the
-   same smoothstep over world Y the figure lab uses, multiplied into the
-   final alpha so every other term in the physical material is untouched.
-   The uniform objects are shared with the compiled program, so the range
-   stays tunable from the console.
-
-   depthWrite goes off with it. A surface that is half dissolved must not
-   lay down depth, or the far side of the hip punches a hole in the near
-   side once both are partly transparent. */
-const fadeU = { uFadeLo:{ value:FADE_LO }, uFadeHi:{ value:FADE_HI } };
-bodyMat.depthWrite = false;
-bodyMat.onBeforeCompile = (shader) => {
-  shader.uniforms.uFadeLo = fadeU.uFadeLo;
-  shader.uniforms.uFadeHi = fadeU.uFadeHi;
-  shader.vertexShader = shader.vertexShader
-    .replace('#include <common>', '#include <common>\nvarying float vFadeY;')
-    /* project_vertex is always present and `transformed` is in scope there */
-    .replace('#include <project_vertex>',
-             '#include <project_vertex>\n  vFadeY = (modelMatrix * vec4(transformed, 1.0)).y;');
-  shader.fragmentShader = shader.fragmentShader
-    .replace('#include <common>',
-             '#include <common>\nvarying float vFadeY;\nuniform float uFadeLo, uFadeHi;')
-    /* dithering is the last chunk, so this is the final alpha */
-    .replace('#include <dithering_fragment>',
-             '#include <dithering_fragment>\n  gl_FragColor.a *= smoothstep(uFadeLo, uFadeHi, vFadeY);');
-};
-
 function organMaterial(colour) {
   const m = new THREE.MeshPhysicalMaterial({
     color:colour, roughness:0.36, metalness:0,
@@ -2926,13 +2914,9 @@ async function organFor(cat) {
 }
 
 /* ------------------------------------------------------------- the camera */
-/* Reframed for the dissolved figure. What is left on screen runs from the
-   crown at 2.6 down to about 1.14, so the frame is centred on 1.82 and
-   pulled in to 4.15, which puts the bottom edge at 0.63 — below the point
-   the ramp reaches zero, so the dissolve completes inside the picture. */
 const view = {
-  pos: new THREE.Vector3(0, 1.88, 4.15),
-  tgt: new THREE.Vector3(0, 1.82, 0),
+  pos: new THREE.Vector3(0, 1.34, 5.4),
+  tgt: new THREE.Vector3(0, 1.32, 0),
   yaw: 0,
 };
 const flight = { on:false, t:0, dur:1.15, fromP:new THREE.Vector3(), fromT:new THREE.Vector3(), toP:new THREE.Vector3(), toT:new THREE.Vector3() };
@@ -2942,7 +2926,7 @@ function flyTo(pos, tgt, dur) {
   flight.toP.copy(pos); flight.toT.copy(tgt);
   flight.t = 0; flight.dur = dur || 1.15; flight.on = true;
 }
-const OVERVIEW = { pos:new THREE.Vector3(0, 1.88, 4.15), tgt:new THREE.Vector3(0, 1.82, 0) };
+const OVERVIEW = { pos:new THREE.Vector3(0, 1.34, 5.4), tgt:new THREE.Vector3(0, 1.32, 0) };
 
 /* the fitter leaves a model standing on its own origin, so the seat height is
    reached by dropping it half its height */

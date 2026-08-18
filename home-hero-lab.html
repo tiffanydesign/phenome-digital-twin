@@ -1,0 +1,1421 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hero Body Study — Home View Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Public+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --serif: "Instrument Serif", "Hoefler Text", Georgia, "Songti SC", serif;
+    --sans: "Public Sans", "Segoe UI", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono: "IBM Plex Mono", "SF Mono", Consolas, ui-monospace, monospace;
+
+    --ink: #0d1f30;
+    --ink-2: #4a6076;
+    --ink-3: #8ba0b4;
+    --hair: rgba(13, 31, 48, .11);
+    --hair-2: rgba(13, 31, 48, .055);
+    --page: #eef4f9;
+    --paper: #ffffff;
+    --accent: #1f6f8f;
+    --accent-sf: rgba(31, 111, 143, .10);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: var(--sans); color: var(--ink); background: var(--page);
+    -webkit-font-smoothing: antialiased; font-weight: 400;
+  }
+
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.85), rgba(224,236,246,.5) 60%, rgba(210,227,241,.7)),
+      repeating-linear-gradient(0deg, rgba(13,31,48,.035) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(90deg, rgba(13,31,48,.035) 0 1px, transparent 1px 28px);
+  }
+
+  /* one WebGL surface; every card draws into its own scissor rectangle */
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 5; }
+
+  #wrap { position: relative; z-index: 1; display: grid; grid-template-columns: 344px 1fr; min-height: 100%; }
+
+  #rail {
+    position: sticky; top: 0; height: 100vh; overflow: hidden;
+    display: flex; flex-direction: column;
+    background: rgba(255,255,255,.72); border-right: 1px solid var(--hair);
+    backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+    z-index: 20;
+  }
+  .r-head { padding: 22px 22px 16px; border-bottom: 1px solid var(--hair); flex: none; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 9px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--accent); display: flex; align-items: center; gap: 8px;
+  }
+  .eyebrow::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+  .r-title { font-family: var(--serif); font-size: 30px; line-height: 1.02; letter-spacing: -.01em; margin: 10px 0 4px; font-weight: 400; }
+  .r-title em { font-style: italic; color: var(--accent); }
+  .r-sub { font-size: 11.5px; color: var(--ink-2); line-height: 1.5; }
+
+  .r-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 40px; }
+  .r-body::-webkit-scrollbar { width: 9px; }
+  .r-body::-webkit-scrollbar-thumb { background: rgba(13,31,48,.15); border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+
+  .sec { border-bottom: 1px solid var(--hair-2); }
+  .sec-head {
+    width: 100%; background: none; border: 0; cursor: pointer; display: flex; align-items: center; gap: 9px;
+    padding: 14px 22px 12px; font-family: var(--mono); text-align: left;
+  }
+  .sec-head b { font-size: 9.5px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase; color: var(--ink); }
+  .sec-head i { font-style: normal; font-family: var(--sans); font-size: 10.5px; color: var(--ink-3); }
+  .sec-head .chev {
+    margin-left: auto; width: 6px; height: 6px; margin-top: -3px;
+    border-right: 1.3px solid var(--ink-3); border-bottom: 1.3px solid var(--ink-3);
+    transform: rotate(45deg); transition: transform .25s ease;
+  }
+  .sec.closed .chev { transform: rotate(-45deg); margin-top: 1px; }
+  .sec-body { padding: 0 22px 18px; display: grid; gap: 13px; }
+  .sec.closed .sec-body { display: none; }
+
+  .row { display: grid; gap: 7px; }
+  .row-top { display: flex; align-items: baseline; gap: 8px; }
+  .row-top b { font-size: 12px; font-weight: 500; }
+  .row-top i { font-style: normal; font-size: 10px; color: var(--ink-3); }
+  .val {
+    margin-left: auto; font-family: var(--mono); font-size: 10.5px; font-variant-numeric: tabular-nums;
+    color: var(--accent); background: var(--accent-sf); padding: 1px 6px; border-radius: 3px;
+  }
+
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; background: none; margin: 0; cursor: ew-resize; }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 2px; background: linear-gradient(to right, var(--accent) var(--p,0%), rgba(13,31,48,.15) var(--p,0%));
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; margin-top: -5px;
+    background: #fff; border: 1px solid rgba(13,31,48,.28); box-shadow: 0 1px 3px rgba(13,31,48,.25);
+  }
+  input[type=range]::-moz-range-track { height: 2px; background: rgba(13,31,48,.15); }
+  input[type=range]::-moz-range-thumb { width: 11px; height: 11px; border: 1px solid rgba(13,31,48,.28); border-radius: 50%; background: #fff; }
+
+  .swatch { position: relative; margin-left: 8px; width: 42px; height: 20px; overflow: hidden; border: 1px solid rgba(13,31,48,.18); }
+  .swatch input { position: absolute; inset: -8px; width: 200%; height: 200%; border: 0; padding: 0; cursor: pointer; background: none; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip {
+    font-family: var(--sans); font-size: 11px; color: var(--ink-2); cursor: pointer;
+    padding: 6px 9px; background: rgba(255,255,255,.75); border: 1px solid var(--hair);
+    display: flex; flex-direction: column; gap: 2px; line-height: 1.15; transition: all .15s ease;
+  }
+  .chip u { text-decoration: none; font-family: var(--mono); font-size: 8px; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3); }
+  .chip:hover { border-color: rgba(31,111,143,.45); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip.on u { color: rgba(255,255,255,.7); }
+
+  /* environment swatches — ported from the lab's strip */
+  .env-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .env-sw {
+    position: relative; height: 26px; padding: 0; cursor: pointer;
+    border: 1px solid rgba(13,31,48,.14); overflow: hidden;
+    transition: transform .16s ease, box-shadow .16s ease;
+  }
+  .env-sw::after {
+    content: ""; position: absolute; right: 3px; bottom: 3px; width: 5px; height: 5px;
+    border-radius: 50%; background: var(--sw); box-shadow: 0 0 6px 1px var(--sw);
+  }
+  .env-sw:hover { transform: translateY(-1px); }
+  .env-sw.on { box-shadow: 0 0 0 2px var(--accent); border-color: transparent; }
+  .env-now { display: flex; align-items: baseline; gap: 6px; font-size: 11px; }
+  .env-now b { font-weight: 600; }
+  .env-now i { font-style: normal; font-size: 9.5px; color: var(--ink-3); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .toggle {
+    display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-2); cursor: pointer;
+    padding: 7px 9px; border: 1px solid var(--hair); background: rgba(255,255,255,.75);
+  }
+  .toggle input { accent-color: var(--accent); margin: 0; }
+  .toggle.on { border-color: rgba(31,111,143,.5); color: var(--ink); }
+
+  .btn {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase;
+    padding: 9px 10px; cursor: pointer; text-align: center;
+    background: var(--ink); color: #fff; border: 1px solid var(--ink); transition: opacity .15s ease;
+  }
+  .btn.ghost { background: rgba(255,255,255,.8); color: var(--ink-2); border-color: var(--hair); }
+  .btn:hover { opacity: .82; }
+
+  #main { padding: 34px 38px 80px; min-width: 0; }
+  .m-head { display: flex; align-items: flex-end; gap: 26px; padding-bottom: 20px; border-bottom: 1px solid var(--hair); }
+  .m-title { font-family: var(--serif); font-size: 46px; line-height: .98; letter-spacing: -.015em; font-weight: 400; margin: 6px 0 0; }
+  .m-title em { font-style: italic; }
+  .m-meta { margin-left: auto; display: flex; gap: 30px; padding-bottom: 5px; }
+  .m-meta div { text-align: right; }
+  .m-meta u { display: block; text-decoration: none; font-family: var(--mono); font-size: 8.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+  .m-meta b { font-family: var(--serif); font-size: 22px; font-weight: 400; letter-spacing: -.01em; }
+
+  .ruler { display: flex; gap: 0; height: 9px; margin: 0 0 26px; opacity: .5; }
+  .ruler i { flex: 1; border-left: 1px solid var(--hair); }
+  .ruler i:nth-child(5n+1) { border-left-color: rgba(13,31,48,.3); height: 9px; }
+
+  #grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 26px; align-items: start; }
+  #grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  .card { position: relative; opacity: 0; transform: translateY(10px); animation: rise .7s cubic-bezier(.2,.8,.2,1) forwards; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  .frame {
+    position: relative; padding: 1px;
+    border: 1px solid var(--hair); background: var(--paper);
+    box-shadow: 0 1px 2px rgba(13,31,48,.04), 0 22px 44px -30px rgba(13,31,48,.4);
+  }
+  .frame::before, .frame::after {
+    content: ""; position: absolute; width: 9px; height: 9px; pointer-events: none;
+    border: 1px solid rgba(31,111,143,.55);
+  }
+  .frame::before { left: -1px; top: -1px; border-right: 0; border-bottom: 0; }
+  .frame::after { right: -1px; bottom: -1px; border-left: 0; border-top: 0; }
+
+  .shot { position: relative; width: 100%; aspect-ratio: 4 / 5; }
+  .shot.wide { aspect-ratio: 5 / 4; }
+
+  .cap { display: flex; align-items: baseline; gap: 10px; padding-top: 11px; }
+  .cap .n { font-family: var(--mono); font-size: 9px; color: var(--ink-3); letter-spacing: .1em; }
+  .cap .t { font-size: 13px; font-weight: 500; letter-spacing: -.005em; }
+  .cap .t span { color: var(--ink-3); font-weight: 400; }
+  .cap .g { margin-left: auto; display: flex; gap: 6px; opacity: 0; transition: opacity .2s ease; }
+  .card:hover .cap .g { opacity: 1; }
+  .cap .g button {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase;
+    background: none; border: 1px solid var(--hair); color: var(--ink-2); padding: 3px 6px; cursor: pointer;
+  }
+  .cap .g button:hover { border-color: var(--accent); color: var(--accent); }
+  .cap2 { font-family: var(--mono); font-size: 9px; color: var(--ink-3); letter-spacing: .06em; padding-top: 4px; }
+
+  #boot {
+    position: fixed; inset: 0; z-index: 90; display: grid; place-items: center;
+    background: rgba(238,244,249,.96); font-family: var(--mono); font-size: 11px; color: var(--ink-2);
+    transition: opacity .5s ease;
+  }
+  #boot.gone { opacity: 0; pointer-events: none; }
+  #boot .bt { font-family: var(--serif); font-size: 26px; color: var(--ink); margin-bottom: 8px; letter-spacing: -.01em; }
+  #boot .bar { width: 220px; height: 1px; background: rgba(13,31,48,.14); margin-top: 16px; overflow: hidden; }
+  /* scaleX rather than width: the bar animates on the frames the GLB parser is
+     blocking, so it must not cost a layout pass */
+  #boot .bar i {
+    display: block; height: 100%; width: 100%; background: var(--accent);
+    transform: scaleX(0); transform-origin: left center; transition: transform .3s ease;
+  }
+  #boot .err { max-width: 520px; margin-top: 18px; white-space: pre-wrap; line-height: 1.7; color: #a4342f; text-align: left; }
+  #toast {
+    position: fixed; left: 50%; bottom: 30px; transform: translate(-50%, 14px); z-index: 80;
+    background: var(--ink); color: #fff; font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; padding: 9px 15px; opacity: 0; pointer-events: none; transition: all .25s ease;
+  }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 1180px) {
+    #wrap { grid-template-columns: 1fr; }
+    #rail { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--hair); }
+    #main { padding: 26px 20px 60px; }
+    #grid, #grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+
+<canvas id="gl"></canvas>
+
+<div id="wrap">
+  <aside id="rail">
+    <div class="r-head">
+      <div class="eyebrow">Home view · 主页视图</div>
+      <div class="r-title">Body <em>Study</em></div>
+      <div class="r-sub">The lab's own five presets, unchanged, on a still figure. Key light sits behind, so the front falls into shade. No cast shadow, no rotation.</div>
+    </div>
+    <div class="r-body" id="rail-body"></div>
+  </aside>
+
+  <main id="main">
+    <div class="m-head">
+      <div>
+        <div class="eyebrow">Preset sheet</div>
+        <h1 class="m-title">Five <em>Looks</em>, One Pose</h1>
+      </div>
+      <div class="m-meta">
+        <div><u>Yaw</u><b id="hud-yaw">12°</b></div>
+        <div><u>Key light</u><b id="hud-light">200°</b></div>
+        <div><u>Screen</u><b id="hud-cell">3 px</b></div>
+      </div>
+    </div>
+    <div class="ruler" id="ruler"></div>
+    <div id="grid"></div>
+  </main>
+</div>
+
+<div id="toast"></div>
+<div id="boot">
+  <div>
+    <div class="bt">Preparing the stage</div>
+    <div id="boot-sub">render engine</div>
+    <div class="bar"><i id="boot-bar"></i></div>
+    <div class="err" id="boot-err" hidden></div>
+  </div>
+</div>
+
+<script type="module">
+/* ==========================================================================
+   Home View Lab — the Organ Material Lab's render path, applied to a body.
+
+   The five presets are lifted verbatim: Clinical X-Ray runs the lab's fresnel
+   Translucent material, and the four screen presets run the lab's SCREEN-SPACE
+   halftone — shade the model into a buffer, then lay one dot per screen cell
+   over it. That screen is why the lab's particles read the way they do; a 3D
+   point cloud cannot reproduce it, because lattice rows on surfaces edge-on to
+   the camera collapse into lines and near/far dots pile up.
+
+   Changes against the lab, all of them requested:
+     · the figure is still — no orbit, no auto-rotate
+     · the key light is placed BEHIND the subject
+     · no cast shadow anywhere
+     · the half-body crop fades out below the navel instead of being cut
+   ========================================================================== */
+
+const $ = (s) => document.querySelector(s);
+const boot = $('#boot'), bootSub = $('#boot-sub'), bootBar = $('#boot-bar');
+const setBoot = (txt, pct) => { bootSub.textContent = txt; bootBar.style.transform = `scaleX(${pct / 100})`; };
+
+/* ---------------------------------------------------------------- 1. loader */
+const sources = [
+  './vendor/three.module.js',
+  'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
+  'https://unpkg.com/three@0.160.0/build/three.module.js',
+];
+let THREE = null;
+for (const src of sources) {
+  try { const mod = await import(src); if (mod && mod.WebGLRenderer) { THREE = mod; break; } } catch (e) { /* next */ }
+}
+if (!THREE) {
+  boot.querySelector('.bt').textContent = 'Could not load three.js';
+  boot.querySelector('.bar').remove();
+  const err = $('#boot-err'); err.hidden = false;
+  err.textContent = 'vendor/three.module.js is missing and every CDN mirror failed.';
+  throw new Error('three.js unavailable');
+}
+
+const hexA = (h, a) => { const v = parseInt(h.slice(1), 16); return `rgba(${(v >> 16) & 255},${(v >> 8) & 255},${v & 255},${a})`; };
+const hex2vec = (h) => {
+  const v = parseInt(h.slice(1), 16);
+  return new THREE.Vector3(((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255);
+};
+const rad = (d) => d * Math.PI / 180;
+
+/* ------------------------------------------------------------- 2. constants */
+const BODY_H = 2.6;                    // both models are normalised to this height
+const NAVEL = 0.60 * BODY_H;           // 1.56 — where the half-body fade begins
+
+const CROPS = {
+  full:  { name: 'Full body',  cn: '全身', target: 1.30, dist: 5.70, fov: 30, fade: false },
+  upper: { name: 'Upper body', cn: '半身', target: 1.92, dist: 3.20, fov: 30, fade: true, wide: true },
+};
+
+/* The five presets, copied out of organ-material-lab.html unchanged. Blueprint
+   Screen and Body Scan carry identical numbers in the lab — they are kept as
+   two entries so the sheet matches the lab's list, not because they differ. */
+const PRESETS = {
+  clinical: { name: 'Clinical X-Ray', cn: '临床 X 光', mode: 'xray',
+    note: 'Fresnel translucent. Layered, no depth write — the far side of the body shows through the near side.',
+    patch: { xrColor: '#7fc3dd', xrEdge: '#eafbff', xrFresPow: 2.2, xrFresBias: 0.06, xrOpacity: 0.62,
+             xrGlow: 1, xrAdditive: false, xrDouble: true } },
+  redprint: { name: 'Redprint Screen', cn: '红版印屏', mode: 'points',
+    note: 'Lit halftone in a single ink. Tone comes 45% from the key light, so the backlight shapes it.',
+    patch: { ptPitchPx: 3, ptAngle: 0, ptFill: 0.75, ptSoft: 0.1, ptColor: '#ee4b35', ptTip: '#ee4b35',
+             ptLightMix: 0.45, ptInvert: false, ptContrast: 1.15, ptFloor: 0, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
+  blueprint: { name: 'Blueprint Screen', cn: '蓝版印屏', mode: 'points',
+    note: 'Two-ink screen: dark tip on the lit cells, mid blue elsewhere.',
+    patch: { ptPitchPx: 3, ptAngle: 0, ptFill: 0.78, ptSoft: 0.12, ptColor: '#1d7fa3', ptTip: '#0b4f68',
+             ptLightMix: 0.4, ptInvert: false, ptContrast: 1.2, ptFloor: 0, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
+  contour: { name: 'Contour Fade', cn: '轮廓渐隐', mode: 'points',
+    note: 'Inverted tone: ink collects on the silhouette and thins across the middle. The Neko-adjacent one.',
+    patch: { ptPitchPx: 3, ptAngle: 0, ptFill: 0.95, ptSoft: 0.1, ptColor: '#c8d9ef', ptTip: '#33518f',
+             ptLightMix: 0, ptInvert: true, ptContrast: 1.8, ptFloor: 0.045, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
+  scan: { name: 'Body Scan', cn: '人体扫描', mode: 'points',
+    note: 'Identical numbers to Blueprint Screen in the lab — kept as its own entry to match the lab\'s list.',
+    patch: { ptPitchPx: 3, ptAngle: 0, ptFill: 0.78, ptSoft: 0.12, ptColor: '#1d7fa3', ptTip: '#0b4f68',
+             ptLightMix: 0.4, ptInvert: false, ptContrast: 1.2, ptFloor: 0, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
+};
+const PRESET_ORDER = ['contour', 'clinical', 'redprint', 'blueprint', 'scan'];
+
+/* Every backdrop from the lab, verbatim. Only the backdrop half of each entry
+   is used here: both Translucent and the screen presets are unlit shaders, so
+   the light rig never reaches them — the key light only sets the tone pass's
+   direction and the backdrop's glow. */
+const ENVS = {
+  sterile: { name: 'Sterile Blue', cn: '',
+    bgTop: '#d6e7f8', bgBottom: '#fbfdff', floor: '#c3d6e8', glowColor: '#9edcff', glow: 0.5,
+    bgMode: 'solid', gridColor: '#7fa8cc', gridAlpha: 0.16, gridScale: 7,
+    blobs: [ { x:.29,y:.29,rx:.19,ry:.26,a:1,c:'#ffffff' }, { x:.77,y:.40,rx:.15,ry:.42,a:.9,c:'#e6f6ff' }, { x:.55,y:.92,rx:.32,ry:.18,a:.28,c:'#ffffff' } ],
+    rig: { ambient:.55, ambientColor:'#dfeaf7', key:2.1, keyColor:'#ffffff', rim:3.4, rimColor:'#bfeaff', fill:.7, fillColor:'#ffd6e0', exposure:1.05 } },
+
+  studio: { name: 'Studio White', cn: '',
+    bgTop: '#eef1f4', bgBottom: '#ffffff', floor: '#dfe4e9', glowColor: '#ffffff', glow: 0.22,
+    bgMode: 'solid', gridColor: '#9aa6b2', gridAlpha: 0.12, gridScale: 8,
+    blobs: [ { x:.26,y:.26,rx:.26,ry:.30,a:1,c:'#ffffff' }, { x:.74,y:.32,rx:.22,ry:.28,a:.95,c:'#ffffff' }, { x:.50,y:.90,rx:.42,ry:.20,a:.45,c:'#ffffff' } ],
+    rig: { ambient:.8, ambientColor:'#f2f5f8', key:2.6, keyColor:'#ffffff', rim:2.2, rimColor:'#ffffff', fill:.9, fillColor:'#eef2f6', exposure:1 } },
+
+  clinical: { name: 'Clinical Cool', cn: '',
+    bgTop: '#e4f2f7', bgBottom: '#f8fcfd', floor: '#cfe0e6', glowColor: '#d7f7ff', glow: 0.3,
+    bgMode: 'solid', gridColor: '#5fa9c4', gridAlpha: 0.18, gridScale: 9,
+    blobs: [ { x:.50,y:.16,rx:.46,ry:.10,a:1,c:'#f2feff' }, { x:.16,y:.44,rx:.14,ry:.22,a:.6,c:'#eafaff' }, { x:.84,y:.44,rx:.14,ry:.22,a:.6,c:'#eafaff' } ],
+    rig: { ambient:1.05, ambientColor:'#e6f4f8', key:1.6, keyColor:'#eafcff', rim:2.4, rimColor:'#ffffff', fill:.5, fillColor:'#dff0f5', exposure:1 } },
+
+  blush: { name: 'Blush Rose', cn: '',
+    bgTop: '#fbe9e7', bgBottom: '#fffaf9', floor: '#f2d3ce', glowColor: '#ffb3a7', glow: 0.45,
+    bgMode: 'solid', gridColor: '#e08a7d', gridAlpha: 0.2, gridScale: 7,
+    blobs: [ { x:.30,y:.28,rx:.20,ry:.26,a:.95,c:'#fff4f2' }, { x:.76,y:.40,rx:.16,ry:.38,a:.8,c:'#ffe0da' }, { x:.52,y:.91,rx:.34,ry:.18,a:.3,c:'#ffd8d0' } ],
+    rig: { ambient:.6, ambientColor:'#ffeceb', key:2.2, keyColor:'#fff6f5', rim:3.2, rimColor:'#ffb9ae', fill:.7, fillColor:'#ffd9d3', exposure:1.05 } },
+
+  mint: { name: 'Mint Wash', cn: '',
+    bgTop: '#e2f4ef', bgBottom: '#fbfffd', floor: '#cfe8e0', glowColor: '#8fe0c8', glow: 0.4,
+    bgMode: 'solid', gridColor: '#6cbfa6', gridAlpha: 0.18, gridScale: 8,
+    blobs: [ { x:.31,y:.27,rx:.20,ry:.27,a:.95,c:'#f4fffb' }, { x:.75,y:.41,rx:.15,ry:.38,a:.8,c:'#d8f7ec' }, { x:.52,y:.91,rx:.34,ry:.18,a:.3,c:'#e8fff8' } ],
+    rig: { ambient:.6, ambientColor:'#e8f7f2', key:2.1, keyColor:'#f6fffc', rim:3, rimColor:'#9fe8d4', fill:.6, fillColor:'#d6f2ea', exposure:1.05 } },
+
+  amber: { name: 'Amber Lab', cn: '',
+    bgTop: '#f5efdf', bgBottom: '#fffdf7', floor: '#e2d3b4', glowColor: '#ffd08a', glow: 0.45,
+    bgMode: 'solid', gridColor: '#c9a86a', gridAlpha: 0.18, gridScale: 7,
+    blobs: [ { x:.32,y:.28,rx:.22,ry:.26,a:.95,c:'#fff6e8' }, { x:.78,y:.42,rx:.16,ry:.34,a:.7,c:'#ffe7c2' }, { x:.50,y:.90,rx:.38,ry:.18,a:.35,c:'#ffeed6' } ],
+    rig: { ambient:.62, ambientColor:'#fff3e2', key:2.2, keyColor:'#fff6ea', rim:2.8, rimColor:'#ffcf9a', fill:.6, fillColor:'#ffe0cf', exposure:1.05 } },
+
+  warm: { name: 'Warm Backlight', cn: '',
+    bgTop: '#f7e7d6', bgBottom: '#fffaf3', floor: '#e8cfb4', glowColor: '#ffb066', glow: 0.95,
+    bgMode: 'solid', gridColor: '#cba077', gridAlpha: 0.14, gridScale: 7,
+    blobs: [ { x:.72,y:.34,rx:.20,ry:.34,a:1,c:'#ffd9a8' }, { x:.22,y:.30,rx:.14,ry:.20,a:.45,c:'#fff3e2' }, { x:.50,y:.90,rx:.36,ry:.18,a:.3,c:'#ffcf9a' } ],
+    rig: { ambient:.42, ambientColor:'#ffeeda', key:1.15, keyColor:'#fff2e0', rim:5.6, rimColor:'#ffb570', fill:.5, fillColor:'#ffd8c0', exposure:1.1 } },
+
+  paper: { name: 'Paper Grey', cn: '',
+    bgTop: '#ebeef1', bgBottom: '#fdfefe', floor: '#d8dde2', glowColor: '#ffffff', glow: 0.25,
+    bgMode: 'solid', gridColor: '#8f9aa5', gridAlpha: 0.16, gridScale: 10,
+    blobs: [ { x:.28,y:.27,rx:.23,ry:.28,a:1,c:'#ffffff' }, { x:.75,y:.36,rx:.18,ry:.30,a:.85,c:'#f4f7fa' }, { x:.50,y:.90,rx:.40,ry:.19,a:.4,c:'#ffffff' } ],
+    rig: { ambient:.75, ambientColor:'#f0f3f6', key:2.4, keyColor:'#ffffff', rim:2.4, rimColor:'#e8eef4', fill:.8, fillColor:'#e4e9ee', exposure:1 } },
+
+  teal: { name: 'Deep Teal', cn: '',
+    bgTop: '#0d3b4a', bgBottom: '#14586b', floor: '#082530', glowColor: '#4fd8e8', glow: 0.8,
+    bgMode: 'solid', gridColor: '#2f8fa5', gridAlpha: 0.2, gridScale: 8,
+    blobs: [ { x:.74,y:.36,rx:.17,ry:.32,a:1,c:'#8ff4ff' }, { x:.24,y:.32,rx:.13,ry:.20,a:.5,c:'#d8fbff' }, { x:.50,y:.93,rx:.32,ry:.15,a:.2,c:'#2f8fa5' } ],
+    rig: { ambient:.3, ambientColor:'#12495a', key:1.3, keyColor:'#d8fbff', rim:5.2, rimColor:'#5fe4f2', fill:.45, fillColor:'#2f8fa5', exposure:1.2 } },
+
+  champagne: { name: 'Champagne', cn: '',
+    bgTop: '#f2e7d5', bgBottom: '#fffcf6', floor: '#e0cdae', glowColor: '#ffd79b', glow: 0.5,
+    bgMode: 'solid', gridColor: '#c7a879', gridAlpha: 0.17, gridScale: 7,
+    blobs: [ { x:.30,y:.27,rx:.22,ry:.27,a:.98,c:'#fff8ec' }, { x:.77,y:.41,rx:.16,ry:.36,a:.75,c:'#ffe9c8' }, { x:.51,y:.91,rx:.36,ry:.18,a:.34,c:'#fff2dc' } ],
+    rig: { ambient:.62, ambientColor:'#fff4e4', key:2.2, keyColor:'#fff8ee', rim:3, rimColor:'#ffd9a8', fill:.65, fillColor:'#ffe6d0', exposure:1.05 } },
+
+  quartz: { name: 'Rose Quartz', cn: '',
+    bgTop: '#f6e4e1', bgBottom: '#fffaf9', floor: '#e7cbc4', glowColor: '#ffb9a8', glow: 0.52,
+    bgMode: 'solid', gridColor: '#d9a093', gridAlpha: 0.18, gridScale: 7,
+    blobs: [ { x:.29,y:.28,rx:.21,ry:.27,a:.96,c:'#fff5f2' }, { x:.76,y:.40,rx:.16,ry:.37,a:.78,c:'#ffdcd2' }, { x:.52,y:.91,rx:.35,ry:.18,a:.32,c:'#ffe4dc' } ],
+    rig: { ambient:.6, ambientColor:'#ffedea', key:2.15, keyColor:'#fff6f4', rim:3.1, rimColor:'#ffc0b0', fill:.68, fillColor:'#ffdcd2', exposure:1.05 } },
+
+  terracotta: { name: 'Terracotta', cn: '',
+    bgTop: '#f0dcce', bgBottom: '#fef7f1', floor: '#dbb79c', glowColor: '#e89a6e', glow: 0.62,
+    bgMode: 'solid', gridColor: '#c48a66', gridAlpha: 0.18, gridScale: 7,
+    blobs: [ { x:.31,y:.27,rx:.21,ry:.26,a:.95,c:'#fff2e6' }, { x:.75,y:.40,rx:.17,ry:.36,a:.82,c:'#f7cfae' }, { x:.51,y:.91,rx:.35,ry:.18,a:.33,c:'#f2d6bd' } ],
+    rig: { ambient:.55, ambientColor:'#ffe9da', key:2.05, keyColor:'#fff2e6', rim:3.6, rimColor:'#f0a87c', fill:.6, fillColor:'#ffd2b8', exposure:1.08 } },
+
+  linen: { name: 'Warm Linen', cn: '',
+    bgTop: '#efe8da', bgBottom: '#fdfbf6', floor: '#dbcfb9', glowColor: '#e8cfa0', glow: 0.4,
+    bgMode: 'solid', gridColor: '#b8a88c', gridAlpha: 0.15, gridScale: 8,
+    blobs: [ { x:.29,y:.26,rx:.23,ry:.28,a:.97,c:'#fffaf1' }, { x:.76,y:.38,rx:.17,ry:.33,a:.72,c:'#f4e6cc' }, { x:.50,y:.90,rx:.38,ry:.19,a:.36,c:'#faf0dd' } ],
+    rig: { ambient:.68, ambientColor:'#fff6e9', key:2.3, keyColor:'#fffbf2', rim:2.6, rimColor:'#ebd3a8', fill:.7, fillColor:'#f2e2c8', exposure:1.02 } },
+
+  cognac: { name: 'Cognac Dusk', cn: '',
+    bgTop: '#2b1d16', bgBottom: '#4c3527', floor: '#1a100b', glowColor: '#e8a96a', glow: 0.9,
+    bgMode: 'solid', gridColor: '#7a5a42', gridAlpha: 0.2, gridScale: 8,
+    blobs: [ { x:.75,y:.35,rx:.17,ry:.31,a:1,c:'#ffd7a3' }, { x:.25,y:.31,rx:.13,ry:.20,a:.5,c:'#fff0da' }, { x:.50,y:.93,rx:.31,ry:.15,a:.2,c:'#8a5f3c' } ],
+    rig: { ambient:.3, ambientColor:'#3a2a1e', key:1.5, keyColor:'#ffe9cc', rim:4.6, rimColor:'#f0b274', fill:.42, fillColor:'#6b4a32', exposure:1.18 } },
+
+  carbon: { name: 'Carbon Slate', cn: '',
+    bgTop: '#1a2026', bgBottom: '#2a343d', floor: '#12171c', glowColor: '#7fd4e0', glow: 0.55,
+    bgMode: 'solid', gridColor: '#5f7d8c', gridAlpha: 0.22, gridScale: 8,
+    blobs: [ { x:.76,y:.34,rx:.16,ry:.30,a:.95,c:'#cfeff6' }, { x:.26,y:.30,rx:.13,ry:.20,a:.45,c:'#ffffff' }, { x:.50,y:.93,rx:.32,ry:.15,a:.16,c:'#4a6472' } ],
+    rig: { ambient:.28, ambientColor:'#253038', key:1.6, keyColor:'#f0fbff', rim:4.2, rimColor:'#8fdce8', fill:.4, fillColor:'#3a4a55', exposure:1.15 } },
+};
+
+/* ------------------------------------------------------------- 3. app state */
+const state = {
+  preset: 'contour',
+  env: 'sterile',
+  layout: 'matrix',           // matrix = 男女 × 全/半身 · presets = 五种预设
+  pickBody: 'Male',
+  pickCrop: 'upper',
+
+  /* pose — the figure turns, the camera never does, nothing animates */
+  yaw: 12,
+  camElev: 4,
+  yawSplit: 0,
+
+  /* key light, placed behind the subject. 180 = dead behind. */
+  lightAz: 200,
+  lightElev: 34,
+
+  /* half-body fade, in fractions of body height */
+  fadeTop: 0.60,              // fully solid at the navel
+  fadeBottom: 0.46,           // fully gone by mid-hip, well inside the frame
+
+  /* translucent */
+  xrColor: '#7fc3dd', xrEdge: '#eafbff', xrFresPow: 2.2, xrFresBias: 0.06,
+  xrOpacity: 0.62, xrGlow: 1, xrAdditive: false, xrDouble: true,
+
+  /* screen */
+  ptPitchPx: 3, ptAngle: 0, ptFill: 0.95, ptSoft: 0.1,
+  ptColor: '#c8d9ef', ptTip: '#33518f', ptLightMix: 0, ptInvert: true,
+  ptContrast: 1.8, ptFloor: 0.045, ptOpacity: 1, ptGlow: 1, ptAdditive: false,
+
+  /* backdrop */
+  bgTop: '#d6e7f8', bgBottom: '#fbfdff', glowColor: '#9edcff', glow: 0.5,
+  bgMode: 'solid', gridColor: '#7fa8cc', gridAlpha: 0.16, gridScale: 7,
+};
+Object.assign(state, PRESETS[state.preset].patch);
+
+/* ------------------------------------------------------------ 4. renderer */
+const canvas = $('#gl');
+const renderer = new THREE.WebGLRenderer({
+  canvas, antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'high-performance',
+});
+const PIXEL = Math.min(window.devicePixelRatio || 1, 2);
+renderer.setPixelRatio(PIXEL);
+if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.autoClear = false;
+renderer.setClearColor(0x000000, 0);
+
+const scene = new THREE.Scene();
+const stage = new THREE.Group();
+scene.add(stage);
+
+/* ------------------------------------------ 5. backdrop (lab's exact shader) */
+const bgUniforms = {
+  cTop: { value: hex2vec(state.bgTop) },
+  cBottom: { value: hex2vec(state.bgBottom) },
+  cGlow: { value: hex2vec(state.glowColor) },
+  glowDir: { value: new THREE.Vector3(-0.55, 0.24, -0.8).normalize() },
+  glowAmt: { value: state.glow },
+  gridColor: { value: hex2vec(state.gridColor) },
+  gridAlpha: { value: 0 },
+  gridScale: { value: state.gridScale },
+  gridWidth: { value: 0.022 },
+  aspect: { value: 1 },
+};
+const bgSphere = new THREE.Mesh(
+  new THREE.SphereGeometry(600, 48, 32),
+  new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, uniforms: bgUniforms,
+    vertexShader: `
+      varying vec3 vW;
+      varying vec4 vClip;
+      void main() {
+        vW = (modelMatrix * vec4(position, 1.0)).xyz;
+        vClip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        gl_Position = vClip;
+      }`,
+    fragmentShader: `
+      varying vec3 vW;
+      varying vec4 vClip;
+      uniform vec3 cTop, cBottom, cGlow, glowDir, gridColor;
+      uniform float glowAmt, gridAlpha, gridScale, gridWidth, aspect;
+      float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+      void main() {
+        vec3 d = normalize(vW);
+        float h = clamp(d.y * 0.5 + 0.5, 0.0, 1.0);
+        vec3 c = mix(cBottom, cTop, pow(h, 0.9));
+        c = mix(c, cBottom * 0.94, smoothstep(0.42, 0.0, h) * 0.5);
+        c += cGlow * pow(max(dot(d, normalize(glowDir)), 0.0), 5.0) * glowAmt * 0.5;
+
+        if (gridAlpha > 0.0005) {
+          vec2 ndc = vClip.xy / vClip.w;
+          vec2 guv = vec2(ndc.x * aspect, ndc.y) * gridScale;
+          vec2 f = abs(fract(guv - 0.5) - 0.5);
+          float line = 1.0 - smoothstep(0.0, gridWidth, min(f.x, f.y));
+          c = mix(c, gridColor, line * gridAlpha);
+        }
+
+        c += (hash(gl_FragCoord.xy) - 0.5) / 255.0;   /* kill gradient banding */
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  })
+);
+bgSphere.renderOrder = -1;
+bgSphere.frustumCulled = false;
+scene.add(bgSphere);
+
+/* ------------------------------------------------ 6. Translucent (lab's own) */
+/* One addition to the lab's fragment shader: uFade, a world-height ramp that
+   dissolves the body below the navel for the half-body crop. Nothing else in
+   the maths is touched. */
+const FADE_CHUNK = `
+  float fadeAt(float y) {
+    return uFadeOn < 0.5 ? 1.0 : smoothstep(uFadeLo, uFadeHi, y);
+  }`;
+
+const matXray = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  uniforms: {
+    uColor: { value: hex2vec(state.xrColor) },
+    uEdge: { value: hex2vec(state.xrEdge) },
+    uFresPow: { value: state.xrFresPow },
+    uFresBias: { value: state.xrFresBias },
+    uOpacity: { value: state.xrOpacity },
+    uGlow: { value: state.xrGlow },
+    uFadeOn: { value: 0 }, uFadeLo: { value: 0 }, uFadeHi: { value: 1 },
+  },
+  vertexShader: `
+    varying vec3 vN;
+    varying vec3 vV;
+    varying float vY;
+    void main() {
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      vN = normalize(normalMatrix * normal);
+      vV = normalize(-mv.xyz);
+      vY = (modelMatrix * vec4(position, 1.0)).y;
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: `
+    varying vec3 vN;
+    varying vec3 vV;
+    varying float vY;
+    uniform vec3 uColor;
+    uniform vec3 uEdge;
+    uniform float uFresPow, uFresBias, uOpacity, uGlow, uFadeOn, uFadeLo, uFadeHi;
+    ${FADE_CHUNK}
+    void main() {
+      float facing = clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0);
+      float fres = clamp(uFresBias + (1.0 - uFresBias) * pow(1.0 - facing, uFresPow), 0.0, 1.0);
+      gl_FragColor = vec4(mix(uColor, uEdge, fres) * uGlow, clamp(fres * uOpacity, 0.0, 1.0) * fadeAt(vY));
+    }`,
+});
+
+/* -------------------------------------------- 7. screen halftone (lab's own) */
+/* Pass 1 shades the body into a buffer; pass 2 lays one dot per screen cell,
+   its radius driven by the tone underneath. The alpha channel of pass 1 carries
+   the coverage, which is where the half-body fade is injected: a cell that is
+   half-covered gets a smaller dot, so the body thins out instead of stopping. */
+const matTone = new THREE.ShaderMaterial({
+  side: THREE.DoubleSide,
+  uniforms: {
+    uLightMix: { value: state.ptLightMix },
+    uLightDir: { value: new THREE.Vector3(0.5, 0.7, 0.5) },
+    uFadeOn: { value: 0 }, uFadeLo: { value: 0 }, uFadeHi: { value: 1 },
+  },
+  vertexShader: `
+    varying vec3 vN;
+    varying vec3 vV;
+    varying float vY;
+    void main() {
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      vN = normalize(normalMatrix * normal);
+      vV = normalize(-mv.xyz);
+      vY = (modelMatrix * vec4(position, 1.0)).y;
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: `
+    varying vec3 vN;
+    varying vec3 vV;
+    varying float vY;
+    uniform float uLightMix, uFadeOn, uFadeLo, uFadeHi;
+    uniform vec3 uLightDir;
+    ${FADE_CHUNK}
+    void main() {
+      vec3 nv = normalize(vN);
+      float facing = clamp(abs(dot(nv, normalize(vV))), 0.0, 1.0);
+      float ndl = clamp(dot(nv, normalize(uLightDir)) * 0.5 + 0.5, 0.0, 1.0);
+      float bright = mix(facing, ndl, uLightMix);
+      gl_FragColor = vec4(bright, bright, bright, fadeAt(vY));
+    }`,
+});
+
+const matHalftone = new THREE.ShaderMaterial({
+  uniforms: {
+    uTone: { value: null },
+    uRes: { value: new THREE.Vector2(2, 2) },
+    uPitch: { value: 6 },
+    uAngle: { value: 0 },
+    uFill: { value: state.ptFill },
+    uSoft: { value: state.ptSoft },
+    uContrast: { value: state.ptContrast },
+    uFloor: { value: state.ptFloor },
+    uInvert: { value: state.ptInvert ? 1 : 0 },
+    uOpacity: { value: state.ptOpacity },
+    uGlow: { value: state.ptGlow },
+    uColor: { value: hex2vec(state.ptColor) },
+    uTip: { value: hex2vec(state.ptTip) },
+  },
+  transparent: true, depthTest: false, depthWrite: false,
+  vertexShader: `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform sampler2D uTone;
+    uniform vec2 uRes;
+    uniform vec3 uColor, uTip;
+    uniform float uPitch, uAngle, uFill, uSoft, uContrast, uInvert, uOpacity, uGlow, uFloor;
+    void main() {
+      vec2 px = vUv * uRes;
+      float c = cos(uAngle), s = sin(uAngle);
+      vec2 g = vec2(c * px.x + s * px.y, -s * px.x + c * px.y) / uPitch;
+      vec2 id = floor(g) + 0.5;
+      /* rotate the cell centre back to pixels so the tone is read at the dot,
+         not at the fragment — that is what keeps every dot a clean circle */
+      vec2 cpx = vec2(c * id.x - s * id.y, s * id.x + c * id.y) * uPitch;
+      /* Average the tone across the cell rather than point-sampling its
+         centre. One tap speckles wherever the surface creases, and leaves a
+         blocky stair-stepped silhouette; the averaged alpha instead makes edge
+         dots shrink away smoothly, which is what a real screen does. */
+      float tsum = 0.0, asum = 0.0;
+      for (int j = -1; j <= 1; j++) {
+        for (int i = -1; i <= 1; i++) {
+          vec2 o = vec2(float(i), float(j)) * uPitch * 0.34;
+          vec4 sm = texture2D(uTone, (cpx + o) / uRes);
+          tsum += sm.r * sm.a;
+          asum += sm.a;
+        }
+      }
+      float av = asum / 9.0;
+      float tv = asum > 0.0001 ? tsum / asum : 0.0;
+      float bright = mix(tv, 1.0 - tv, uInvert);
+      /* uFloor is the minimum ink a covered cell keeps. Without it an inverted
+         screen goes completely blank wherever the surface faces the camera. */
+      float cov = av * (uFloor + (1.0 - uFloor) * pow(clamp(bright, 0.0, 1.0), uContrast));
+      if (cov <= 0.0008) discard;
+      float r = 0.5 * uFill * sqrt(cov);
+      float d = length(g - id);
+      float aa = max(0.8 / uPitch, 0.0005);
+      float a = 1.0 - smoothstep(max(r - aa - uSoft * r, 0.0), r + aa, d);
+      if (a <= 0.003) discard;
+      gl_FragColor = vec4(mix(uColor, uTip, clamp(bright, 0.0, 1.0)) * uGlow, a * uOpacity);
+    }`,
+});
+
+const quadScene = new THREE.Scene();
+const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), matHalftone));
+
+/* Cards come in a couple of distinct pixel sizes, so keep one tone buffer per
+   size rather than resizing a single target four times a frame. */
+const rtCache = new Map();
+function rtFor(w, h) {
+  const key = `${w}x${h}`;
+  let rt = rtCache.get(key);
+  if (!rt) {
+    rt = new THREE.WebGLRenderTarget(w, h, {
+      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+      wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
+      depthBuffer: true, stencilBuffer: false,
+    });
+    rtCache.set(key, rt);
+  }
+  return rt;
+}
+
+/* -------------------------------------------------- 8. hand-rolled GLB read */
+const COMP = {
+  5120: { A: Int8Array, s: 1, get: (d, o) => d.getInt8(o) },
+  5121: { A: Uint8Array, s: 1, get: (d, o) => d.getUint8(o) },
+  5122: { A: Int16Array, s: 2, get: (d, o) => d.getInt16(o, true) },
+  5123: { A: Uint16Array, s: 2, get: (d, o) => d.getUint16(o, true) },
+  5125: { A: Uint32Array, s: 4, get: (d, o) => d.getUint32(o, true) },
+  5126: { A: Float32Array, s: 4, get: (d, o) => d.getFloat32(o, true) },
+};
+const NUM = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT2: 4, MAT3: 9, MAT4: 16 };
+
+function parseContainer(buffer, name) {
+  if (buffer.byteLength < 20) throw new Error(`${name} is too small to be a model`);
+  const head = new Uint32Array(buffer, 0, 3);
+  if (head[0] !== 0x46546c67) {
+    const json = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer)));
+    return { json, bin: null };
+  }
+  let json = null, bin = null, p = 12;
+  const dv = new DataView(buffer);
+  while (p + 8 <= buffer.byteLength) {
+    const len = dv.getUint32(p, true), type = dv.getUint32(p + 4, true);
+    const start = p + 8;
+    if (type === 0x4e4f534a) json = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer, start, len)));
+    else if (type === 0x004e4942) bin = buffer.slice(start, start + len);   // copied → offset 0, aligned
+    p = start + len + ((4 - (len % 4)) % 4);
+  }
+  if (!json) throw new Error(`No glTF chunk found in ${name}`);
+  return { json, bin };
+}
+
+function readTyped(json, bin, bvIndex, byteOffset, componentType, count, num) {
+  const comp = COMP[componentType];
+  if (!comp) throw new Error(`Unsupported component type ${componentType}`);
+  const out = new comp.A(count * num);
+  if (bvIndex === undefined || !bin) return out;
+  const bv = json.bufferViews[bvIndex];
+  const base = (bv.byteOffset || 0) + (byteOffset || 0);
+  const elem = num * comp.s;
+  const stride = bv.byteStride || elem;
+  if (stride === elem && base % comp.s === 0) {
+    out.set(new comp.A(bin, base, count * num));
+  } else {
+    const dv = new DataView(bin);            // interleaved or unaligned → de-interleave
+    for (let i = 0; i < count; i++)
+      for (let j = 0; j < num; j++)
+        out[i * num + j] = comp.get(dv, base + i * stride + j * comp.s);
+  }
+  return out;
+}
+
+function readAccessor(json, bin, index) {
+  const acc = json.accessors[index];
+  const num = NUM[acc.type];
+  const out = readTyped(json, bin, acc.bufferView, acc.byteOffset, acc.componentType, acc.count, num);
+  if (acc.sparse) {
+    const sp = acc.sparse;
+    const idx = readTyped(json, bin, sp.indices.bufferView, sp.indices.byteOffset, sp.indices.componentType, sp.count, 1);
+    const val = readTyped(json, bin, sp.values.bufferView, sp.values.byteOffset, acc.componentType, sp.count, num);
+    for (let i = 0; i < sp.count; i++)
+      for (let j = 0; j < num; j++) out[idx[i] * num + j] = val[i * num + j];
+  }
+  return { array: out, itemSize: num };
+}
+
+const nullMat = new THREE.MeshBasicMaterial({ visible: false });
+
+function buildGeometries(json, bin, meshIndex, cache) {
+  if (cache.has(meshIndex)) return cache.get(meshIndex);
+  const list = [];
+  for (const prim of json.meshes[meshIndex].primitives) {
+    if ((prim.mode === undefined ? 4 : prim.mode) !== 4) continue;
+    const geo = new THREE.BufferGeometry();
+    const attrs = prim.attributes || {};
+    for (const [k, v] of [['POSITION', 'position'], ['NORMAL', 'normal']]) {
+      if (attrs[k] === undefined) continue;
+      const acc = readAccessor(json, bin, attrs[k]);
+      geo.setAttribute(v, new THREE.BufferAttribute(acc.array, acc.itemSize));
+    }
+    if (!geo.getAttribute('position')) continue;
+    if (prim.indices !== undefined) {
+      const i = readAccessor(json, bin, prim.indices);
+      geo.setIndex(new THREE.BufferAttribute(i.array, 1));
+    }
+    if (!geo.getAttribute('normal')) geo.computeVertexNormals();
+    list.push(geo);
+  }
+  cache.set(meshIndex, list);
+  return list;
+}
+
+function buildNode(json, bin, index, cache, seen) {
+  if (seen.has(index)) return null;
+  seen.add(index);
+  const n = json.nodes[index];
+  const obj = new THREE.Group();
+  obj.name = n.name || `node_${index}`;
+  if (n.matrix) new THREE.Matrix4().fromArray(n.matrix).decompose(obj.position, obj.quaternion, obj.scale);
+  else {
+    if (n.translation) obj.position.fromArray(n.translation);
+    if (n.rotation) obj.quaternion.fromArray(n.rotation);
+    if (n.scale) obj.scale.fromArray(n.scale);
+  }
+  if (n.mesh !== undefined) for (const geo of buildGeometries(json, bin, n.mesh, cache)) obj.add(new THREE.Mesh(geo, nullMat));
+  if (n.children) for (const c of n.children) { const k = buildNode(json, bin, c, cache, seen); if (k) obj.add(k); }
+  seen.delete(index);
+  return obj;
+}
+
+async function loadGLB(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
+  const { json, bin } = parseContainer(await res.arrayBuffer(), url);
+  const root = new THREE.Group();
+  const cache = new Map();
+  const sceneDef = json.scenes?.[json.scene ?? 0];
+  const roots = sceneDef ? sceneDef.nodes : json.nodes.map((_, i) => i);
+  for (const i of roots) { const n = buildNode(json, bin, i, cache, new Set()); if (n) root.add(n); }
+  root.updateMatrixWorld(true);
+  return root;
+}
+
+/* Recentre on the inner node, scale on a wrapper: a node's own scale does not
+   apply to its own position, so doing both to one node throws it off screen. */
+function fitToFloor(root, targetH) {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  if (box.isEmpty()) throw new Error('model has no renderable triangles');
+  const size = box.getSize(new THREE.Vector3());
+  const centre = box.getCenter(new THREE.Vector3());
+  const holder = new THREE.Group();
+  root.position.set(-centre.x, -box.min.y, -centre.z);
+  holder.add(root);
+  holder.scale.setScalar(targetH / Math.max(size.y, 1e-6));
+  holder.updateMatrixWorld(true);
+  return holder;
+}
+
+/* --------------------------------------------------------- 9. body loading */
+const bodies = {};
+
+async function loadBody(name) {
+  const root = await loadGLB(`GLB/${name}.glb`);
+  const holder = fitToFloor(root, BODY_H);
+  const group = new THREE.Group();
+  group.add(holder);
+  group.visible = false;
+  stage.add(group);
+  bodies[name] = { group, holder };
+}
+
+function setBodyMaterial(mat) {
+  for (const k of Object.keys(bodies)) {
+    bodies[k].holder.traverse((o) => { if (o.isMesh) { o.material = mat; o.visible = true; } });
+  }
+}
+function hideBodyMeshes() {
+  for (const k of Object.keys(bodies)) {
+    bodies[k].holder.traverse((o) => { if (o.isMesh) o.visible = false; });
+  }
+}
+
+/* ------------------------------------------------------------ 10. the sheet */
+const views = [];
+
+function makeCamera(crop) {
+  const cam = new THREE.PerspectiveCamera(CROPS[crop].fov, 1, 0.05, 2000);
+  cam.userData.crop = crop;
+  return cam;
+}
+
+function aimCamera(cam) {
+  const c = CROPS[cam.userData.crop];
+  const el = rad(state.camElev);
+  cam.position.set(0, c.target + Math.sin(el) * c.dist, Math.cos(el) * c.dist);
+  cam.lookAt(0, c.target, 0);
+}
+
+/* World-space direction pointing FROM the subject TOWARD the key light.
+   180° puts it dead behind, which is the whole point of this study. */
+function lightVec() {
+  const a = rad(state.lightAz), e = rad(state.lightElev);
+  return new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)).normalize();
+}
+
+function paramsFor(key) {
+  return key === state.preset ? state : { ...state, ...PRESETS[key].patch };
+}
+
+function cardMarkup(i, v) {
+  const p = PRESETS[v.preset];
+  const title = state.layout === 'matrix'
+    ? `${v.body === 'Male' ? 'Male' : 'Female'} <span>· ${CROPS[v.crop].name}</span>`
+    : `${p.name} <span>· ${p.cn}</span>`;
+  return `
+    <div class="frame"><div class="shot${CROPS[v.crop].wide ? ' wide' : ''}"></div></div>
+    <div class="cap">
+      <span class="n">${String(i + 1).padStart(2, '0')}</span>
+      <span class="t">${title}</span>
+      <span class="g"><button data-png="${i}">PNG</button></span>
+    </div>
+    <div class="cap2"></div>`;
+}
+
+function buildGrid() {
+  const grid = $('#grid');
+  views.length = 0;
+  grid.className = state.layout === 'presets' ? 'three' : '';
+
+  const plan = state.layout === 'matrix'
+    ? [
+        { body: 'Male',   crop: 'full',  preset: state.preset },
+        { body: 'Female', crop: 'full',  preset: state.preset },
+        { body: 'Male',   crop: 'upper', preset: state.preset },
+        { body: 'Female', crop: 'upper', preset: state.preset },
+      ]
+    : PRESET_ORDER.map((k) => ({ body: state.pickBody, crop: state.pickCrop, preset: k }));
+
+  grid.innerHTML = '';
+  plan.forEach((p, i) => {
+    const v = { ...p, camera: makeCamera(p.crop) };
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.animationDelay = `${i * 70}ms`;
+    card.innerHTML = cardMarkup(i, v);
+    grid.appendChild(card);
+    v.el = card.querySelector('.shot');
+    v.cap = card.querySelector('.cap2');
+    views.push(v);
+  });
+
+  grid.querySelectorAll('[data-png]').forEach((b) => {
+    b.addEventListener('click', () => exportPNG(views[+b.dataset.png]));
+  });
+  refreshCaptions();
+  markDirty();
+}
+
+function yawOf(v) { return state.yaw + (v.body === 'Female' ? state.yawSplit : 0); }
+
+function refreshCaptions() {
+  for (const v of views) {
+    const p = PRESETS[v.preset];
+    v.cap.textContent = `${p.name.toUpperCase()} · ${ENVS[state.env].name.toUpperCase()} · YAW ${Math.round(yawOf(v))}° · ${CROPS[v.crop].cn}`;
+  }
+  $('#hud-yaw').textContent = `${Math.round(state.yaw)}°`;
+  $('#hud-light').textContent = `${Math.round(state.lightAz)}°`;
+  $('#hud-cell').textContent = `${state.ptPitchPx} px`;
+}
+
+/* --------------------------------------------------------- 11. the draw pass */
+let dirty = true;
+let grainScale = PIXEL;         // device px per CSS px for the halftone cell
+const markDirty = () => { dirty = true; };
+
+const _camInv = new THREE.Matrix4();
+const _lightView = new THREE.Vector3();
+
+function applyBackdrop() {
+  const e = ENVS[state.env];
+  bgUniforms.cTop.value.copy(hex2vec(e.bgTop));
+  bgUniforms.cBottom.value.copy(hex2vec(e.bgBottom));
+  bgUniforms.cGlow.value.copy(hex2vec(e.glowColor));
+  bgUniforms.glowAmt.value = e.glow;
+  bgUniforms.gridColor.value.copy(hex2vec(e.gridColor));
+  bgUniforms.gridAlpha.value = state.bgMode === 'grid' ? e.gridAlpha : 0;
+  bgUniforms.gridScale.value = e.gridScale;
+  /* point the backdrop's own glow at the key light, so the wash behind the
+     figure and the shading on its front tell the same story */
+  bgUniforms.glowDir.value.copy(lightVec());
+}
+
+function applyMaterial(p) {
+  const x = matXray.uniforms;
+  x.uColor.value.copy(hex2vec(p.xrColor));
+  x.uEdge.value.copy(hex2vec(p.xrEdge));
+  x.uFresPow.value = p.xrFresPow;
+  x.uFresBias.value = p.xrFresBias;
+  x.uOpacity.value = p.xrOpacity;
+  x.uGlow.value = p.xrGlow;
+  matXray.side = p.xrDouble ? THREE.DoubleSide : THREE.FrontSide;
+  matXray.blending = p.xrAdditive ? THREE.AdditiveBlending : THREE.NormalBlending;
+
+  const h = matHalftone.uniforms;
+  h.uAngle.value = p.ptAngle * Math.PI / 180;
+  h.uFill.value = p.ptFill;
+  h.uSoft.value = p.ptSoft;
+  h.uContrast.value = p.ptContrast;
+  h.uFloor.value = p.ptFloor;
+  h.uInvert.value = p.ptInvert ? 1 : 0;
+  h.uOpacity.value = p.ptOpacity;
+  h.uGlow.value = p.ptGlow;
+  h.uColor.value.copy(hex2vec(p.ptColor));
+  h.uTip.value.copy(hex2vec(p.ptTip));
+  matHalftone.blending = p.ptAdditive ? THREE.AdditiveBlending : THREE.NormalBlending;
+  matTone.uniforms.uLightMix.value = p.ptLightMix;
+}
+
+function applyFade(crop) {
+  const on = CROPS[crop].fade ? 1 : 0;
+  const lo = state.fadeBottom * BODY_H, hi = state.fadeTop * BODY_H;
+  for (const m of [matXray, matTone]) {
+    m.uniforms.uFadeOn.value = on;
+    m.uniforms.uFadeLo.value = lo;
+    m.uniforms.uFadeHi.value = hi;
+  }
+}
+
+function renderView(v, x, y, w, h) {
+  const p = paramsFor(v.preset);
+  const mode = PRESETS[v.preset].mode;
+
+  for (const k of Object.keys(bodies)) bodies[k].group.visible = (k === v.body);
+  bodies[v.body].group.rotation.y = rad(yawOf(v));
+
+  applyBackdrop();
+  applyMaterial(p);
+  applyFade(v.crop);
+  aimCamera(v.camera);
+  v.camera.aspect = w / h;
+  v.camera.updateProjectionMatrix();
+  bgUniforms.aspect.value = w / h;
+
+  if (mode === 'points') {
+    /* the tone pass wants the light in view space */
+    v.camera.updateMatrixWorld();
+    _lightView.copy(lightVec()).transformDirection(_camInv.copy(v.camera.matrixWorld).invert());
+    matTone.uniforms.uLightDir.value.copy(_lightView);
+
+    const dw = Math.max(2, Math.round(w * PIXEL)), dh = Math.max(2, Math.round(h * PIXEL));
+    const rt = rtFor(dw, dh);
+    setBodyMaterial(matTone);
+    bgSphere.visible = false;
+    renderer.setRenderTarget(rt);
+    renderer.clear(true, true, true);
+    renderer.render(scene, v.camera);
+    renderer.setRenderTarget(null);
+    bgSphere.visible = true;
+    hideBodyMeshes();                       // the screen pass draws the body itself
+
+    matHalftone.uniforms.uTone.value = rt.texture;
+    matHalftone.uniforms.uRes.value.set(dw, dh);
+    matHalftone.uniforms.uPitch.value = Math.max(p.ptPitchPx * grainScale, 2);
+  } else {
+    setBodyMaterial(matXray);
+  }
+
+  renderer.setViewport(x, y, w, h);
+  renderer.setScissor(x, y, w, h);
+  renderer.setScissorTest(true);
+  renderer.clearDepth();
+  renderer.render(scene, v.camera);
+  if (mode === 'points') renderer.render(quadScene, quadCam);
+}
+
+function draw() {
+  const w = window.innerWidth, h = window.innerHeight;
+  if (renderer.domElement.width !== Math.floor(w * PIXEL) || renderer.domElement.height !== Math.floor(h * PIXEL)) {
+    renderer.setSize(w, h, false);
+  }
+  grainScale = PIXEL;
+  renderer.setScissorTest(false);
+  renderer.clear(true, true, true);
+
+  for (const v of views) {
+    const r = v.el.getBoundingClientRect();
+    if (r.bottom < -40 || r.top > h + 40 || r.width < 2) continue;
+    renderView(v, r.left, h - r.bottom, r.width, r.height);
+  }
+  renderer.setScissorTest(false);
+  dirty = false;
+}
+
+function loop() {
+  requestAnimationFrame(loop);
+  if (dirty) draw();
+}
+
+addEventListener('resize', markDirty);
+addEventListener('scroll', markDirty, { passive: true });
+
+/* ------------------------------------------------------------- 12. PNG grab */
+/* The on-screen buffer is only window-sized, so a 2x card does not fit inside
+   it. Grow the drawing buffer for one frame; the next draw() puts it back. */
+function exportPNG(v) {
+  const S = 2;
+  const cw = v.el.clientWidth, ch = v.el.clientHeight;
+  const vw = cw * S / PIXEL, vh = ch * S / PIXEL;
+  grainScale = S;                          // keep the screen grain, not the pixel count
+  renderer.setSize(vw, vh, false);
+  renderer.setScissorTest(false);
+  renderer.clear(true, true, true);
+  renderView(v, 0, 0, vw, vh);
+
+  const out = document.createElement('canvas');
+  out.width = renderer.domElement.width; out.height = renderer.domElement.height;
+  out.getContext('2d').drawImage(renderer.domElement, 0, 0);
+  const a = document.createElement('a');
+  a.download = `hero-${v.body}-${v.crop}-${v.preset}-${state.env}-yaw${Math.round(yawOf(v))}.png`;
+  a.href = out.toDataURL('image/png');
+  a.click();
+  toast('PNG saved');
+  markDirty();
+}
+
+let toastT = 0;
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg; el.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('on'), 1700);
+}
+
+/* ---------------------------------------------------------------- 13. rail */
+const XRAY_ROWS = [
+  { t: 'color', key: 'xrColor', label: 'Body', cn: '主体色' },
+  { t: 'color', key: 'xrEdge', label: 'Edge', cn: '边缘色' },
+  { t: 'range', key: 'xrFresPow', label: 'Fresnel power', cn: '边缘锐度', min: 0.4, max: 8, step: 0.05 },
+  { t: 'range', key: 'xrFresBias', label: 'Fresnel bias', cn: '主体厚度', min: 0, max: 0.7, step: 0.01 },
+  { t: 'range', key: 'xrOpacity', label: 'Opacity', cn: '不透明度', min: 0, max: 1, step: 0.01 },
+  { t: 'range', key: 'xrGlow', label: 'Glow', cn: '亮度', min: 0.2, max: 2.2, step: 0.01 },
+  { t: 'check', key: 'xrDouble', label: 'Double side', cn: '双面' },
+  { t: 'check', key: 'xrAdditive', label: 'Additive', cn: '叠加混合' },
+];
+const POINT_ROWS = [
+  { t: 'color', key: 'ptColor', label: 'Ink', cn: '点色' },
+  { t: 'color', key: 'ptTip', label: 'Tip', cn: '高光色' },
+  { t: 'range', key: 'ptPitchPx', label: 'Cell pitch', cn: '网格间距 px', min: 2, max: 14, step: 0.5 },
+  { t: 'range', key: 'ptAngle', label: 'Screen angle', cn: '网屏角度', min: 0, max: 90, step: 1, unit: '°' },
+  { t: 'range', key: 'ptFill', label: 'Dot fill', cn: '点径占比', min: 0.2, max: 1.4, step: 0.01 },
+  { t: 'range', key: 'ptSoft', label: 'Dot softness', cn: '边缘柔化', min: 0, max: 1, step: 0.01 },
+  { t: 'range', key: 'ptContrast', label: 'Contrast', cn: '对比', min: 0.4, max: 3.5, step: 0.01 },
+  { t: 'range', key: 'ptFloor', label: 'Ink floor', cn: '最小墨量', min: 0, max: 0.4, step: 0.005 },
+  { t: 'range', key: 'ptLightMix', label: 'Light mix', cn: '受光比重', min: 0, max: 1, step: 0.01 },
+  { t: 'range', key: 'ptOpacity', label: 'Opacity', cn: '不透明度', min: 0, max: 1, step: 0.01 },
+  { t: 'range', key: 'ptGlow', label: 'Glow', cn: '亮度', min: 0.2, max: 2.2, step: 0.01 },
+  { t: 'check', key: 'ptInvert', label: 'Invert tone', cn: '反相' },
+  { t: 'check', key: 'ptAdditive', label: 'Additive', cn: '叠加混合' },
+];
+
+function sections() {
+  const mode = PRESETS[state.preset].mode;
+  return [
+    { id: 'preset', title: 'Preset', cn: '五种预设', open: true, items: [
+      { t: 'chips', key: 'preset', options: PRESET_ORDER.map((k) => ({ v: k, label: PRESETS[k].name, sub: PRESETS[k].cn })) },
+      { t: 'note', get: () => PRESETS[state.preset].note },
+    ]},
+    { id: 'env', title: 'Backdrop', cn: '背景预设', open: true, items: [
+      { t: 'envs' },
+      { t: 'check', key: 'bgMode', label: 'Grid overlay', cn: '网格', truthy: 'grid', falsy: 'solid' },
+    ]},
+    { id: 'mat', title: mode === 'xray' ? 'Translucent' : 'Screen', cn: mode === 'xray' ? '半透明材质' : '网屏材质',
+      open: true, items: mode === 'xray' ? XRAY_ROWS : POINT_ROWS },
+    { id: 'pose', title: 'Pose', cn: '姿势', open: true, items: [
+      { t: 'range', key: 'yaw', label: 'Body yaw', cn: '身体转角', min: -45, max: 45, step: 1, unit: '°' },
+      { t: 'presets', key: 'yaw', options: [
+        { v: 0, label: 'Front', sub: '0°' }, { v: 8, label: 'Hint', sub: '8°' },
+        { v: 12, label: 'Home', sub: '12°' }, { v: 18, label: 'Open', sub: '18°' },
+        { v: 25, label: 'Wide', sub: '25°' },
+      ]},
+      { t: 'range', key: 'yawSplit', label: 'Female offset', cn: '女性差角', min: -40, max: 40, step: 1, unit: '°' },
+      { t: 'range', key: 'camElev', label: 'Camera rise', cn: '机位仰角', min: -6, max: 18, step: 0.5, unit: '°' },
+    ]},
+    { id: 'light', title: 'Key light', cn: '光源', open: true, items: [
+      { t: 'range', key: 'lightAz', label: 'Azimuth', cn: '方位角 · 180=正后', min: 100, max: 260, step: 1, unit: '°' },
+      { t: 'range', key: 'lightElev', label: 'Elevation', cn: '高度角', min: -10, max: 80, step: 1, unit: '°' },
+    ]},
+    { id: 'fade', title: 'Half-body fade', cn: '半身淡出', open: true, items: [
+      { t: 'range', key: 'fadeTop', label: 'Solid above', cn: '此高度以上不淡出', min: 0.35, max: 0.85, step: 0.005 },
+      { t: 'range', key: 'fadeBottom', label: 'Gone below', cn: '此高度以下全隐', min: 0.05, max: 0.6, step: 0.005 },
+    ]},
+    { id: 'sheet', title: 'Sheet', cn: '版面', open: true, items: [
+      { t: 'presets', key: 'layout', options: [
+        { v: 'matrix', label: 'Bodies', sub: '男女 × 全/半身' },
+        { v: 'presets', label: 'Presets', sub: '五种预设对照' },
+      ], rebuild: true },
+      { t: 'presets', key: 'pickBody', options: [{ v: 'Male', label: 'Male', sub: '男' }, { v: 'Female', label: 'Female', sub: '女' }], rebuild: true },
+      { t: 'presets', key: 'pickCrop', options: [{ v: 'full', label: 'Full', sub: '全身' }, { v: 'upper', label: 'Upper', sub: '半身' }], rebuild: true },
+      { t: 'buttons', options: [
+        { label: 'Copy spec', act: copySpec },
+        { label: 'Reset preset', act: () => { Object.assign(state, PRESETS[state.preset].patch); buildRail(); refreshCaptions(); markDirty(); } },
+      ]},
+    ]},
+  ];
+}
+
+function copySpec() {
+  const mode = PRESETS[state.preset].mode;
+  const mat = mode === 'xray'
+    ? { xrColor: state.xrColor, xrEdge: state.xrEdge, xrFresPow: state.xrFresPow, xrFresBias: state.xrFresBias,
+        xrOpacity: state.xrOpacity, xrGlow: state.xrGlow, xrAdditive: state.xrAdditive, xrDouble: state.xrDouble }
+    : { ptPitchPx: state.ptPitchPx, ptAngle: state.ptAngle, ptFill: state.ptFill, ptSoft: state.ptSoft,
+        ptColor: state.ptColor, ptTip: state.ptTip, ptLightMix: state.ptLightMix, ptInvert: state.ptInvert,
+        ptContrast: state.ptContrast, ptFloor: state.ptFloor, ptOpacity: state.ptOpacity, ptGlow: state.ptGlow,
+        ptAdditive: state.ptAdditive };
+  const spec = {
+    preset: { key: state.preset, name: PRESETS[state.preset].name, mode }, material: mat,
+    backdrop: { env: state.env, name: ENVS[state.env].name, grid: state.bgMode === 'grid' },
+    pose: { bodyYawDeg: state.yaw, femaleYawDeg: state.yaw + state.yawSplit, cameraElevationDeg: state.camElev, autoRotate: false },
+    camera: { full: CROPS.full, upper: CROPS.upper, bodyHeightUnits: BODY_H },
+    light: { azimuthDeg: state.lightAz, elevationDeg: state.lightElev, behindSubject: true, castShadow: false },
+    halfBodyFade: { solidAboveH: state.fadeTop, goneBelowH: state.fadeBottom, navelH: 0.6 },
+  };
+  navigator.clipboard?.writeText(JSON.stringify(spec, null, 2));
+  toast('Spec copied to clipboard');
+}
+
+function buildRail() {
+  const host = $('#rail-body');
+  host.innerHTML = '';
+  for (const sec of sections()) {
+    const el = document.createElement('section');
+    el.className = `sec${sec.open ? '' : ' closed'}`;
+    el.innerHTML = `<button class="sec-head"><b>${sec.title}</b><i>${sec.cn}</i><span class="chev"></span></button><div class="sec-body"></div>`;
+    el.querySelector('.sec-head').addEventListener('click', () => el.classList.toggle('closed'));
+    const body = el.querySelector('.sec-body');
+
+    for (const it of sec.items) {
+      if (it.t === 'chips') {
+        const box = document.createElement('div');
+        box.className = 'chips';
+        for (const o of it.options) {
+          const c = document.createElement('button');
+          c.className = `chip${state[it.key] === o.v ? ' on' : ''}`;
+          c.dataset.k = it.key; c.dataset.v = o.v;
+          c.innerHTML = `${o.label}<u>${o.sub}</u>`;
+          c.addEventListener('click', () => {
+            const wasMode = PRESETS[state.preset].mode;
+            state.preset = o.v;
+            Object.assign(state, PRESETS[o.v].patch);
+            if (PRESETS[o.v].mode !== wasMode) buildRail(); else syncUI();
+            if (state.layout === 'presets') buildGrid();
+            refreshCaptions(); markDirty();
+          });
+          box.appendChild(c);
+        }
+        body.appendChild(box);
+      }
+
+      if (it.t === 'note') {
+        const n = document.createElement('div');
+        n.className = 'r-sub';
+        n.style.cssText = 'font-size:11px;line-height:1.55;border-left:2px solid var(--accent);padding-left:9px;';
+        n.textContent = it.get();
+        body.appendChild(n);
+      }
+
+      if (it.t === 'envs') {
+        const strip = document.createElement('div');
+        strip.className = 'env-strip';
+        for (const key in ENVS) {
+          const e = ENVS[key];
+          const b = document.createElement('button');
+          b.className = `env-sw${state.env === key ? ' on' : ''}`;
+          b.dataset.env = key;
+          b.title = e.name;
+          b.style.background = `linear-gradient(180deg, ${e.bgTop} 0%, ${e.bgBottom} 100%)`;
+          b.style.setProperty('--sw', e.glowColor);
+          b.addEventListener('click', () => {
+            state.env = key;
+            strip.querySelectorAll('.env-sw').forEach((x) => x.classList.toggle('on', x.dataset.env === key));
+            now.innerHTML = `<b>${e.name}</b><i>${key}</i>`;
+            refreshCaptions(); markDirty();
+          });
+          strip.appendChild(b);
+        }
+        body.appendChild(strip);
+        const now = document.createElement('div');
+        now.className = 'env-now';
+        now.innerHTML = `<b>${ENVS[state.env].name}</b><i>${state.env}</i>`;
+        body.appendChild(now);
+      }
+
+      if (it.t === 'range') {
+        const r = document.createElement('div');
+        r.className = 'row';
+        r.innerHTML = `<div class="row-top"><b>${it.label}</b><i>${it.cn || ''}</i><span class="val"></span></div>
+                       <input type="range" min="${it.min}" max="${it.max}" step="${it.step}" data-k="${it.key}">`;
+        const input = r.querySelector('input'), val = r.querySelector('.val');
+        const paint = () => {
+          const v = state[it.key];
+          input.value = v;
+          input.style.setProperty('--p', `${((v - it.min) / (it.max - it.min)) * 100}%`);
+          val.textContent = `${(+v).toFixed(it.step < 0.1 ? 3 : it.step < 1 ? 2 : 0)}${it.unit || ''}`;
+        };
+        input.addEventListener('input', () => {
+          state[it.key] = +input.value;
+          paint(); refreshCaptions(); syncChips(); markDirty();
+        });
+        input._paint = paint; paint();
+        body.appendChild(r);
+      }
+
+      if (it.t === 'color') {
+        const r = document.createElement('div');
+        r.className = 'row';
+        r.innerHTML = `<div class="row-top"><b>${it.label}</b><i>${it.cn || ''}</i>
+                       <span class="val"></span><span class="swatch"><input type="color" data-k="${it.key}"></span></div>`;
+        const input = r.querySelector('input'), hex = r.querySelector('.val');
+        const paint = () => { input.value = state[it.key]; hex.textContent = state[it.key].toUpperCase(); };
+        input.addEventListener('input', () => { state[it.key] = input.value; paint(); markDirty(); });
+        input._paint = paint; paint();
+        body.appendChild(r);
+      }
+
+      if (it.t === 'presets') {
+        const box = document.createElement('div');
+        box.className = 'chips';
+        for (const o of it.options) {
+          const c = document.createElement('button');
+          c.className = `chip${String(state[it.key]) === String(o.v) ? ' on' : ''}`;
+          c.dataset.k = it.key; c.dataset.v = o.v;
+          c.innerHTML = `${o.label}<u>${o.sub}</u>`;
+          c.addEventListener('click', () => {
+            state[it.key] = o.v;
+            syncUI();
+            if (it.rebuild) buildGrid(); else { refreshCaptions(); markDirty(); }
+          });
+          box.appendChild(c);
+        }
+        body.appendChild(box);
+      }
+
+      if (it.t === 'check') {
+        const on = it.truthy ? state[it.key] === it.truthy : !!state[it.key];
+        const l = document.createElement('label');
+        l.className = `toggle${on ? ' on' : ''}`;
+        l.innerHTML = `<input type="checkbox" data-k="${it.key}" ${on ? 'checked' : ''}> ${it.label}
+                       <i style="font-style:normal;color:var(--ink-3);font-size:10px;">${it.cn || ''}</i>`;
+        const input = l.querySelector('input');
+        input.addEventListener('change', () => {
+          state[it.key] = it.truthy ? (input.checked ? it.truthy : it.falsy) : input.checked;
+          l.classList.toggle('on', input.checked);
+          markDirty();
+        });
+        input._paint = () => {
+          const v = it.truthy ? state[it.key] === it.truthy : !!state[it.key];
+          input.checked = v; l.classList.toggle('on', v);
+        };
+        body.appendChild(l);
+      }
+
+      if (it.t === 'buttons') {
+        const box = document.createElement('div');
+        box.className = 'grid2';
+        for (const o of it.options) {
+          const b = document.createElement('button');
+          b.className = 'btn ghost'; b.textContent = o.label;
+          b.addEventListener('click', o.act);
+          box.appendChild(b);
+        }
+        body.appendChild(box);
+      }
+    }
+    host.appendChild(el);
+  }
+}
+
+function syncChips() {
+  document.querySelectorAll('#rail .chip').forEach((c) => {
+    c.classList.toggle('on', String(state[c.dataset.k]) === c.dataset.v);
+  });
+}
+function syncUI() {
+  document.querySelectorAll('#rail input').forEach((i) => i._paint && i._paint());
+  syncChips();
+  refreshCaptions();
+}
+
+/* ------------------------------------------------------------- 14. ignition */
+$('#ruler').innerHTML = '<i></i>'.repeat(60);
+
+try {
+  setBoot('reading Male.glb', 22);
+  await loadBody('Male');
+  setBoot('reading Female.glb', 68);
+  await loadBody('Female');
+  setBoot('building the sheet', 92);
+
+  buildRail();
+  buildGrid();
+  syncUI();
+  loop();
+  /* handle for poking at the sheet from the console */
+  window.__lab = { state, views, CROPS, PRESETS, ENVS, markDirty, buildRail, buildGrid, syncUI };
+  setBoot('ready', 100);
+  setTimeout(() => boot.classList.add('gone'), 240);
+} catch (err) {
+  boot.querySelector('.bt').textContent = 'Could not load the models';
+  boot.querySelector('.bar').remove();
+  const e = $('#boot-err');
+  e.hidden = false;
+  e.textContent = `${err.message}
+
+file:// cannot fetch a local GLB. Serve this folder over HTTP:
+
+  cd C:\\Users\\50560\\Downloads
+  python -m http.server 8777
+
+then open  http://localhost:8777/home-hero-lab.html`;
+  throw err;
+}
+</script>

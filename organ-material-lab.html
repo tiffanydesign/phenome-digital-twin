@@ -1,0 +1,1985 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Organ Material Lab</title>
+
+<style>
+  :root {
+    --sans: "Inter Tight", "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont,
+            "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --mono: "SF Mono", ui-monospace, "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace;
+
+    --ink: #0a1c2e; --ink-2: #3d5570; --ink-3: #8296ad;
+    --hair: rgba(10,28,46,.10); --hair-2: rgba(10,28,46,.06);
+    --bg-a: #d6e7f8; --bg-b: #fbfdff;
+
+    --panel: rgba(255,255,255,.62); --panel-brd: rgba(255,255,255,.78);
+
+    /* UI accent is teal on purpose: the pink belongs to the specimen, not the chrome */
+    --accent: #0fa3c0; --accent-dk: #06798f; --accent-sf: rgba(15,163,192,.12);
+
+    --shadow: 0 1px 2px rgba(10,28,46,.06), 0 8px 24px -8px rgba(10,28,46,.16),
+              0 32px 64px -24px rgba(10,28,46,.22);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body { font-family: var(--sans); color: var(--ink); background: var(--bg-b); -webkit-font-smoothing: antialiased; }
+
+  /* ---------- stage ---------- */
+  #bg { position: fixed; inset: 0; background: linear-gradient(178deg, var(--bg-a), var(--bg-b)); }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #leaders { position: fixed; inset: 0; pointer-events: none; overflow: visible; }
+  #labels { position: fixed; inset: 0; pointer-events: none; }
+
+  /* ---------- callout labels ---------- */
+  .callout {
+    position: absolute; top: 0; left: 0; display: flex; align-items: center; gap: 9px;
+    padding: 8px 15px 8px 11px; border-radius: 999px;
+    background: rgba(255,255,255,.72); border: 1px solid rgba(255,255,255,.9);
+    box-shadow: 0 1px 1px rgba(10,28,46,.05), 0 10px 26px -12px rgba(10,28,46,.34);
+    backdrop-filter: blur(14px) saturate(170%); -webkit-backdrop-filter: blur(14px) saturate(170%);
+    white-space: nowrap; pointer-events: auto; will-change: transform; transition: opacity .28s ease;
+  }
+  .callout .dot {
+    position: relative; flex: none; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(15,163,192,.16), 0 0 12px 2px rgba(15,163,192,.6);
+  }
+  .callout .dot::after {
+    content: ""; position: absolute; inset: -4px; border-radius: 50%;
+    border: 1px solid var(--accent); opacity: 0; animation: ping 2.6s ease-out infinite;
+  }
+  @keyframes ping { 0% { transform: scale(.6); opacity: .8; } 70% { transform: scale(1.9); opacity: 0; } 100% { opacity: 0; } }
+  .callout .txt { display: flex; flex-direction: column; line-height: 1.15; }
+  .callout .title { font-size: 13px; font-weight: 600; letter-spacing: -.01em; color: var(--ink); outline: none; min-width: 10px; }
+  .callout .title:focus { box-shadow: 0 1px 0 var(--accent); }
+  .callout .sub { font-family: var(--mono); font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); margin-top: 3px; }
+
+  .leader { fill: none; stroke: var(--leader, rgba(10,28,46,.34)); stroke-width: 1; }
+  .leader-box { fill: rgba(255,255,255,.55); stroke: var(--accent); stroke-width: 1; }
+  .leader-pin { fill: var(--accent); }
+  .drawin .leader { stroke-dasharray: 400; animation: draw .7s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes draw { from { stroke-dashoffset: 400; } to { stroke-dashoffset: 0; } }
+
+  /* ---------- panel ---------- */
+  #panel {
+    position: fixed; left: 16px; top: 16px; bottom: 16px; width: 336px;
+    display: flex; flex-direction: column; border-radius: 18px;
+    background: var(--panel); border: 1px solid var(--panel-brd); box-shadow: var(--shadow);
+    backdrop-filter: blur(26px) saturate(165%); -webkit-backdrop-filter: blur(26px) saturate(165%);
+    overflow: hidden; z-index: 30;
+    transition: transform .42s cubic-bezier(.2,.85,.2,1), opacity .3s ease;
+  }
+  #panel.hidden { transform: translateX(calc(-100% - 24px)); opacity: 0; pointer-events: none; }
+
+  .p-head { position: relative; padding: 16px 18px 14px; border-bottom: 1px solid var(--hair); flex: none; }
+  .p-eyebrow { font-family: var(--mono); font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent-dk); display: flex; align-items: center; gap: 7px; }
+  .p-eyebrow::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px 1px rgba(15,163,192,.7); }
+  .p-title { font-size: 17px; font-weight: 700; letter-spacing: -.015em; margin: 7px 0 1px; }
+  .p-cn { font-size: 11px; font-weight: 500; color: var(--ink-2); }
+  .p-close {
+    position: absolute; right: 12px; top: 12px; width: 26px; height: 26px;
+    display: grid; place-items: center; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--hair); background: rgba(255,255,255,.6); color: var(--ink-2); font-size: 15px; line-height: 1;
+  }
+  .p-close:hover { background: #fff; color: var(--ink); }
+  .p-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- render-mode segmented control ---------- */
+  .seg {
+    position: relative; display: grid; grid-template-columns: repeat(3, 1fr);
+    margin-top: 13px; padding: 3px; border-radius: 11px;
+    background: rgba(10,28,46,.07); border: 1px solid var(--hair);
+  }
+  .seg-ind {
+    position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / 3);
+    border-radius: 8px; background: #fff; box-shadow: 0 1px 3px rgba(10,28,46,.2);
+    transform: translateX(calc(var(--i, 0) * 100%));
+    transition: transform .32s cubic-bezier(.3,.85,.3,1);
+  }
+  .seg button {
+    position: relative; z-index: 1; background: none; border: 0; cursor: pointer;
+    padding: 6px 2px; display: flex; flex-direction: column; align-items: center; gap: 1px;
+    font-family: var(--sans); color: var(--ink-3); transition: color .2s ease;
+  }
+  .seg button b { font-size: 10.5px; font-weight: 650; }
+  .seg button i { font-style: normal; font-size: 8.5px; }
+  .seg button.on { color: var(--ink); }
+  .seg button.on i { color: var(--accent-dk); }
+  .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 8px; }
+
+  /* ---------- environment swatch strip ---------- */
+  .env-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 12px; }
+  .env-sw {
+    position: relative; height: 26px; padding: 0; border-radius: 7px; cursor: pointer;
+    border: 1px solid rgba(10,28,46,.14); overflow: hidden;
+    transition: transform .16s ease, box-shadow .16s ease;
+  }
+  .env-sw::after {
+    content: ""; position: absolute; right: 3px; bottom: 3px; width: 5px; height: 5px;
+    border-radius: 50%; background: var(--sw); box-shadow: 0 0 6px 1px var(--sw);
+  }
+  .env-sw.grid::before {
+    content: ""; position: absolute; inset: 0; opacity: .5;
+    background-image: linear-gradient(var(--gl) 1px, transparent 1px), linear-gradient(90deg, var(--gl) 1px, transparent 1px);
+    background-size: 7px 7px;
+  }
+  .env-sw:hover { transform: translateY(-1px); }
+  .env-sw.on { box-shadow: 0 0 0 2px var(--accent), 0 3px 10px -3px rgba(15,163,192,.65); border-color: transparent; }
+  .env-sw:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .env-now { margin-top: 8px; display: flex; align-items: baseline; gap: 6px; font-size: 11px; color: var(--ink); }
+  .env-now b { font-weight: 600; }
+  .env-now i { font-style: normal; font-size: 9.5px; color: var(--ink-3); }
+  .env-now .tag {
+    margin-left: auto; font-family: var(--mono); font-size: 8px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent-dk); background: var(--accent-sf); padding: 2px 5px; border-radius: 4px;
+  }
+
+  /* ---------- panel body ---------- */
+  .p-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 4px 0 14px; }
+  .p-body::-webkit-scrollbar { width: 8px; }
+  .p-body::-webkit-scrollbar-thumb { background: rgba(10,28,46,.16); border-radius: 99px; border: 2px solid transparent; background-clip: content-box; }
+
+  .sec { border-bottom: 1px solid var(--hair-2); }
+  .sec:last-child { border-bottom: 0; }
+  .sec-head {
+    width: 100%; background: none; border: 0; cursor: pointer; display: flex; align-items: center; gap: 8px;
+    padding: 13px 18px 11px; font-family: var(--sans); text-transform: uppercase;
+  }
+  .sh-txt { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+  .sh-txt b { font-size: 11px; font-weight: 700; letter-spacing: .09em; color: var(--ink); }
+  .sh-txt i { font-style: normal; font-size: 9.5px; font-weight: 500; letter-spacing: .01em; text-transform: none; color: var(--ink-3); }
+  .sec-head .chev {
+    margin-left: auto; width: 7px; height: 7px; border-right: 1.4px solid var(--ink-3);
+    border-bottom: 1.4px solid var(--ink-3); transform: rotate(45deg); transition: transform .28s ease; margin-top: -3px;
+  }
+  .sec.closed .chev { transform: rotate(-45deg); margin-top: 1px; }
+  .sec-body { padding: 0 18px 15px; display: grid; gap: 11px; }
+  .sec.closed .sec-body { display: none; }
+
+  .sub-head {
+    font-family: var(--mono); font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-3); margin: 4px 0 -3px; display: flex; align-items: center; gap: 8px;
+  }
+  .sub-head::after { content: ""; flex: 1; height: 1px; background: var(--hair); }
+  .sub-head b { font-weight: 700; letter-spacing: .16em; }
+  .sub-head i { font-style: normal; font-family: var(--sans); font-size: 9px; letter-spacing: .01em; text-transform: none; color: var(--ink-3); }
+
+  .row { display: grid; gap: 6px; }
+  .row-top { display: flex; align-items: baseline; gap: 8px; }
+  .row-label { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+  .row-label b { font-size: 12px; font-weight: 550; color: var(--ink); white-space: nowrap; }
+  .row-label i { font-style: normal; font-size: 9.5px; color: var(--ink-3); white-space: nowrap; }
+  .row-val {
+    margin-left: auto; font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums;
+    color: var(--accent-dk); background: var(--accent-sf); padding: 1px 6px; border-radius: 5px;
+  }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 16px; background: none; margin: 0; cursor: ew-resize; }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 99px;
+    background: linear-gradient(to right, var(--accent) var(--p, 0%), rgba(10,28,46,.13) var(--p, 0%));
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; margin-top: -5px;
+    background: #fff; border: 1px solid rgba(10,28,46,.18); box-shadow: 0 1px 3px rgba(10,28,46,.28);
+  }
+  input[type=range]::-moz-range-track { height: 4px; border-radius: 99px; background: rgba(10,28,46,.13); }
+  input[type=range]::-moz-range-progress { height: 4px; border-radius: 99px; background: var(--accent); }
+  input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: #fff; border: 1px solid rgba(10,28,46,.18); box-shadow: 0 1px 3px rgba(10,28,46,.28); }
+  input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+
+  .swatch { position: relative; margin-left: auto; width: 46px; height: 22px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(10,28,46,.16); box-shadow: inset 0 1px 2px rgba(255,255,255,.6); }
+  .swatch input { position: absolute; inset: -8px; width: 200%; height: 200%; border: 0; padding: 0; cursor: pointer; background: none; }
+  .row-inline { display: flex; align-items: center; gap: 8px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-family: var(--sans); font-size: 11px; font-weight: 500; color: var(--ink-2);
+    padding: 6px 10px; border-radius: 8px; cursor: pointer; text-align: left;
+    background: rgba(255,255,255,.6); border: 1px solid var(--hair);
+    display: flex; flex-direction: column; gap: 2px; line-height: 1.12; transition: all .16s ease;
+  }
+  .chip b { font-size: 11px; font-weight: 600; }
+  .chip i { font-style: normal; font-size: 8.5px; opacity: .7; }
+  .chip:hover { background: #fff; color: var(--ink); border-color: rgba(10,28,46,.2); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 3px 10px -3px rgba(15,163,192,.7); }
+  .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 2px 0; }
+  .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .tk { flex: none; width: 32px; height: 18px; border-radius: 99px; background: rgba(10,28,46,.16); position: relative; transition: background .2s ease; }
+  .tk::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(10,28,46,.3); transition: transform .22s cubic-bezier(.3,.8,.3,1); }
+  .toggle input:checked + .tk { background: var(--accent); }
+  .toggle input:checked + .tk::after { transform: translateX(14px); }
+  .toggle input:focus-visible + .tk { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .toggle span { display: inline-flex; align-items: baseline; gap: 6px; }
+  .toggle span b { font-size: 12px; font-weight: 550; }
+  .toggle span i { font-style: normal; font-size: 9.5px; color: var(--ink-3); }
+
+  .hintline { font-size: 10.5px; color: var(--ink-2); line-height: 1.5; }
+  .hintline em { display: block; font-style: normal; color: var(--ink-3); margin-top: 3px; }
+  .hintline em:empty, .chip i:empty, .seg button i:empty, .btn i:empty,
+  .row-label i:empty, .sub-head i:empty, .toggle span i:empty,
+  .sh-txt i:empty, .env-now i:empty { display: none; }
+  .btn-row { display: flex; gap: 6px; }
+  .btn {
+    flex: 1; font-family: var(--sans); color: var(--ink); padding: 7px 4px; border-radius: 9px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.15;
+    background: rgba(255,255,255,.72); border: 1px solid var(--hair); transition: all .16s ease;
+  }
+  .btn b { font-size: 11px; font-weight: 600; }
+  .btn i { font-style: normal; font-size: 8.5px; color: var(--ink-3); }
+  .btn:hover { background: #fff; border-color: rgba(10,28,46,.2); box-shadow: 0 2px 8px -3px rgba(10,28,46,.25); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    position: fixed; right: 16px; top: 16px; z-index: 20; padding: 11px 14px; border-radius: 14px; min-width: 186px;
+    background: var(--panel); border: 1px solid var(--panel-brd); box-shadow: var(--shadow);
+    backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+  #hud .hname { font-size: 12px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 210px; }
+  #hud dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
+  #hud dt { font-family: var(--mono); font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); align-self: center; }
+  #hud dd { margin: 0; font-family: var(--mono); font-size: 10.5px; font-variant-numeric: tabular-nums; text-align: right; color: var(--ink-2); }
+
+  #keyhint { position: fixed; right: 16px; bottom: 16px; z-index: 20; display: flex; gap: 5px; align-items: center; }
+  #keyhint kbd {
+    font-family: var(--mono); font-size: 9px; letter-spacing: .06em; padding: 4px 6px; border-radius: 6px;
+    color: var(--ink-2); background: rgba(255,255,255,.6); border: 1px solid var(--hair); box-shadow: 0 1px 2px rgba(10,28,46,.06);
+  }
+  #keyhint kbd b { color: var(--ink); font-weight: 650; }
+
+  #panel-open {
+    position: fixed; left: 16px; top: 16px; z-index: 29; padding: 10px 14px; border-radius: 12px; cursor: pointer;
+    font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink);
+    background: var(--panel); border: 1px solid var(--panel-brd); box-shadow: var(--shadow);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    opacity: 0; pointer-events: none; transition: opacity .3s ease .1s;
+  }
+  #panel-open.show { opacity: 1; pointer-events: auto; }
+
+  #drop { position: fixed; inset: 0; z-index: 60; display: none; place-items: center; background: rgba(219,233,248,.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  #drop.on { display: grid; }
+  #drop .frame { padding: 40px 56px; border-radius: 22px; text-align: center; border: 2px dashed var(--accent); background: rgba(255,255,255,.72); box-shadow: 0 40px 80px -30px rgba(10,28,46,.4); }
+  #drop .big { font-size: 19px; font-weight: 650; letter-spacing: -.02em; }
+  #drop .small { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-dk); margin-top: 9px; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 14px); z-index: 70;
+    padding: 10px 18px; border-radius: 999px; font-size: 12.5px; font-weight: 500;
+    background: rgba(10,28,46,.9); color: #eaf3fb; box-shadow: 0 14px 34px -12px rgba(10,28,46,.6);
+    opacity: 0; pointer-events: none; transition: opacity .26s ease, transform .26s ease;
+    max-width: min(560px, 84vw); text-align: center;
+  }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  #boot { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: linear-gradient(178deg, var(--bg-a), var(--bg-b)); transition: opacity .5s ease; text-align: center; padding: 24px; }
+  #boot.gone { opacity: 0; pointer-events: none; }
+  #boot .bt { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+  #boot .bs { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); margin-top: 10px; }
+  #boot .bar { width: 190px; height: 2px; border-radius: 99px; background: rgba(10,28,46,.1); margin: 20px auto 0; overflow: hidden; }
+  #boot .bar i { display: block; width: 40%; height: 100%; border-radius: 99px; background: var(--accent); animation: slide 1.15s ease-in-out infinite; }
+  @keyframes slide { 0% { transform: translateX(-110%); } 100% { transform: translateX(360%); } }
+  #boot .err { max-width: 440px; font-size: 12.5px; color: var(--ink-2); line-height: 1.65; margin-top: 12px; }
+
+  @media (max-width: 880px) {
+    #panel { left: 8px; right: 8px; width: auto; top: auto; bottom: 8px; max-height: 64vh; border-radius: 20px; }
+    #panel.hidden { transform: translateY(calc(100% + 16px)); }
+    #panel-open { left: 8px; top: auto; bottom: 8px; }
+    #hud { right: 8px; top: 8px; min-width: 0; padding: 9px 11px; }
+    #hud dl { grid-template-columns: auto auto; gap: 3px 9px; }
+    #keyhint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: .001s !important; transition-duration: .001s !important; } }
+</style>
+
+<div id="bg"></div>
+<canvas id="gl"></canvas>
+<svg id="leaders" aria-hidden="true"></svg>
+<div id="labels"></div>
+
+<aside id="panel">
+  <div class="p-head">
+    <div class="p-eyebrow" id="p-eyebrow">MeshPhysicalMaterial</div>
+    <div class="p-title">Organ Material Lab</div>
+    <div class="p-note">Drop a <code>.glb</code> anywhere to swap the specimen</div>
+    <button class="p-close" id="p-close" title="Hide panel" aria-label="Hide panel">&times;</button>
+    <div class="seg" id="seg"><i class="seg-ind" id="seg-ind"></i></div>
+    <div class="env-strip" id="env-strip"></div>
+    <div class="env-now" id="env-now"></div>
+  </div>
+  <div class="p-body" id="pbody"></div>
+</aside>
+
+<button id="panel-open">Controls</button>
+
+<div id="hud">
+  <div class="hname" id="hud-name">TorusKnot · Placeholder</div>
+  <dl>
+    <dt>Mode</dt>     <dd id="hud-mode">Physical</dd>
+    <dt>Meshes</dt>   <dd id="hud-meshes">1</dd>
+    <dt>Vertices</dt> <dd id="hud-verts">—</dd>
+    <dt>Tris</dt>     <dd id="hud-tris">—</dd>
+    <dt>Dot Grid</dt> <dd id="hud-points">—</dd>
+    <dt>FPS</dt>      <dd id="hud-fps">—</dd>
+  </dl>
+</div>
+
+<div id="keyhint">
+  <kbd><b>H</b> Panel</kbd><kbd><b>R</b> Reset</kbd><kbd><b>Space</b> Spin</kbd><kbd><b>M</b> Mode</kbd><kbd><b>S</b> Shot</kbd>
+</div>
+
+<div id="drop"><div class="frame">
+  <div class="big">Drop to load</div>
+  <div class="small">.glb / .gltf</div>
+</div></div>
+
+<div id="toast"></div>
+
+<div id="boot">
+  <div>
+    <div class="bt">Loading render engine</div>
+    <div class="bs">Fetching three.js</div>
+    <div class="bar"><i></i></div>
+    <div class="err" id="boot-err" hidden></div>
+  </div>
+</div>
+
+<script type="module">
+/* ==========================================================================
+   Organ Material Lab — three render modes over one shared geometry set.
+   Only dependency is the three.js core; GLB parsing, orbit controls, surface
+   point sampling and the callout system are all hand-rolled.
+   ========================================================================== */
+
+const $ = (s) => document.querySelector(s);
+const boot = $('#boot');
+
+/* ---------------------------------------------------------------- 1. loader */
+const versions = ['0.160.0', '0.164.1', '0.155.0', '0.152.2'];
+const sources = [];
+for (const v of versions) {
+  sources.push(`https://cdnjs.cloudflare.com/ajax/libs/three.js/${v}/three.module.min.js`);
+  sources.push(`https://cdnjs.cloudflare.com/ajax/libs/three.js/${v}/three.module.js`);
+}
+sources.push('https://unpkg.com/three@0.160.0/build/three.module.js');
+sources.push('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+
+let THREE = null;
+for (const src of sources) {
+  try {
+    const mod = await import(src);
+    if (mod && mod.WebGLRenderer) { THREE = mod; break; }
+  } catch (e) { /* next mirror */ }
+}
+if (!THREE) {
+  boot.querySelector('.bt').textContent = 'Could not load three.js';
+  boot.querySelector('.bs').textContent = 'Network blocked';
+  boot.querySelector('.bar').remove();
+  const err = $('#boot-err');
+  err.hidden = false;
+  err.textContent = 'None of the CDN mirrors returned the render engine. Check your network or proxy, then reload.';
+  throw new Error('three.js unavailable');
+}
+
+const NEW_CS = 'SRGBColorSpace' in THREE;
+const asSRGB = (t) => { if (NEW_CS) t.colorSpace = THREE.SRGBColorSpace; else if ('sRGBEncoding' in THREE) t.encoding = THREE.sRGBEncoding; };
+const hexA = (h, a) => { const v = parseInt(h.slice(1), 16); return `rgba(${(v >> 16) & 255},${(v >> 8) & 255},${v & 255},${a})`; };
+const hex2vec = (h) => {
+  const v = parseInt(h.slice(1), 16);
+  return new THREE.Vector3(((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255);
+};
+const lum = (h) => {
+  const v = parseInt(h.slice(1), 16);
+  return (0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255)) / 255;
+};
+
+/* ------------------------------------------------------------- 2. app state */
+/* One flat bag. Physical / Translucent / Particles params are namespaced, so
+   switching modes never destroys the settings you already dialled in. */
+const state = {
+  mode: 'physical',
+
+  /* physical */
+  preset: 'jelly',
+  color: '#ff7d92', roughness: 0.18, metalness: 0, opacity: 1,
+  transmission: 0.72, thickness: 1.6, ior: 1.42,
+  attenuationColor: '#b81f46', attenuationDistance: 0.8,
+  clearcoat: 0.7, clearcoatRoughness: 0.1, sheen: 0.3,
+  emissive: '#ff5c8a', emissiveIntensity: 0.22,
+  envIntensity: 1.2,
+  doubleSide: false, wireframe: false,
+
+  /* x-ray */
+  xrayPreset: 'clinical',
+  xrColor: '#7fc3dd', xrEdge: '#eafbff',
+  xrFresPow: 2.2, xrFresBias: 0.06, xrOpacity: 0.62, xrGlow: 1,
+  xrAdditive: false, xrDouble: true,
+
+  /* particles */
+  ptPreset: 'halftone',
+  ptPitchPx: 3, ptAngle: 0,
+  ptFill: 0.75, ptSoft: 0.1,
+  ptColor: '#ee4b35', ptTip: '#ee4b35',
+  ptLightMix: 0.45, ptInvert: false, ptContrast: 1.15, ptFloor: 0,
+  ptOpacity: 1, ptGlow: 1,
+  ptAdditive: false,
+
+  /* environment (shared) */
+  env: 'sterile', envBase: 'sterile',
+  bgTop: '#d6e7f8', bgBottom: '#fbfdff', glowColor: '#9edcff', glow: 0.5,
+  bgMode: 'solid', gridColor: '#7fa8cc', gridAlpha: 0.16, gridScale: 7,
+  ambient: 0.55, ambientColor: '#dfeaf7',
+  key: 2.1, keyColor: '#ffffff',
+  rim: 3.4, rimColor: '#bfeaff',
+  fill: 0.7, fillColor: '#ffd6e0',
+  exposure: 1.05,
+
+  /* view (shared) */
+  autoRotate: true,
+  showLabels: true,
+};
+
+const P_PHYSICAL = {
+  jelly: { name: 'Glow Jelly', cn: '', patch: {
+    color: '#ff7d92', roughness: 0.18, metalness: 0, transmission: 0.72, thickness: 1.6, ior: 1.42,
+    attenuationColor: '#b81f46', attenuationDistance: 0.8, clearcoat: 0.7, clearcoatRoughness: 0.1,
+    sheen: 0.3, emissive: '#ff5c8a', emissiveIntensity: 0.22, opacity: 1, envIntensity: 1.2 } },
+  silicone: { name: 'Frosted Silicone', cn: '', patch: {
+    color: '#ffb3c1', roughness: 0.62, metalness: 0, transmission: 0.45, thickness: 1.2, ior: 1.41,
+    attenuationColor: '#d4506e', attenuationDistance: 1.5, clearcoat: 0.14, clearcoatRoughness: 0.55,
+    sheen: 0.5, emissive: '#ff9ab0', emissiveIntensity: 0.05, opacity: 1, envIntensity: 0.9 } },
+  flesh: { name: 'Real Flesh', cn: '', patch: {
+    color: '#c8555f', roughness: 0.34, metalness: 0, transmission: 0.18, thickness: 2.6, ior: 1.38,
+    attenuationColor: '#6e0c22', attenuationDistance: 0.38, clearcoat: 0.45, clearcoatRoughness: 0.22,
+    sheen: 0.55, emissive: '#8c1028', emissiveIntensity: 0.06, opacity: 1, envIntensity: 1 } },
+  tissue: { name: 'Wet Tissue', cn: '', patch: {
+    color: '#ff9aa8', roughness: 0.11, metalness: 0, transmission: 0.3, thickness: 2.3, ior: 1.38,
+    attenuationColor: '#8e0f33', attenuationDistance: 0.5, clearcoat: 1, clearcoatRoughness: 0.05,
+    sheen: 0.85, emissive: '#ff3f6f', emissiveIntensity: 0.1, opacity: 1, envIntensity: 1.3 } },
+  metal: { name: 'Metal Anatomy', cn: '', patch: {
+    color: '#b8c7d8', roughness: 0.17, metalness: 1, transmission: 0, thickness: 0.4, ior: 2.2,
+    attenuationColor: '#3a4a5c', attenuationDistance: 1, clearcoat: 0.3, clearcoatRoughness: 0.1,
+    sheen: 0, emissive: '#000000', emissiveIntensity: 0, opacity: 1, envIntensity: 1.7 } },
+};
+
+const P_XRAY = {
+  clinical: { name: 'Clinical X-Ray', cn: '', patch: {
+    xrColor: '#7fc3dd', xrEdge: '#eafbff', xrFresPow: 2.2, xrFresBias: 0.06, xrOpacity: 0.62,
+    xrGlow: 1, xrAdditive: false, xrDouble: true } },
+  blueprint: { name: 'Tech Blueprint', cn: '', patch: {
+    xrColor: '#1a6f9c', xrEdge: '#6ff0ff', xrFresPow: 4.5, xrFresBias: 0.02, xrOpacity: 0.78,
+    xrGlow: 1.25, xrAdditive: false, xrDouble: true } },
+  vein: { name: 'Vein Bloom', cn: '', patch: {
+    xrColor: '#d4707a', xrEdge: '#ffd9d5', xrFresPow: 1.9, xrFresBias: 0.14, xrOpacity: 0.55,
+    xrGlow: 1.1, xrAdditive: false, xrDouble: true } },
+  ghost: { name: 'Additive Glow', cn: '', patch: {
+    xrColor: '#2f7f9e', xrEdge: '#7fe8ff', xrFresPow: 3, xrFresBias: 0.04, xrOpacity: 0.7,
+    xrGlow: 1.4, xrAdditive: true, xrDouble: true } },
+};
+
+const P_POINTS = {
+  halftone: { name: 'Redprint Screen', cn: '', patch: {
+    ptPitchPx: 3, ptAngle: 0,
+    ptFill: 0.75, ptSoft: 0.1, ptColor: '#ee4b35', ptTip: '#ee4b35',
+    ptLightMix: 0.45, ptInvert: false, ptContrast: 1.15, ptFloor: 0,
+    ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
+  matrix: { name: 'Blueprint Screen', cn: '', patch: {
+    ptPitchPx: 3, ptAngle: 0,
+    ptFill: 0.78, ptSoft: 0.12, ptColor: '#1d7fa3', ptTip: '#0b4f68',
+    ptLightMix: 0.4, ptInvert: false, ptContrast: 1.2, ptFloor: 0,
+    ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
+  /* Ink collects on the silhouette and fades inward: invert the tone so the
+     grazing angles read darkest, then a small floor keeps faint dots across the
+     middle instead of leaving it blank. */
+  contour: { name: 'Contour Fade', cn: '', patch: {
+    ptPitchPx: 3, ptAngle: 0,
+    ptFill: 0.95, ptSoft: 0.1, ptColor: '#c8d9ef', ptTip: '#33518f',
+    ptLightMix: 0, ptInvert: true, ptContrast: 1.8, ptFloor: 0.045,
+    ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
+  scan: { name: 'Body Scan', cn: '', patch: {
+    ptPitchPx: 3, ptAngle: 0,
+    ptFill: 0.78, ptSoft: 0.12, ptColor: '#1d7fa3', ptTip: '#0b4f68',
+    ptLightMix: 0.4, ptInvert: false, ptContrast: 1.2, ptFloor: 0,
+    ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
+};
+
+const PRESET_TABLES = { physical: P_PHYSICAL, xray: P_XRAY, points: P_POINTS };
+const PRESET_STATE_KEY = { physical: 'preset', xray: 'xrayPreset', points: 'ptPreset' };
+
+/* Procedural HDRIs: each paints an equirect canvas (gradient + softboxes) for
+   reflections, and carries a matching light rig plus backdrop/grid styling. */
+const ENVS = {
+  sterile: { name: 'Sterile Blue', cn: '',
+    bgTop: '#d6e7f8', bgBottom: '#fbfdff', floor: '#c3d6e8', glowColor: '#9edcff', glow: 0.5,
+    bgMode: 'solid', gridColor: '#7fa8cc', gridAlpha: 0.16, gridScale: 7,
+    blobs: [ { x:.29,y:.29,rx:.19,ry:.26,a:1,c:'#ffffff' }, { x:.77,y:.40,rx:.15,ry:.42,a:.9,c:'#e6f6ff' }, { x:.55,y:.92,rx:.32,ry:.18,a:.28,c:'#ffffff' } ],
+    rig: { ambient:.55, ambientColor:'#dfeaf7', key:2.1, keyColor:'#ffffff', rim:3.4, rimColor:'#bfeaff', fill:.7, fillColor:'#ffd6e0', exposure:1.05 } },
+
+  studio: { name: 'Studio White', cn: '',
+    bgTop: '#eef1f4', bgBottom: '#ffffff', floor: '#dfe4e9', glowColor: '#ffffff', glow: 0.22,
+    bgMode: 'solid', gridColor: '#9aa6b2', gridAlpha: 0.12, gridScale: 8,
+    blobs: [ { x:.26,y:.26,rx:.26,ry:.30,a:1,c:'#ffffff' }, { x:.74,y:.32,rx:.22,ry:.28,a:.95,c:'#ffffff' }, { x:.50,y:.90,rx:.42,ry:.20,a:.45,c:'#ffffff' } ],
+    rig: { ambient:.8, ambientColor:'#f2f5f8', key:2.6, keyColor:'#ffffff', rim:2.2, rimColor:'#ffffff', fill:.9, fillColor:'#eef2f6', exposure:1 } },
+
+  clinical: { name: 'Clinical Cool', cn: '',
+    bgTop: '#e4f2f7', bgBottom: '#f8fcfd', floor: '#cfe0e6', glowColor: '#d7f7ff', glow: 0.3,
+    bgMode: 'solid', gridColor: '#5fa9c4', gridAlpha: 0.18, gridScale: 9,
+    blobs: [ { x:.50,y:.16,rx:.46,ry:.10,a:1,c:'#f2feff' }, { x:.16,y:.44,rx:.14,ry:.22,a:.6,c:'#eafaff' }, { x:.84,y:.44,rx:.14,ry:.22,a:.6,c:'#eafaff' } ],
+    rig: { ambient:1.05, ambientColor:'#e6f4f8', key:1.6, keyColor:'#eafcff', rim:2.4, rimColor:'#ffffff', fill:.5, fillColor:'#dff0f5', exposure:1 } },
+
+  blush: { name: 'Blush Rose', cn: '',
+    bgTop: '#fbe9e7', bgBottom: '#fffaf9', floor: '#f2d3ce', glowColor: '#ffb3a7', glow: 0.45,
+    bgMode: 'solid', gridColor: '#e08a7d', gridAlpha: 0.2, gridScale: 7,
+    blobs: [ { x:.30,y:.28,rx:.20,ry:.26,a:.95,c:'#fff4f2' }, { x:.76,y:.40,rx:.16,ry:.38,a:.8,c:'#ffe0da' }, { x:.52,y:.91,rx:.34,ry:.18,a:.3,c:'#ffd8d0' } ],
+    rig: { ambient:.6, ambientColor:'#ffeceb', key:2.2, keyColor:'#fff6f5', rim:3.2, rimColor:'#ffb9ae', fill:.7, fillColor:'#ffd9d3', exposure:1.05 } },
+
+  mint: { name: 'Mint Wash', cn: '',
+    bgTop: '#e2f4ef', bgBottom: '#fbfffd', floor: '#cfe8e0', glowColor: '#8fe0c8', glow: 0.4,
+    bgMode: 'solid', gridColor: '#6cbfa6', gridAlpha: 0.18, gridScale: 8,
+    blobs: [ { x:.31,y:.27,rx:.20,ry:.27,a:.95,c:'#f4fffb' }, { x:.75,y:.41,rx:.15,ry:.38,a:.8,c:'#d8f7ec' }, { x:.52,y:.91,rx:.34,ry:.18,a:.3,c:'#e8fff8' } ],
+    rig: { ambient:.6, ambientColor:'#e8f7f2', key:2.1, keyColor:'#f6fffc', rim:3, rimColor:'#9fe8d4', fill:.6, fillColor:'#d6f2ea', exposure:1.05 } },
+
+  amber: { name: 'Amber Lab', cn: '',
+    bgTop: '#f5efdf', bgBottom: '#fffdf7', floor: '#e2d3b4', glowColor: '#ffd08a', glow: 0.45,
+    bgMode: 'solid', gridColor: '#c9a86a', gridAlpha: 0.18, gridScale: 7,
+    blobs: [ { x:.32,y:.28,rx:.22,ry:.26,a:.95,c:'#fff6e8' }, { x:.78,y:.42,rx:.16,ry:.34,a:.7,c:'#ffe7c2' }, { x:.50,y:.90,rx:.38,ry:.18,a:.35,c:'#ffeed6' } ],
+    rig: { ambient:.62, ambientColor:'#fff3e2', key:2.2, keyColor:'#fff6ea', rim:2.8, rimColor:'#ffcf9a', fill:.6, fillColor:'#ffe0cf', exposure:1.05 } },
+
+  warm: { name: 'Warm Backlight', cn: '',
+    bgTop: '#f7e7d6', bgBottom: '#fffaf3', floor: '#e8cfb4', glowColor: '#ffb066', glow: 0.95,
+    bgMode: 'solid', gridColor: '#cba077', gridAlpha: 0.14, gridScale: 7,
+    blobs: [ { x:.72,y:.34,rx:.20,ry:.34,a:1,c:'#ffd9a8' }, { x:.22,y:.30,rx:.14,ry:.20,a:.45,c:'#fff3e2' }, { x:.50,y:.90,rx:.36,ry:.18,a:.3,c:'#ffcf9a' } ],
+    rig: { ambient:.42, ambientColor:'#ffeeda', key:1.15, keyColor:'#fff2e0', rim:5.6, rimColor:'#ffb570', fill:.5, fillColor:'#ffd8c0', exposure:1.1 } },
+
+  paper: { name: 'Paper Grey', cn: '',
+    bgTop: '#ebeef1', bgBottom: '#fdfefe', floor: '#d8dde2', glowColor: '#ffffff', glow: 0.25,
+    bgMode: 'solid', gridColor: '#8f9aa5', gridAlpha: 0.16, gridScale: 10,
+    blobs: [ { x:.28,y:.27,rx:.23,ry:.28,a:1,c:'#ffffff' }, { x:.75,y:.36,rx:.18,ry:.30,a:.85,c:'#f4f7fa' }, { x:.50,y:.90,rx:.40,ry:.19,a:.4,c:'#ffffff' } ],
+    rig: { ambient:.75, ambientColor:'#f0f3f6', key:2.4, keyColor:'#ffffff', rim:2.4, rimColor:'#e8eef4', fill:.8, fillColor:'#e4e9ee', exposure:1 } },
+
+  teal: { name: 'Deep Teal', cn: '',
+    bgTop: '#0d3b4a', bgBottom: '#14586b', floor: '#082530', glowColor: '#4fd8e8', glow: 0.8,
+    bgMode: 'solid', gridColor: '#2f8fa5', gridAlpha: 0.2, gridScale: 8,
+    blobs: [ { x:.74,y:.36,rx:.17,ry:.32,a:1,c:'#8ff4ff' }, { x:.24,y:.32,rx:.13,ry:.20,a:.5,c:'#d8fbff' }, { x:.50,y:.93,rx:.32,ry:.15,a:.2,c:'#2f8fa5' } ],
+    rig: { ambient:.3, ambientColor:'#12495a', key:1.3, keyColor:'#d8fbff', rim:5.2, rimColor:'#5fe4f2', fill:.45, fillColor:'#2f8fa5', exposure:1.2 } },
+
+  champagne: { name: 'Champagne', cn: '',
+    bgTop: '#f2e7d5', bgBottom: '#fffcf6', floor: '#e0cdae', glowColor: '#ffd79b', glow: 0.5,
+    bgMode: 'solid', gridColor: '#c7a879', gridAlpha: 0.17, gridScale: 7,
+    blobs: [ { x:.30,y:.27,rx:.22,ry:.27,a:.98,c:'#fff8ec' }, { x:.77,y:.41,rx:.16,ry:.36,a:.75,c:'#ffe9c8' }, { x:.51,y:.91,rx:.36,ry:.18,a:.34,c:'#fff2dc' } ],
+    rig: { ambient:.62, ambientColor:'#fff4e4', key:2.2, keyColor:'#fff8ee', rim:3, rimColor:'#ffd9a8', fill:.65, fillColor:'#ffe6d0', exposure:1.05 } },
+
+  quartz: { name: 'Rose Quartz', cn: '',
+    bgTop: '#f6e4e1', bgBottom: '#fffaf9', floor: '#e7cbc4', glowColor: '#ffb9a8', glow: 0.52,
+    bgMode: 'solid', gridColor: '#d9a093', gridAlpha: 0.18, gridScale: 7,
+    blobs: [ { x:.29,y:.28,rx:.21,ry:.27,a:.96,c:'#fff5f2' }, { x:.76,y:.40,rx:.16,ry:.37,a:.78,c:'#ffdcd2' }, { x:.52,y:.91,rx:.35,ry:.18,a:.32,c:'#ffe4dc' } ],
+    rig: { ambient:.6, ambientColor:'#ffedea', key:2.15, keyColor:'#fff6f4', rim:3.1, rimColor:'#ffc0b0', fill:.68, fillColor:'#ffdcd2', exposure:1.05 } },
+
+  terracotta: { name: 'Terracotta', cn: '',
+    bgTop: '#f0dcce', bgBottom: '#fef7f1', floor: '#dbb79c', glowColor: '#e89a6e', glow: 0.62,
+    bgMode: 'solid', gridColor: '#c48a66', gridAlpha: 0.18, gridScale: 7,
+    blobs: [ { x:.31,y:.27,rx:.21,ry:.26,a:.95,c:'#fff2e6' }, { x:.75,y:.40,rx:.17,ry:.36,a:.82,c:'#f7cfae' }, { x:.51,y:.91,rx:.35,ry:.18,a:.33,c:'#f2d6bd' } ],
+    rig: { ambient:.55, ambientColor:'#ffe9da', key:2.05, keyColor:'#fff2e6', rim:3.6, rimColor:'#f0a87c', fill:.6, fillColor:'#ffd2b8', exposure:1.08 } },
+
+  linen: { name: 'Warm Linen', cn: '',
+    bgTop: '#efe8da', bgBottom: '#fdfbf6', floor: '#dbcfb9', glowColor: '#e8cfa0', glow: 0.4,
+    bgMode: 'solid', gridColor: '#b8a88c', gridAlpha: 0.15, gridScale: 8,
+    blobs: [ { x:.29,y:.26,rx:.23,ry:.28,a:.97,c:'#fffaf1' }, { x:.76,y:.38,rx:.17,ry:.33,a:.72,c:'#f4e6cc' }, { x:.50,y:.90,rx:.38,ry:.19,a:.36,c:'#faf0dd' } ],
+    rig: { ambient:.68, ambientColor:'#fff6e9', key:2.3, keyColor:'#fffbf2', rim:2.6, rimColor:'#ebd3a8', fill:.7, fillColor:'#f2e2c8', exposure:1.02 } },
+
+  cognac: { name: 'Cognac Dusk', cn: '',
+    bgTop: '#2b1d16', bgBottom: '#4c3527', floor: '#1a100b', glowColor: '#e8a96a', glow: 0.9,
+    bgMode: 'solid', gridColor: '#7a5a42', gridAlpha: 0.2, gridScale: 8,
+    blobs: [ { x:.75,y:.35,rx:.17,ry:.31,a:1,c:'#ffd7a3' }, { x:.25,y:.31,rx:.13,ry:.20,a:.5,c:'#fff0da' }, { x:.50,y:.93,rx:.31,ry:.15,a:.2,c:'#8a5f3c' } ],
+    rig: { ambient:.3, ambientColor:'#3a2a1e', key:1.5, keyColor:'#ffe9cc', rim:4.6, rimColor:'#f0b274', fill:.42, fillColor:'#6b4a32', exposure:1.18 } },
+
+  carbon: { name: 'Carbon Slate', cn: '',
+    bgTop: '#1a2026', bgBottom: '#2a343d', floor: '#12171c', glowColor: '#7fd4e0', glow: 0.55,
+    bgMode: 'solid', gridColor: '#5f7d8c', gridAlpha: 0.22, gridScale: 8,
+    blobs: [ { x:.76,y:.34,rx:.16,ry:.30,a:.95,c:'#cfeff6' }, { x:.26,y:.30,rx:.13,ry:.20,a:.45,c:'#ffffff' }, { x:.50,y:.93,rx:.32,ry:.15,a:.16,c:'#4a6472' } ],
+    rig: { ambient:.28, ambientColor:'#253038', key:1.6, keyColor:'#f0fbff', rim:4.2, rimColor:'#8fdce8', fill:.4, fillColor:'#3a4a55', exposure:1.15 } },
+};
+
+/* ------------------------------------------------------------- 3. renderer */
+const canvas = $('#gl');
+const renderer = new THREE.WebGLRenderer({
+  canvas, antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'high-performance',
+});
+const PIXEL = Math.min(window.devicePixelRatio || 1, 2);
+renderer.setPixelRatio(PIXEL);
+if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+else if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = state.exposure;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 2000);
+camera.position.set(2.1, 1.35, 4.3);
+
+/* ------------------------------------------- 4. backdrop (gradient + grid) */
+/* The grid is drawn in NDC space from an interpolated clip position, so it is
+   resolution-independent AND survives the transmission backdrop pass. */
+const bgUniforms = {
+  cTop: { value: hex2vec(state.bgTop) },
+  cBottom: { value: hex2vec(state.bgBottom) },
+  cGlow: { value: hex2vec(state.glowColor) },
+  glowDir: { value: new THREE.Vector3(-0.55, 0.24, -0.8).normalize() },
+  glowAmt: { value: state.glow },
+  gridColor: { value: hex2vec(state.gridColor) },
+  gridAlpha: { value: state.bgMode === 'grid' ? state.gridAlpha : 0 },
+  gridScale: { value: state.gridScale },
+  gridWidth: { value: 0.022 },
+  aspect: { value: 1 },
+};
+const bgSphere = new THREE.Mesh(
+  new THREE.SphereGeometry(600, 48, 32),
+  new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, uniforms: bgUniforms,
+    vertexShader: `
+      varying vec3 vW;
+      varying vec4 vClip;
+      void main() {
+        vW = (modelMatrix * vec4(position, 1.0)).xyz;
+        vClip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        gl_Position = vClip;
+      }`,
+    fragmentShader: `
+      varying vec3 vW;
+      varying vec4 vClip;
+      uniform vec3 cTop, cBottom, cGlow, glowDir, gridColor;
+      uniform float glowAmt, gridAlpha, gridScale, gridWidth, aspect;
+      float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+      void main() {
+        vec3 d = normalize(vW);
+        float h = clamp(d.y * 0.5 + 0.5, 0.0, 1.0);
+        vec3 c = mix(cBottom, cTop, pow(h, 0.9));
+        c = mix(c, cBottom * 0.94, smoothstep(0.42, 0.0, h) * 0.5);
+        c += cGlow * pow(max(dot(d, normalize(glowDir)), 0.0), 5.0) * glowAmt * 0.5;
+
+        if (gridAlpha > 0.0005) {
+          vec2 ndc = vClip.xy / vClip.w;
+          vec2 guv = vec2(ndc.x * aspect, ndc.y) * gridScale;
+          vec2 f = abs(fract(guv - 0.5) - 0.5);
+          float line = 1.0 - smoothstep(0.0, gridWidth, min(f.x, f.y));
+          c = mix(c, gridColor, line * gridAlpha);
+        }
+
+        c += (hash(gl_FragCoord.xy) - 0.5) / 255.0;   /* kill gradient banding */
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  })
+);
+bgSphere.renderOrder = -1;
+bgSphere.frustumCulled = false;
+scene.add(bgSphere);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+let envRT = null;
+function buildEnv() {
+  const e = ENVS[state.envBase] || ENVS.sterile;
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 512;
+  const g = c.getContext('2d');
+
+  const grad = g.createLinearGradient(0, 0, 0, 512);
+  grad.addColorStop(0, state.bgTop);
+  grad.addColorStop(0.52, state.bgBottom);
+  grad.addColorStop(1, e.floor);
+  g.fillStyle = grad; g.fillRect(0, 0, 1024, 512);
+
+  /* Softboxes: what the clearcoat actually reflects. Without them highlights
+     die and even a good material reads as flat plastic. */
+  for (const b of e.blobs) {
+    g.save();
+    g.translate(b.x * 1024, b.y * 512);
+    g.scale(b.rx * 1024, b.ry * 512);
+    const r = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+    r.addColorStop(0, hexA(b.c, b.a));
+    r.addColorStop(0.55, hexA(b.c, b.a * 0.42));
+    r.addColorStop(1, hexA(b.c, 0));
+    g.fillStyle = r;
+    g.beginPath(); g.arc(0, 0, 1, 0, Math.PI * 2); g.fill();
+    g.restore();
+  }
+
+  const t = new THREE.CanvasTexture(c);
+  t.mapping = THREE.EquirectangularReflectionMapping;
+  asSRGB(t);
+  if (envRT) envRT.dispose();
+  envRT = pmrem.fromEquirectangular(t);
+  scene.environment = envRT.texture;
+  t.dispose();
+}
+buildEnv();
+
+/* ------------------------------------------------------------- 5. lighting */
+const ambient = new THREE.AmbientLight(state.ambientColor, state.ambient);
+const keyLight = new THREE.DirectionalLight(state.keyColor, state.key);
+keyLight.position.set(4.2, 6, 5.5);
+const rimLight = new THREE.DirectionalLight(state.rimColor, state.rim);   // the jelly-maker
+rimLight.position.set(-5.5, 2.4, -7);
+const fillLight = new THREE.DirectionalLight(state.fillColor, state.fill);
+fillLight.position.set(-3.4, -4.2, 2.6);
+scene.add(ambient, keyLight, rimLight, fillLight);
+
+function applyLights() {
+  ambient.color.set(state.ambientColor); ambient.intensity = state.ambient;
+  keyLight.color.set(state.keyColor); keyLight.intensity = state.key;
+  rimLight.color.set(state.rimColor); rimLight.intensity = state.rim;
+  fillLight.color.set(state.fillColor); fillLight.intensity = state.fill;
+  renderer.toneMappingExposure = state.exposure;
+}
+
+function applyBackdrop() {
+  bgUniforms.cTop.value.copy(hex2vec(state.bgTop));
+  bgUniforms.cBottom.value.copy(hex2vec(state.bgBottom));
+  bgUniforms.cGlow.value.copy(hex2vec(state.glowColor));
+  bgUniforms.glowAmt.value = state.glow;
+  bgUniforms.gridColor.value.copy(hex2vec(state.gridColor));
+  bgUniforms.gridAlpha.value = state.bgMode === 'grid' ? state.gridAlpha : 0;
+  bgUniforms.gridScale.value = state.gridScale;
+  document.documentElement.style.setProperty('--bg-a', state.bgTop);
+  document.documentElement.style.setProperty('--bg-b', state.bgBottom);
+  /* a dark hairline vanishes on the dark HDRIs, so flip the callout leaders */
+  const dark = (lum(state.bgTop) + lum(state.bgBottom)) / 2 < 0.45;
+  document.documentElement.style.setProperty('--leader', dark ? 'rgba(255,255,255,.6)' : 'rgba(10,28,46,.34)');
+}
+
+/* -------------------------------------------------------- 6. the materials */
+const matPhysical = new THREE.MeshPhysicalMaterial({ color: state.color, side: THREE.FrontSide });
+const hasP = (k) => k in matPhysical;
+
+function applyPhysical() {
+  const m = matPhysical;
+  m.color.set(state.color);
+  m.roughness = state.roughness;
+  m.metalness = state.metalness;
+  m.opacity = state.opacity;
+  m.transparent = state.opacity < 1;
+  m.side = state.doubleSide ? THREE.DoubleSide : THREE.FrontSide;
+  m.wireframe = state.wireframe;
+  m.envMapIntensity = state.envIntensity;
+  m.emissive.set(state.emissive);
+  m.emissiveIntensity = state.emissiveIntensity;
+  if (hasP('transmission')) m.transmission = state.transmission;
+  if (hasP('thickness')) m.thickness = state.thickness;
+  if (hasP('ior')) m.ior = state.ior;
+  if (m.attenuationColor) m.attenuationColor.set(state.attenuationColor);
+  if (hasP('attenuationDistance')) m.attenuationDistance = state.attenuationDistance;
+  if (hasP('clearcoat')) m.clearcoat = state.clearcoat;
+  if (hasP('clearcoatRoughness')) m.clearcoatRoughness = state.clearcoatRoughness;
+  if (typeof m.sheen === 'number') {
+    m.sheen = state.sheen;
+    if (m.sheenColor) m.sheenColor.set('#ffd9e2');
+    if (hasP('sheenRoughness')) m.sheenRoughness = 0.35;
+  }
+  m.needsUpdate = true;
+}
+
+/* --- Translucent: fresnel edge glow, no depth write, layered see-through -- */
+const XRAY_VERT = `
+  varying vec3 vN;
+  varying vec3 vV;
+  void main() {
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vN = normalize(normalMatrix * normal);
+    vV = normalize(-mv.xyz);
+    gl_Position = projectionMatrix * mv;
+  }`;
+const XRAY_FRAG = `
+  varying vec3 vN;
+  varying vec3 vV;
+  uniform vec3 uColor;
+  uniform vec3 uEdge;
+  uniform float uFresPow, uFresBias, uOpacity, uGlow;
+  void main() {
+    float facing = clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0);
+    float fres = clamp(uFresBias + (1.0 - uFresBias) * pow(1.0 - facing, uFresPow), 0.0, 1.0);
+    gl_FragColor = vec4(mix(uColor, uEdge, fres) * uGlow, clamp(fres * uOpacity, 0.0, 1.0));
+  }`;
+
+function xrayUniforms() {
+  return {
+    uColor: { value: hex2vec(state.xrColor) },
+    uEdge: { value: hex2vec(state.xrEdge) },
+    uFresPow: { value: state.xrFresPow },
+    uFresBias: { value: state.xrFresBias },
+    uOpacity: { value: state.xrOpacity },
+    uGlow: { value: state.xrGlow },
+  };
+}
+const matXray = new THREE.ShaderMaterial({
+  vertexShader: XRAY_VERT, fragmentShader: XRAY_FRAG, uniforms: xrayUniforms(),
+  transparent: true, depthWrite: false, side: THREE.DoubleSide,
+});
+
+function applyXray() {
+  const u = matXray.uniforms;
+  u.uColor.value.copy(hex2vec(state.xrColor));
+  u.uEdge.value.copy(hex2vec(state.xrEdge));
+  u.uFresPow.value = state.xrFresPow;
+  u.uFresBias.value = state.xrFresBias;
+  u.uOpacity.value = state.xrOpacity;
+  u.uGlow.value = state.xrGlow;
+  matXray.side = state.xrDouble ? THREE.DoubleSide : THREE.FrontSide;
+  matXray.blending = state.xrAdditive ? THREE.AdditiveBlending : THREE.NormalBlending;
+  matXray.needsUpdate = true;
+  applyModeVisibility();
+}
+
+/* --- Particles: round dots, size driven by surface facing + scan band ----- */
+/* ---- screen halftone -------------------------------------------------------
+   A 3D lattice cannot give the reference look: viewed from any angle, lattice
+   rows on surfaces edge-on to the camera collapse into solid lines, and front
+   and back surfaces both draw, so the dots pile up. A real halftone screen is
+   fixed to the page: one dot per screen cell, radius set by the tone underneath.
+   So render the model's shading into a buffer, then screen it in one pass. */
+const toneRT = new THREE.WebGLRenderTarget(2, 2, {
+  minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+  wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
+  depthBuffer: true, stencilBuffer: false,
+});
+
+const matTone = new THREE.ShaderMaterial({
+  uniforms: {
+    uLightMix: { value: state.ptLightMix },
+    uLightDir: { value: new THREE.Vector3(0.5, 0.7, 0.5) },
+  },
+  side: THREE.DoubleSide,
+  vertexShader: `
+    varying vec3 vN;
+    varying vec3 vV;
+    void main() {
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      vN = normalize(normalMatrix * normal);
+      vV = normalize(-mv.xyz);
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: `
+    varying vec3 vN;
+    varying vec3 vV;
+    uniform float uLightMix;
+    uniform vec3 uLightDir;
+    void main() {
+      vec3 nv = normalize(vN);
+      float facing = clamp(abs(dot(nv, normalize(vV))), 0.0, 1.0);
+      float ndl = clamp(dot(nv, normalize(uLightDir)) * 0.5 + 0.5, 0.0, 1.0);
+      float bright = mix(facing, ndl, uLightMix);
+      gl_FragColor = vec4(bright, bright, bright, 1.0);
+    }`,
+});
+
+const matHalftone = new THREE.ShaderMaterial({
+  uniforms: {
+    uTone: { value: toneRT.texture },
+    uRes: { value: new THREE.Vector2(2, 2) },
+    uPitch: { value: 13 },
+    uAngle: { value: 0 },
+    uFill: { value: state.ptFill },
+    uSoft: { value: state.ptSoft },
+    uContrast: { value: state.ptContrast },
+    uFloor: { value: state.ptFloor },
+    uInvert: { value: state.ptInvert ? 1 : 0 },
+    uOpacity: { value: state.ptOpacity },
+    uGlow: { value: state.ptGlow },
+    uColor: { value: hex2vec(state.ptColor) },
+    uTip: { value: hex2vec(state.ptTip) },
+  },
+  transparent: true, depthTest: false, depthWrite: false,
+  vertexShader: `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform sampler2D uTone;
+    uniform vec2 uRes;
+    uniform vec3 uColor, uTip;
+    uniform float uPitch, uAngle, uFill, uSoft, uContrast, uInvert, uOpacity, uGlow, uFloor;
+    void main() {
+      vec2 px = vUv * uRes;
+      float c = cos(uAngle), s = sin(uAngle);
+      vec2 g = vec2(c * px.x + s * px.y, -s * px.x + c * px.y) / uPitch;
+      vec2 id = floor(g) + 0.5;
+      /* rotate the cell centre back to pixels so the tone is read at the dot,
+         not at the fragment — that is what keeps every dot a clean circle */
+      vec2 cpx = vec2(c * id.x - s * id.y, s * id.x + c * id.y) * uPitch;
+      /* Average the tone across the cell rather than point-sampling its
+         centre. One tap speckles wherever the surface creases, and leaves a
+         blocky stair-stepped silhouette; the averaged alpha instead makes edge
+         dots shrink away smoothly, which is what a real screen does. */
+      float tsum = 0.0, asum = 0.0;
+      for (int j = -1; j <= 1; j++) {
+        for (int i = -1; i <= 1; i++) {
+          vec2 o = vec2(float(i), float(j)) * uPitch * 0.34;
+          vec4 sm = texture2D(uTone, (cpx + o) / uRes);
+          tsum += sm.r * sm.a;
+          asum += sm.a;
+        }
+      }
+      float av = asum / 9.0;
+      float tv = asum > 0.0001 ? tsum / asum : 0.0;
+      float bright = mix(tv, 1.0 - tv, uInvert);
+      /* uFloor is the minimum ink a covered cell keeps. Without it an inverted
+         screen goes completely blank wherever the surface faces the camera. */
+      float cov = av * (uFloor + (1.0 - uFloor) * pow(clamp(bright, 0.0, 1.0), uContrast));
+      if (cov <= 0.0008) discard;
+      float r = 0.5 * uFill * sqrt(cov);
+      float d = length(g - id);
+      float aa = max(0.8 / uPitch, 0.0005);
+      float a = 1.0 - smoothstep(max(r - aa - uSoft * r, 0.0), r + aa, d);
+      if (a <= 0.003) discard;
+      gl_FragColor = vec4(mix(uColor, uTip, clamp(bright, 0.0, 1.0)) * uGlow, a * uOpacity);
+    }`,
+});
+
+const quadScene = new THREE.Scene();
+const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), matHalftone));
+
+function applyPoints() {
+  const h = matHalftone.uniforms;
+  h.uPitch.value = Math.max(state.ptPitchPx * PIXEL, 2);
+  h.uAngle.value = state.ptAngle * Math.PI / 180;
+  h.uFill.value = state.ptFill;
+  h.uSoft.value = state.ptSoft;
+  h.uContrast.value = state.ptContrast;
+  h.uFloor.value = state.ptFloor;
+  h.uInvert.value = state.ptInvert ? 1 : 0;
+  h.uOpacity.value = state.ptOpacity;
+  h.uGlow.value = state.ptGlow;
+  h.uColor.value.copy(hex2vec(state.ptColor));
+  h.uTip.value.copy(hex2vec(state.ptTip));
+  matHalftone.blending = state.ptAdditive ? THREE.AdditiveBlending : THREE.NormalBlending;
+  matHalftone.needsUpdate = true;
+  matTone.uniforms.uLightMix.value = state.ptLightMix;
+  const cell = Math.max(state.ptPitchPx, 1);
+  $('#hud-points').textContent = `${Math.round(W / cell)}x${Math.round(H / cell)}`;
+}
+
+applyPhysical();
+
+/* -------------------------------------------------- 7. hand-rolled GLB read */
+const COMP = {
+  5120: { A: Int8Array, s: 1, get: (d, o) => d.getInt8(o) },
+  5121: { A: Uint8Array, s: 1, get: (d, o) => d.getUint8(o) },
+  5122: { A: Int16Array, s: 2, get: (d, o) => d.getInt16(o, true) },
+  5123: { A: Uint16Array, s: 2, get: (d, o) => d.getUint16(o, true) },
+  5125: { A: Uint32Array, s: 4, get: (d, o) => d.getUint32(o, true) },
+  5126: { A: Float32Array, s: 4, get: (d, o) => d.getFloat32(o, true) },
+};
+const NUM = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT2: 4, MAT3: 9, MAT4: 16 };
+
+function parseContainer(buffer, name) {
+  if (buffer.byteLength < 20) throw new Error(`${name} is too small to be a model`);
+  const head = new Uint32Array(buffer, 0, 3);
+  if (head[0] !== 0x46546c67) {           // not "glTF" — try plain .gltf JSON
+    const json = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer)));
+    return { json, bin: null };
+  }
+  let json = null, bin = null, p = 12;
+  const dv = new DataView(buffer);
+  while (p + 8 <= buffer.byteLength) {
+    const len = dv.getUint32(p, true), type = dv.getUint32(p + 4, true);
+    const start = p + 8;
+    if (type === 0x4e4f534a) json = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer, start, len)));
+    else if (type === 0x004e4942) bin = buffer.slice(start, start + len);   // copied → offset 0, aligned
+    p = start + len + ((4 - (len % 4)) % 4);
+  }
+  if (!json) throw new Error(`No glTF chunk found in ${name}`);
+  return { json, bin };
+}
+
+function readTyped(json, bin, bvIndex, byteOffset, componentType, count, num) {
+  const comp = COMP[componentType];
+  if (!comp) throw new Error(`Unsupported component type ${componentType}`);
+  const out = new comp.A(count * num);
+  if (bvIndex === undefined || !bin) return out;
+  const bv = json.bufferViews[bvIndex];
+  const base = (bv.byteOffset || 0) + (byteOffset || 0);
+  const elem = num * comp.s;
+  const stride = bv.byteStride || elem;
+  if (stride === elem && base % comp.s === 0) {
+    out.set(new comp.A(bin, base, count * num));
+  } else {
+    const dv = new DataView(bin);            // interleaved or unaligned → de-interleave
+    for (let i = 0; i < count; i++)
+      for (let j = 0; j < num; j++)
+        out[i * num + j] = comp.get(dv, base + i * stride + j * comp.s);
+  }
+  return out;
+}
+
+function readAccessor(json, bin, index) {
+  const acc = json.accessors[index];
+  const num = NUM[acc.type];
+  const out = readTyped(json, bin, acc.bufferView, acc.byteOffset, acc.componentType, acc.count, num);
+  if (acc.sparse) {
+    const sp = acc.sparse;
+    const idx = readTyped(json, bin, sp.indices.bufferView, sp.indices.byteOffset, sp.indices.componentType, sp.count, 1);
+    const val = readTyped(json, bin, sp.values.bufferView, sp.values.byteOffset, acc.componentType, sp.count, num);
+    for (let i = 0; i < sp.count; i++)
+      for (let j = 0; j < num; j++) out[idx[i] * num + j] = val[i * num + j];
+  }
+  return { array: out, itemSize: num, normalized: !!acc.normalized };
+}
+
+/* ------------------------------------------- 8. surface sampling for points */
+/* Mesh vertices clump wherever the model was tessellated finely, which reads as
+   blotchy. Area-weighted triangle sampling gives the even dot field the
+   reference halftone look depends on. */
+/* ------------------------------------------------ 9. build the object graph */
+function buildGeometries(json, bin, meshIndex, cache) {
+  if (cache.has(meshIndex)) return cache.get(meshIndex);
+  const list = [];
+  for (const prim of json.meshes[meshIndex].primitives) {
+    const mode = prim.mode === undefined ? 4 : prim.mode;
+    if (mode !== 4) continue;                            // triangles only
+    const geo = new THREE.BufferGeometry();
+    const attrs = prim.attributes || {};
+    const map = { POSITION: 'position', NORMAL: 'normal', TEXCOORD_0: 'uv' };
+    for (const key in map) {
+      if (attrs[key] === undefined) continue;
+      const acc = readAccessor(json, bin, attrs[key]);
+      geo.setAttribute(map[key], new THREE.BufferAttribute(acc.array, acc.itemSize, acc.normalized));
+    }
+    if (!geo.getAttribute('position')) continue;
+    if (prim.indices !== undefined) {
+      const i = readAccessor(json, bin, prim.indices);
+      geo.setIndex(new THREE.BufferAttribute(i.array, 1));
+    }
+    if (!geo.getAttribute('normal')) geo.computeVertexNormals();
+    if (!geo.getAttribute('uv')) {                        // keep texture slots usable
+      const n = geo.getAttribute('position').count;
+      geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+    }
+    list.push(geo);
+  }
+  cache.set(meshIndex, list);
+  return list;
+}
+
+function attachPrimitive(parent, geo) {
+  const mesh = new THREE.Mesh(geo, matPhysical);
+  mesh.name = `${parent.name}_mesh`;
+  parent.add(mesh);
+}
+
+function buildNode(json, bin, index, cache, seen) {
+  if (seen.has(index)) return null;                       // guard against cyclic files
+  seen.add(index);
+  const n = json.nodes[index];
+  const obj = new THREE.Group();
+  obj.name = n.name || `node_${index}`;
+  if (n.matrix) {
+    const m = new THREE.Matrix4().fromArray(n.matrix);
+    m.decompose(obj.position, obj.quaternion, obj.scale);
+  } else {
+    if (n.translation) obj.position.fromArray(n.translation);
+    if (n.rotation) obj.quaternion.fromArray(n.rotation);
+    if (n.scale) obj.scale.fromArray(n.scale);
+  }
+  if (n.mesh !== undefined) for (const geo of buildGeometries(json, bin, n.mesh, cache)) attachPrimitive(obj, geo);
+  if (n.children) for (const c of n.children) { const k = buildNode(json, bin, c, cache, seen); if (k) obj.add(k); }
+  seen.delete(index);
+  return obj;
+}
+
+/* -------------------------------------------------- 10. model mount / swap */
+const modelHolder = new THREE.Group();
+scene.add(modelHolder);
+let currentRoot = null;
+const modelBounds = { minY: -1, maxY: 1, height: 2 };
+
+function disposeTree(root) {
+  root.traverse((o) => { if ((o.isMesh || o.isPoints) && o.geometry) o.geometry.dispose(); });
+}
+
+function applyModeVisibility() {
+  const m = state.mode;
+  if (!currentRoot) return;
+  currentRoot.traverse((o) => {
+    if (!o.isMesh) return;
+    o.visible = (m !== 'points');       // the screen pass renders the model itself
+    o.material = (m === 'xray') ? matXray : matPhysical;
+  });
+}
+
+function mountRoot(root, label) {
+  if (currentRoot) { modelHolder.remove(currentRoot); disposeTree(currentRoot); }
+  currentRoot = root;
+
+  root.position.set(0, 0, 0);
+  modelHolder.scale.setScalar(1);
+  modelHolder.add(root);
+  modelHolder.updateMatrixWorld(true);
+
+  const box = new THREE.Box3().setFromObject(root);
+  if (box.isEmpty()) throw new Error('No renderable triangles in that model');
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z) || 1;
+  root.position.sub(center);
+  modelHolder.scale.setScalar(2.4 / maxDim);
+  modelHolder.updateMatrixWorld(true);
+
+  let meshes = 0, verts = 0, tris = 0;
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    meshes++;
+    const pos = o.geometry.getAttribute('position');
+    verts += pos ? pos.count : 0;
+    tris += o.geometry.index ? o.geometry.index.count / 3 : (pos ? pos.count / 3 : 0);
+  });
+
+  const wb = new THREE.Box3().setFromObject(modelHolder);
+  modelBounds.minY = wb.min.y;
+  modelBounds.maxY = wb.max.y;
+  modelBounds.height = Math.max(wb.max.y - wb.min.y, 0.001);
+
+  $('#hud-name').textContent = label;
+  $('#hud-meshes').textContent = meshes;
+  $('#hud-verts').textContent = verts.toLocaleString('en-US');
+  $('#hud-tris').textContent = Math.round(tris).toLocaleString('en-US');
+
+  applyPoints();
+  applyXray();
+  applyModeVisibility();
+  placeAnchors();
+  frameCamera();
+}
+
+function makePlaceholder() {
+  const g = new THREE.Group();
+  g.name = 'placeholder';
+  attachPrimitive(g, new THREE.TorusKnotGeometry(1, 0.36, 320, 48, 2, 3));
+  return g;
+}
+
+async function loadGLBFile(file) {
+  toast(`Parsing ${file.name} …`, 60000);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  try {
+    const buffer = await file.arrayBuffer();
+    const { json, bin } = parseContainer(buffer, file.name);
+    const need = json.extensionsRequired || [];
+    const blocked = need.filter((e) => /draco|meshopt|KHR_texture_basisu/i.test(e));
+    if (blocked.length) {
+      throw new Error(`Compressed with ${blocked.join(', ')} — this parser can't read it. Re-export without compression.`);
+    }
+    if (!json.nodes || !json.nodes.length) throw new Error('That file contains no nodes');
+
+    const cache = new Map();
+    const root = new THREE.Group();
+    const sceneDef = json.scenes && json.scenes[json.scene || 0];
+    const roots = sceneDef && sceneDef.nodes ? sceneDef.nodes : json.nodes.map((_, i) => i);
+    for (const idx of roots) { const o = buildNode(json, bin, idx, cache, new Set()); if (o) root.add(o); }
+
+    mountRoot(root, `${file.name.replace(/\.(glb|gltf)$/i, '')} · Specimen`);
+    toast(`Loaded ${file.name}`);
+  } catch (err) {
+    console.error(err);
+    toast(err.message || "Couldn't read that file", 6500);
+  }
+}
+
+/* ------------------------------------------------------- 11. orbit control */
+class Orbit {
+  constructor(cam, dom) {
+    this.cam = cam; this.dom = dom;
+    this.target = new THREE.Vector3();
+    this.sph = { r: 5, theta: 0.45, phi: 1.18 };
+    this.goal = { ...this.sph };
+    this.goalTarget = this.target.clone();
+    this.min = 0.6; this.max = 60;
+    this.autoRotate = false; this.autoSpeed = 0.16;
+    this.damp = 0.12;
+    this.pointers = new Map();
+    this.mode = null; this.last = null; this.lastDist = 0;
+    this.syncFromCamera();
+
+    const el = dom;
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+    el.addEventListener('pointerdown', (e) => {
+      el.setPointerCapture(e.pointerId);
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (this.pointers.size === 1) {
+        this.mode = (e.button === 2 || e.button === 1 || e.shiftKey) ? 'pan' : 'rotate';
+        this.last = { x: e.clientX, y: e.clientY };
+      } else if (this.pointers.size === 2) {
+        this.mode = 'pinch';
+        const [a, b] = [...this.pointers.values()];
+        this.lastDist = Math.hypot(a.x - b.x, a.y - b.y);
+        this.last = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      }
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!this.pointers.has(e.pointerId)) return;
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const h = Math.max(el.clientHeight, 1);
+      if (this.mode === 'pinch' && this.pointers.size === 2) {
+        const [a, b] = [...this.pointers.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        if (this.lastDist) this.zoom(this.lastDist / d);
+        this.pan(mid.x - this.last.x, mid.y - this.last.y);
+        this.lastDist = d; this.last = mid;
+        return;
+      }
+      const dx = e.clientX - this.last.x, dy = e.clientY - this.last.y;
+      this.last = { x: e.clientX, y: e.clientY };
+      if (this.mode === 'rotate') {
+        this.goal.theta -= (dx / h) * 3.1;
+        this.goal.phi = Math.min(Math.PI - 0.02, Math.max(0.02, this.goal.phi - (dy / h) * 3.1));
+        this.autoRotate = false;
+        syncToggle('autoRotate', false);
+      } else if (this.mode === 'pan') this.pan(dx, dy);
+    });
+    const end = (e) => {
+      this.pointers.delete(e.pointerId);
+      if (this.pointers.size === 0) this.mode = null;
+      else if (this.pointers.size === 1) {
+        const p = [...this.pointers.values()][0];
+        this.mode = 'rotate'; this.last = { x: p.x, y: p.y };
+      }
+    };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.zoom(Math.pow(0.999, -e.deltaY * (e.deltaMode === 1 ? 18 : 1)));
+    }, { passive: false });
+  }
+  syncFromCamera() {
+    const v = this.cam.position.clone().sub(this.target);
+    this.sph.r = v.length();
+    this.sph.phi = Math.acos(Math.min(1, Math.max(-1, v.y / this.sph.r)));
+    this.sph.theta = Math.atan2(v.x, v.z);
+    this.goal = { ...this.sph };
+    this.goalTarget.copy(this.target);
+  }
+  zoom(f) { this.goal.r = Math.min(this.max, Math.max(this.min, this.goal.r * f)); }
+  pan(dx, dy) {
+    const h = Math.max(this.dom.clientHeight, 1);
+    const k = 2 * this.goal.r * Math.tan((this.cam.fov * Math.PI / 180) / 2) / h;
+    const right = new THREE.Vector3().setFromMatrixColumn(this.cam.matrix, 0);
+    const up = new THREE.Vector3().setFromMatrixColumn(this.cam.matrix, 1);
+    this.goalTarget.add(right.multiplyScalar(-dx * k)).add(up.multiplyScalar(dy * k));
+  }
+  frame(r, target) { this.goal.r = r; this.goalTarget.copy(target); }
+  update(dt) {
+    if (this.autoRotate && !this.mode) this.goal.theta += this.autoSpeed * dt;
+    const k = 1 - Math.pow(1 - this.damp, Math.min(dt * 60, 3));
+    this.sph.r += (this.goal.r - this.sph.r) * k;
+    this.sph.theta += (this.goal.theta - this.sph.theta) * k;
+    this.sph.phi += (this.goal.phi - this.sph.phi) * k;
+    this.target.lerp(this.goalTarget, k);
+    const { r, theta, phi } = this.sph;
+    this.cam.position.set(
+      this.target.x + r * Math.sin(phi) * Math.sin(theta),
+      this.target.y + r * Math.cos(phi),
+      this.target.z + r * Math.sin(phi) * Math.cos(theta)
+    );
+    this.cam.lookAt(this.target);
+  }
+}
+const orbit = new Orbit(camera, canvas);
+orbit.autoRotate = state.autoRotate;
+
+function frameCamera() {
+  const box = new THREE.Box3().setFromObject(modelHolder);
+  if (box.isEmpty()) return;
+  const c = box.getCenter(new THREE.Vector3());
+  const r = box.getSize(new THREE.Vector3()).length();
+  orbit.frame(r * 1.35, c);
+}
+function resetView() {
+  orbit.goal.theta = 0.45; orbit.goal.phi = 1.18;
+  frameCamera();
+  toast('View reset');
+}
+
+/* ------------------------------------------------ 12. medical callout tags */
+const CALLOUTS = [
+  { title: 'Food Sensitivity', sub: 'Panel 01 · IgG', dir: new THREE.Vector3(0.78, 0.62, 0.34), off: { x: 152, y: -104 } },
+  { title: 'Gut Zoomer', sub: 'Panel 02 · Microbiome', dir: new THREE.Vector3(-0.74, -0.46, 0.42), off: { x: -174, y: 98 } },
+];
+const labelsEl = $('#labels'), svgEl = $('#leaders');
+const NS = 'http://www.w3.org/2000/svg';
+
+CALLOUTS.forEach((co) => {
+  const el = document.createElement('div');
+  el.className = 'callout';
+  el.innerHTML = `<i class="dot"></i><span class="txt">
+      <b class="title" contenteditable="true" spellcheck="false"></b>
+      <span class="sub"></span></span>`;
+  el.querySelector('.title').textContent = co.title;
+  el.querySelector('.sub').textContent = co.sub;
+  el.querySelector('.title').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+  });
+  labelsEl.appendChild(el);
+
+  /* marker is a small rounded square with a centre pin — the convention in the
+     reference diagrams, and it reads cleaner than a ring over a dot field */
+  const g = document.createElementNS(NS, 'g');
+  const line = document.createElementNS(NS, 'polyline'); line.setAttribute('class', 'leader');
+  const box = document.createElementNS(NS, 'rect');
+  box.setAttribute('class', 'leader-box');
+  box.setAttribute('width', '11'); box.setAttribute('height', '11');
+  box.setAttribute('rx', '3.5');
+  const pin = document.createElementNS(NS, 'circle'); pin.setAttribute('class', 'leader-pin'); pin.setAttribute('r', '2.1');
+  g.append(line, box, pin);
+  svgEl.appendChild(g);
+
+  co.el = el; co.g = g; co.line = line; co.box = box; co.pin = pin;
+  co.anchor = new THREE.Vector3();
+  co.w = 0; co.h = 0; co.dirty = true;
+  el.querySelector('.title').addEventListener('input', () => { co.dirty = true; });
+});
+
+function measureCallouts() { for (const co of CALLOUTS) co.dirty = true; }
+
+/* Support mapping beats raycasting here: an organ is a hollow tangle, so a ray
+   aimed at the centre often threads a gap and pins the label deep inside. The
+   extreme vertex along a direction is always on the visible outer surface. */
+const _v = new THREE.Vector3();
+function supportPoint(dir, fallback) {
+  let best = -Infinity, out = null;
+  modelHolder.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    const pos = o.geometry.getAttribute('position');
+    if (!pos) return;
+    const step = Math.max(1, Math.ceil(pos.count / 60000));   // cap the scan on huge meshes
+    for (let i = 0; i < pos.count; i += step) {
+      _v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+      const d = _v.dot(dir);
+      if (d > best) { best = d; out = _v.clone(); }
+    }
+  });
+  return out || fallback;
+}
+
+function placeAnchors() {
+  modelHolder.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(modelHolder);
+  const c = box.getCenter(new THREE.Vector3());
+  const r = Math.max(box.getSize(new THREE.Vector3()).length(), 0.5);
+  for (const co of CALLOUTS) {
+    const dir = co.dir.clone().normalize();
+    const p = supportPoint(dir, c.clone().add(dir.clone().multiplyScalar(r * 0.32)));
+    co.anchor.copy(p).lerp(c, 0.06);   // ease inward so it sits on the skin
+  }
+  svgEl.classList.remove('drawin');
+  void svgEl.offsetWidth;               // restart the draw-in animation
+  svgEl.classList.add('drawin');
+}
+
+const proj = new THREE.Vector3();
+function updateCallouts(W, H) {
+  for (const co of CALLOUTS) {
+    if (!state.showLabels) { co.el.style.opacity = 0; co.g.style.opacity = 0; continue; }
+    proj.copy(co.anchor).project(camera);
+    const behind = proj.z > 1;
+    co.el.style.opacity = behind ? 0 : 1;
+    co.g.style.opacity = behind ? 0 : 1;
+    if (behind) continue;
+
+    const ax = (proj.x * 0.5 + 0.5) * W;
+    const ay = (-proj.y * 0.5 + 0.5) * H;
+    if (co.dirty) { co.w = co.el.offsetWidth; co.h = co.el.offsetHeight; co.dirty = false; }
+    const w = co.w, h = co.h;
+    const lx = Math.min(W - w - 12, Math.max(12, ax + co.off.x - (co.off.x < 0 ? w : 0)));
+    const ly = Math.min(H - h - 12, Math.max(12, ay + co.off.y - h / 2));
+    co.el.style.transform = `translate(${lx.toFixed(1)}px, ${ly.toFixed(1)}px)`;
+
+    const cy = ly + h / 2;
+    const rightSide = lx + w / 2 > ax;
+    const attach = rightSide ? lx : lx + w;
+    const elbow = attach + (rightSide ? -18 : 18);
+    co.line.setAttribute('points', `${ax.toFixed(1)},${ay.toFixed(1)} ${elbow.toFixed(1)},${cy.toFixed(1)} ${attach.toFixed(1)},${cy.toFixed(1)}`);
+    co.box.setAttribute('x', (ax - 5.5).toFixed(1));
+    co.box.setAttribute('y', (ay - 5.5).toFixed(1));
+    co.pin.setAttribute('cx', ax.toFixed(1));
+    co.pin.setAttribute('cy', ay.toFixed(1));
+  }
+}
+
+/* ------------------------------------------------ 13. control panel config */
+const SEC_PHYSICAL = { id: 'mat', title: 'MATERIAL', cn: '', open: true, items: [
+  { t: 'sub', label: 'PRESETS', cn: '' },
+  { t: 'chips' },
+  { t: 'sub', label: 'SURFACE', cn: '' },
+  { t: 'color', k: 'color', label: 'Base Color', cn: '' },
+  { t: 'range', k: 'roughness', label: 'Roughness', cn: '', min: 0, max: 1, step: 0.01 },
+  { t: 'range', k: 'metalness', label: 'Metalness', cn: '', min: 0, max: 1, step: 0.01 },
+  { t: 'range', k: 'opacity', label: 'Opacity', cn: '', min: 0, max: 1, step: 0.01 },
+  { t: 'sub', label: 'TRANSLUCENCY', cn: '' },
+  { t: 'range', k: 'transmission', label: 'Transmission', cn: '', min: 0, max: 1, step: 0.01 },
+  { t: 'range', k: 'thickness', label: 'Thickness', cn: '', min: 0, max: 6, step: 0.01 },
+  { t: 'range', k: 'ior', label: 'IOR', cn: '', min: 1, max: 2.33, step: 0.01 },
+  { t: 'color', k: 'attenuationColor', label: 'Attenuation Color', cn: '' },
+  { t: 'range', k: 'attenuationDistance', label: 'Atten. Distance', cn: '', min: 0.05, max: 6, step: 0.01 },
+  { t: 'sub', label: 'INNER GLOW', cn: '' },
+  { t: 'color', k: 'emissive', label: 'Emissive Color', cn: '' },
+  { t: 'range', k: 'emissiveIntensity', label: 'Emissive', cn: '', min: 0, max: 1.2, step: 0.01 },
+  { t: 'sub', label: 'COATING', cn: '' },
+  { t: 'range', k: 'clearcoat', label: 'Clearcoat', cn: '', min: 0, max: 1, step: 0.01 },
+  { t: 'range', k: 'clearcoatRoughness', label: 'Coat Roughness', cn: '', min: 0, max: 1, step: 0.01 },
+  { t: 'range', k: 'sheen', label: 'Sheen', cn: '', min: 0, max: 1, step: 0.01 },
+  { t: 'range', k: 'envIntensity', label: 'Env Reflection', cn: '', min: 0, max: 3, step: 0.01 },
+  { t: 'sub', label: 'RENDER', cn: '' },
+  { t: 'toggle', k: 'doubleSide', label: 'Double-sided', cn: '' },
+  { t: 'toggle', k: 'wireframe', label: 'Wireframe', cn: '' },
+]};
+
+const SEC_XRAY = { id: 'xray', title: 'TRANSLUCENT', cn: '', open: true, items: [
+  { t: 'sub', label: 'PRESETS', cn: '' },
+  { t: 'chips' },
+  { t: 'note', text: 'Fresnel shading: transparent where the surface faces you, bright at the silhouette.',
+    cn: '' },
+  { t: 'sub', label: 'INK', cn: '' },
+  { t: 'color', k: 'xrColor', label: 'Core Color', cn: '' },
+  { t: 'color', k: 'xrEdge', label: 'Edge Color', cn: '' },
+  { t: 'range', k: 'xrFresPow', label: 'Edge Falloff', cn: '', min: 0.4, max: 8, step: 0.05 },
+  { t: 'range', k: 'xrFresBias', label: 'Core Fill', cn: '', min: 0, max: 0.6, step: 0.01 },
+  { t: 'range', k: 'xrOpacity', label: 'Opacity', cn: '', min: 0, max: 1, step: 0.01 },
+  { t: 'range', k: 'xrGlow', label: 'Glow', cn: '', min: 0.2, max: 2.5, step: 0.01 },
+  { t: 'sub', label: 'RENDER', cn: '' },
+  { t: 'toggle', k: 'xrDouble', label: 'Double-sided', cn: '' },
+]};
+
+const SEC_POINTS = { id: 'points', title: 'PARTICLES', cn: '', open: true, items: [
+  { t: 'sub', label: 'PRESETS', cn: '' },
+  { t: 'chips' },
+  { t: 'sub', label: 'SCREEN', cn: '' },
+  { t: 'range', k: 'ptPitchPx', label: 'Screen Pitch', cn: '', min: 1, max: 13, step: 0.25 },
+  { t: 'range', k: 'ptAngle', label: 'Screen Angle', cn: '', min: 0, max: 90, step: 1 },
+  { t: 'range', k: 'ptFill', label: 'Dot Size', cn: '', min: 0.1, max: 2, step: 0.01 },
+  { t: 'range', k: 'ptSoft', label: 'Edge Softness', cn: '', min: 0.02, max: 1, step: 0.01 },
+  { t: 'sub', label: 'TONE', cn: '' },
+  { t: 'color', k: 'ptColor', label: 'Dot Color', cn: '' },
+  { t: 'color', k: 'ptTip', label: 'Peak Color', cn: '' },
+  { t: 'range', k: 'ptLightMix', label: 'Light Mix', cn: '', min: 0, max: 1, step: 0.01 },
+  { t: 'range', k: 'ptContrast', label: 'Contrast', cn: '', min: 0.3, max: 3, step: 0.01 },
+  { t: 'range', k: 'ptFloor', label: 'Base Tone', cn: '', min: 0, max: 0.5, step: 0.005 },
+  { t: 'toggle', k: 'ptInvert', label: 'Invert Tone', cn: '' },
+  { t: 'range', k: 'ptOpacity', label: 'Opacity', cn: '', min: 0.02, max: 1, step: 0.01 },
+  { t: 'range', k: 'ptGlow', label: 'Glow', cn: '', min: 0.2, max: 2.5, step: 0.01 },
+  { t: 'note', text: 'The dot grid is pinned to the viewport: one dot per cell, sized by the shading underneath. Every slider is instant.',
+    cn: '' },
+]};
+
+const SEC_ENV = { id: 'env', title: 'ENVIRONMENT', cn: '', items: [
+  { t: 'note', text: 'Pick an HDRI from the swatches above, then fine-tune here.',
+    cn: '' },
+  { t: 'sub', label: 'BACKDROP', cn: '' },
+  { t: 'color', k: 'bgTop', label: 'Sky Color', cn: '' },
+  { t: 'color', k: 'bgBottom', label: 'Floor Color', cn: '' },
+  { t: 'color', k: 'glowColor', label: 'Glow Color', cn: '' },
+  { t: 'range', k: 'glow', label: 'Glow Amount', cn: '', min: 0, max: 2, step: 0.01 },
+  { t: 'sub', label: 'GRID', cn: '' },
+  { t: 'select', k: 'bgMode', label: 'Backdrop', cn: '', options: [
+    { v: 'solid', name: 'Solid', cn: '' },
+    { v: 'grid', name: 'Grid', cn: '' },
+  ]},
+  { t: 'color', k: 'gridColor', label: 'Grid Color', cn: '', when: (st) => st.bgMode === 'grid' },
+  { t: 'range', k: 'gridAlpha', label: 'Grid Opacity', cn: '', min: 0, max: 0.6, step: 0.005,
+    when: (st) => st.bgMode === 'grid' },
+  { t: 'range', k: 'gridScale', label: 'Grid Density', cn: '', min: 2, max: 24, step: 0.5,
+    when: (st) => st.bgMode === 'grid' },
+  { t: 'sub', label: 'LIGHT RIG', cn: '' },
+  { t: 'range', k: 'ambient', label: 'Ambient', cn: '', min: 0, max: 3, step: 0.01 },
+  { t: 'range', k: 'key', label: 'Key Light', cn: '', min: 0, max: 8, step: 0.01 },
+  { t: 'color', k: 'keyColor', label: 'Key Color', cn: '' },
+  { t: 'range', k: 'rim', label: 'Rim Light', cn: '', min: 0, max: 12, step: 0.01 },
+  { t: 'color', k: 'rimColor', label: 'Rim Color', cn: '' },
+  { t: 'range', k: 'fill', label: 'Fill Light', cn: '', min: 0, max: 4, step: 0.01 },
+  { t: 'range', k: 'exposure', label: 'Exposure', cn: '', min: 0.2, max: 2.5, step: 0.01 },
+  { t: 'note', text: 'Lights only affect Physical mode. Translucent and Particles are shaded by view angle instead.',
+    cn: '' },
+]};
+
+const SEC_VIEW = { id: 'view', title: 'VIEW', cn: '', items: [
+  { t: 'toggle', k: 'autoRotate', label: 'Auto-rotate', cn: '' },
+  { t: 'toggle', k: 'showLabels', label: 'Show Callouts', cn: '' },
+  { t: 'buttons' },
+]};
+
+const MODES = {
+  physical: { name: 'Physical', cn: '', eyebrow: 'MeshPhysicalMaterial', sections: [SEC_PHYSICAL] },
+  xray: { name: 'Translucent', cn: '', eyebrow: 'Fresnel ShaderMaterial', sections: [SEC_XRAY] },
+  points: { name: 'Particles', cn: '', eyebrow: 'THREE.Points · Halftone', sections: [SEC_POINTS] },
+};
+const MODE_ORDER = ['physical', 'xray', 'points'];
+
+const LIGHT_KEYS = new Set(['ambient', 'key', 'keyColor', 'rim', 'rimColor', 'fill', 'exposure']);
+const BACKDROP_KEYS = new Set(['bgTop', 'bgBottom', 'glowColor', 'glow', 'bgMode', 'gridColor', 'gridAlpha', 'gridScale']);
+const XRAY_KEYS = new Set(Object.values(P_XRAY).flatMap((p) => Object.keys(p.patch)));
+const POINT_KEYS = new Set(Object.values(P_POINTS).flatMap((p) => Object.keys(p.patch)));
+const PHYS_KEYS = new Set(Object.values(P_PHYSICAL).flatMap((p) => Object.keys(p.patch)));
+
+const ui = { ranges: {}, colors: {}, toggles: {}, selects: {}, envSw: {}, chips: {} };
+const pbody = $('#pbody');
+const secOpen = {};
+
+function fmt(v, step) { return step >= 1 ? String(Math.round(v)) : String(parseFloat(v.toFixed(3))); }
+
+/* ------------------------------------------------------- 14. panel builders */
+function rebuildPanel() {
+  pbody.innerHTML = '';
+  ui.ranges = {}; ui.colors = {}; ui.toggles = {}; ui.selects = {}; ui.chips = {};
+  const secs = [SEC_VIEW, ...MODES[state.mode].sections, SEC_ENV];
+  for (const sec of secs) {
+    if (secOpen[sec.id] === undefined) secOpen[sec.id] = !!sec.open;
+    const wrap = document.createElement('section');
+    wrap.className = 'sec' + (secOpen[sec.id] ? '' : ' closed');
+    const head = document.createElement('button');
+    head.className = 'sec-head';
+    head.innerHTML = '<span class="sh-txt"><b></b><i></i></span><i class="chev"></i>';
+    head.querySelector('.sh-txt b').textContent = sec.title;
+    head.querySelector('.sh-txt i').textContent = sec.cn || '';
+    head.addEventListener('click', () => {
+      wrap.classList.toggle('closed');
+      secOpen[sec.id] = !wrap.classList.contains('closed');
+    });
+    const body = document.createElement('div');
+    body.className = 'sec-body';
+    wrap.append(head, body);
+    pbody.appendChild(wrap);
+    for (const item of sec.items) {
+      if (item.when && !item.when(state)) continue;
+      body.appendChild(buildItem(item));
+    }
+  }
+}
+
+function buildItem(item) {
+  if (item.t === 'sub') {
+    const d = document.createElement('div');
+    d.className = 'sub-head';
+    d.innerHTML = '<b></b><i></i>';
+    d.querySelector('b').textContent = item.label;
+    d.querySelector('i').textContent = item.cn || '';
+    return d;
+  }
+  if (item.t === 'note') {
+    const d = document.createElement('div');
+    d.className = 'hintline';
+    d.innerHTML = '<span></span><em></em>';
+    d.querySelector('span').textContent = item.text;
+    d.querySelector('em').textContent = item.cn || '';
+    return d;
+  }
+  if (item.t === 'range') {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<div class="row-top"><span class="row-label"><b></b><i></i></span><span class="row-val"></span></div>';
+    row.querySelector('.row-label b').textContent = item.label;
+    row.querySelector('.row-label i').textContent = item.cn || '';
+    const inp = document.createElement('input');
+    inp.type = 'range'; inp.min = item.min; inp.max = item.max; inp.step = item.step;
+    inp.value = state[item.k];
+    inp.setAttribute('aria-label', `${item.label} ${item.cn || ''}`);
+    const val = row.querySelector('.row-val');
+    const paint = () => {
+      const pct = ((inp.value - item.min) / (item.max - item.min)) * 100;
+      inp.style.setProperty('--p', pct.toFixed(2) + '%');
+      val.textContent = fmt(parseFloat(inp.value), item.step);
+    };
+    inp.addEventListener('input', () => { state[item.k] = parseFloat(inp.value); paint(); onChange(item.k); });
+    paint();
+    row.appendChild(inp);
+    ui.ranges[item.k] = { inp, paint };
+    return row;
+  }
+  if (item.t === 'color') {
+    const row = document.createElement('div');
+    row.className = 'row-inline';
+    row.innerHTML = '<span class="row-label"><b></b><i></i></span><label class="swatch"><input type="color"></label>';
+    row.querySelector('.row-label b').textContent = item.label;
+    row.querySelector('.row-label i').textContent = item.cn || '';
+    const inp = row.querySelector('input');
+    inp.value = state[item.k];
+    inp.setAttribute('aria-label', `${item.label} ${item.cn || ''}`);
+    inp.addEventListener('input', () => { state[item.k] = inp.value; onChange(item.k); });
+    ui.colors[item.k] = inp;
+    return row;
+  }
+  if (item.t === 'toggle') {
+    const lab = document.createElement('label');
+    lab.className = 'toggle';
+    lab.innerHTML = '<input type="checkbox"><i class="tk"></i><span><b></b><i></i></span>';
+    lab.querySelector('span b').textContent = item.label;
+    lab.querySelector('span i').textContent = item.cn || '';
+    const inp = lab.querySelector('input');
+    inp.checked = !!state[item.k];
+    inp.setAttribute('aria-label', `${item.label} ${item.cn || ''}`);
+    inp.addEventListener('change', () => { state[item.k] = inp.checked; onChange(item.k); });
+    ui.toggles[item.k] = inp;
+    return lab;
+  }
+  if (item.t === 'select') {
+    const wrap = document.createElement('div');
+    wrap.className = 'row';
+    wrap.innerHTML = '<div class="row-top"><span class="row-label"><b></b><i></i></span></div><div class="chips"></div>';
+    wrap.querySelector('.row-label b').textContent = item.label;
+    wrap.querySelector('.row-label i').textContent = item.cn || '';
+    const box = wrap.querySelector('.chips');
+    const btns = {};
+    for (const opt of item.options) {
+      const b = document.createElement('button');
+      b.className = 'chip' + (opt.v === state[item.k] ? ' on' : '');
+      b.innerHTML = '<b></b><i></i>';
+      b.querySelector('b').textContent = opt.name;
+      b.querySelector('i').textContent = opt.cn || '';
+      b.addEventListener('click', () => {
+        state[item.k] = opt.v;
+        for (const v in btns) btns[v].classList.toggle('on', v === opt.v);
+        onChange(item.k);
+      });
+      box.appendChild(b);
+      btns[opt.v] = b;
+    }
+    ui.selects[item.k] = btns;
+    return wrap;
+  }
+  if (item.t === 'chips') {
+    const wrap = document.createElement('div');
+    wrap.className = 'chips';
+    const table = PRESET_TABLES[state.mode];
+    const active = state[PRESET_STATE_KEY[state.mode]];
+    for (const key in table) {
+      const b = document.createElement('button');
+      b.className = 'chip' + (key === active ? ' on' : '');
+      b.innerHTML = '<b></b><i></i>';
+      b.querySelector('b').textContent = table[key].name;
+      b.querySelector('i').textContent = table[key].cn || '';
+      b.addEventListener('click', () => applyPreset(key));
+      wrap.appendChild(b);
+      ui.chips[key] = b;
+    }
+    return wrap;
+  }
+  if (item.t === 'buttons') {
+    const wrap = document.createElement('div');
+    wrap.className = 'btn-row';
+    const mk = (en, cn, fn) => {
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.innerHTML = '<b></b><i></i>';
+      b.querySelector('b').textContent = en;
+      b.querySelector('i').textContent = cn;
+      b.addEventListener('click', fn);
+      return b;
+    };
+    wrap.append(
+      mk('Reset View', '', () => resetView()),
+      mk('Export PNG', '', () => screenshot()),
+      mk('Load GLB', '', () => pickModel())
+    );
+    return wrap;
+  }
+  return document.createElement('div');
+}
+
+function buildSeg() {
+  const seg = $('#seg');
+  for (const key of MODE_ORDER) {
+    const m = MODES[key];
+    const b = document.createElement('button');
+    b.dataset.mode = key;
+    b.innerHTML = '<b></b><i></i>';
+    b.querySelector('b').textContent = m.name;
+    b.querySelector('i').textContent = m.cn || '';
+    b.addEventListener('click', () => setMode(key));
+    seg.appendChild(b);
+  }
+}
+
+function updateSeg() {
+  const i = MODE_ORDER.indexOf(state.mode);
+  $('#seg-ind').style.setProperty('--i', String(i));
+  for (const b of $('#seg').querySelectorAll('button')) b.classList.toggle('on', b.dataset.mode === state.mode);
+  $('#p-eyebrow').textContent = MODES[state.mode].eyebrow;
+  $('#hud-mode').textContent = MODES[state.mode].name;
+}
+
+function setMode(m, silent) {
+  if (!MODES[m]) return;
+  state.mode = m;
+  applyModeVisibility();
+  updateSeg();
+  rebuildPanel();
+  if (!silent) toast(`Render mode · ${MODES[m].name}`);
+}
+
+/* ---------------------------------------------------- 15. env + preset glue */
+function setEnvNow(name, cn) {
+  const el = $('#env-now');
+  el.innerHTML = '<b></b><i></i><span class="tag">HDRI</span>';
+  el.querySelector('b').textContent = name;
+  el.querySelector('i').textContent = cn;
+}
+
+function applyEnv(key, silent) {
+  const e = ENVS[key];
+  if (!e) return;
+  state.env = key; state.envBase = key;
+  state.bgTop = e.bgTop; state.bgBottom = e.bgBottom;
+  state.glowColor = e.glowColor; state.glow = e.glow;
+  state.bgMode = e.bgMode; state.gridColor = e.gridColor;
+  state.gridAlpha = e.gridAlpha; state.gridScale = e.gridScale;
+  Object.assign(state, e.rig);
+  for (const k in ENVS) if (ui.envSw[k]) ui.envSw[k].classList.toggle('on', k === key);
+  setEnvNow(e.name, e.cn);
+  applyBackdrop(); applyLights(); buildEnv(); refreshUI();
+  if (!silent) toast(`Environment · ${e.name}`);
+}
+
+function buildEnvStrip() {
+  const strip = $('#env-strip');
+  strip.innerHTML = '';
+  for (const key in ENVS) {
+    const e = ENVS[key];
+    const b = document.createElement('button');
+    b.className = 'env-sw' + (e.bgMode === 'grid' ? ' grid' : '');
+    b.title = e.name;
+    b.setAttribute('aria-label', e.name);
+    b.style.background = `linear-gradient(180deg, ${e.bgTop} 0%, ${e.bgBottom} 100%)`;
+    b.style.setProperty('--sw', e.glowColor);
+    b.style.setProperty('--gl', hexA(e.gridColor, 0.55));
+    b.addEventListener('click', () => applyEnv(key));
+    strip.appendChild(b);
+    ui.envSw[key] = b;
+  }
+}
+
+function refreshUI() {
+  for (const k in ui.ranges) { ui.ranges[k].inp.value = state[k]; ui.ranges[k].paint(); }
+  for (const k in ui.colors) ui.colors[k].value = state[k];
+  for (const k in ui.toggles) ui.toggles[k].checked = !!state[k];
+  for (const k in ui.selects) for (const v in ui.selects[k]) ui.selects[k][v].classList.toggle('on', v === state[k]);
+}
+
+function syncToggle(k, v) { state[k] = v; if (ui.toggles[k]) ui.toggles[k].checked = v; }
+
+function markPresetCustom() {
+  state[PRESET_STATE_KEY[state.mode]] = '';
+  for (const k in ui.chips) ui.chips[k].classList.remove('on');
+}
+
+/* Only the highlight is cleared — envBase keeps driving the softbox table, so a
+   nudged slider never silently swaps the reflections out from under you. */
+function markEnvCustom() {
+  if (!state.env) return;
+  state.env = '';
+  for (const k in ENVS) if (ui.envSw[k]) ui.envSw[k].classList.remove('on');
+  setEnvNow('Custom', '');
+}
+
+function applyPreset(key) {
+  const table = PRESET_TABLES[state.mode];
+  const pr = table[key];
+  if (!pr) return;
+  Object.assign(state, pr.patch);
+  state[PRESET_STATE_KEY[state.mode]] = key;
+  for (const k in ui.chips) ui.chips[k].classList.toggle('on', k === key);
+  refreshUI();
+  applyCurrent();
+  toast(`${MODES[state.mode].name} · ${pr.name}`);
+}
+
+function applyCurrent() {
+  if (state.mode === 'physical') applyPhysical();
+  else if (state.mode === 'xray') applyXray();
+  else applyPoints();
+}
+
+function onChange(k) {
+  if (LIGHT_KEYS.has(k)) { applyLights(); markEnvCustom(); return; }
+  if (BACKDROP_KEYS.has(k)) {
+    applyBackdrop();
+    if (k === 'bgTop' || k === 'bgBottom') queueEnv();
+    markEnvCustom();
+    return;
+  }
+  if (k === 'autoRotate') { orbit.autoRotate = state.autoRotate; return; }
+  if (k === 'showLabels') return;
+
+  if (k === 'bgMode') { applyBackdrop(); markEnvCustom(); rebuildPanel(); return; }
+  if (XRAY_KEYS.has(k)) { markPresetCustom(); applyXray(); return; }
+  if (POINT_KEYS.has(k)) { markPresetCustom(); applyPoints(); return; }
+  if (PHYS_KEYS.has(k)) markPresetCustom();
+  applyPhysical();
+}
+
+let envTimer = null;
+function queueEnv() { clearTimeout(envTimer); envTimer = setTimeout(buildEnv, 180); }
+
+/* --------------------------------------------------- 17. file input paths */
+function pickFile(accept, cb) {
+  const i = document.createElement('input');
+  i.type = 'file'; i.accept = accept;
+  i.addEventListener('change', () => { if (i.files[0]) cb(i.files[0]); });
+  i.click();
+}
+const pickModel = () => pickFile('.glb,.gltf', loadGLBFile);
+
+const dropEl = $('#drop');
+let dragDepth = 0;
+function showDrop() {
+  dropEl.classList.add('on');
+}
+function hideDrop() { dragDepth = 0; dropEl.classList.remove('on'); }
+
+window.addEventListener('dragenter', (e) => {
+  e.preventDefault();
+  dragDepth++;
+  showDrop();
+});
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('dragleave', (e) => { e.preventDefault(); if (--dragDepth <= 0) hideDrop(); });
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  hideDrop();
+  const files = [...(e.dataTransfer.files || [])];
+  if (!files.length) return;
+  const model = files.find((f) => /\.(glb|gltf)$/i.test(f.name));
+  if (model) { loadGLBFile(model); return; }
+  toast('Only .glb / .gltf models are accepted');
+});
+
+/* -------------------------------------------------------- 18. misc chrome */
+let toastTimer = null;
+function toast(msg, ms = 2600) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), ms);
+}
+
+/* Screen halftone needs three passes: shading into a buffer, the backdrop, then
+   the screen itself composited on top. */
+function renderFrame() {
+  if (state.mode !== 'points') {
+    renderer.render(scene, camera);
+    return;
+  }
+  if (currentRoot) currentRoot.traverse((o) => { if (o.isMesh) { o.visible = true; o.material = matTone; } });
+  bgSphere.visible = false;
+  renderer.setRenderTarget(toneRT);
+  renderer.clear();
+  renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
+
+  bgSphere.visible = true;
+  applyModeVisibility();                 // hides the meshes again, restores materials
+  renderer.render(scene, camera);
+
+  renderer.autoClear = false;
+  renderer.render(quadScene, quadCam);
+  renderer.autoClear = true;
+}
+
+function screenshot() {
+  renderFrame();
+  const a = document.createElement('a');
+  a.download = `organ-lab-${state.mode}-${Date.now()}.png`;
+  a.href = renderer.domElement.toDataURL('image/png');
+  a.click();
+  toast('Exported PNG — 3D view only, no callouts');
+}
+
+const panel = $('#panel'), panelOpen = $('#panel-open');
+function togglePanel(force) {
+  const hide = force === undefined ? !panel.classList.contains('hidden') : force;
+  panel.classList.toggle('hidden', hide);
+  panelOpen.classList.toggle('show', hide);
+}
+panelOpen.addEventListener('click', () => togglePanel(false));
+$('#p-close').addEventListener('click', () => togglePanel(true));
+
+window.addEventListener('keydown', (e) => {
+  if (e.target.isContentEditable || /input|textarea/i.test(e.target.tagName)) return;
+  const k = e.key.toLowerCase();
+  if (k === 'h') togglePanel();
+  else if (k === 'r') resetView();
+  else if (k === 's') screenshot();
+  else if (k === 'm') {
+    const i = MODE_ORDER.indexOf(state.mode);
+    setMode(MODE_ORDER[(i + 1) % MODE_ORDER.length]);
+  } else if (e.code === 'Space') {
+    e.preventDefault();
+    syncToggle('autoRotate', !state.autoRotate);
+    orbit.autoRotate = state.autoRotate;
+    toast(state.autoRotate ? 'Auto-rotate on' : 'Auto-rotate off');
+  }
+});
+
+/* ------------------------------------------------------------ 19. run loop */
+let W = 0, H = 0;
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  renderer.setSize(W, H, false);
+  camera.aspect = W / Math.max(H, 1);
+  camera.updateProjectionMatrix();
+  bgUniforms.aspect.value = camera.aspect;
+  const dw = Math.max(1, Math.round(W * PIXEL)), dh = Math.max(1, Math.round(H * PIXEL));
+  toneRT.setSize(dw, dh);
+  matHalftone.uniforms.uRes.value.set(dw, dh);
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.setAttribute('width', W);
+  svgEl.setAttribute('height', H);
+  measureCallouts();
+}
+window.addEventListener('resize', resize);
+resize();
+
+applyPoints();
+buildSeg();
+buildEnvStrip();
+applyEnv(state.env, true);
+updateSeg();
+rebuildPanel();
+mountRoot(makePlaceholder(), 'TorusKnot · Placeholder');
+
+const _camInv = new THREE.Matrix4();
+const _lightView = new THREE.Vector3();
+let prev = performance.now(), fpsAcc = 0, fpsN = 0, fpsAt = prev, clock = 0;
+function loop(now) {
+  const dt = Math.min((now - prev) / 1000, 0.1);
+  prev = now;
+  clock += dt;
+
+  if (state.mode === 'points') {
+    camera.updateMatrixWorld();
+    _lightView.copy(keyLight.position).normalize()
+      .transformDirection(_camInv.copy(camera.matrixWorld).invert());
+    matTone.uniforms.uLightDir.value.copy(_lightView);
+  }
+
+  orbit.update(dt);
+  renderFrame();
+  updateCallouts(W, H);
+
+  fpsAcc += dt; fpsN++;
+  if (now - fpsAt > 500) {
+    $('#hud-fps').textContent = Math.round(fpsN / fpsAcc);
+    fpsAcc = 0; fpsN = 0; fpsAt = now;
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+if (renderer.capabilities.isWebGL2 === false) {
+  toast('WebGL1 only — transmission will look flat', 5000);
+}
+
+boot.classList.add('gone');
+setTimeout(() => boot.remove(), 600);
+setTimeout(() => toast('Press M to cycle render modes', 4200), 900);
+</script>

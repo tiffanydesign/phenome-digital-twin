@@ -1,0 +1,1098 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Point Body — Stage 1</title>
+
+<style>
+  :root {
+    --sans: "Inter Tight", "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont,
+            "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --mono: "SF Mono", ui-monospace, "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace;
+
+    --ink: #0a1c2e; --ink-2: #3d5570; --ink-3: #8296ad;
+    --hair: rgba(10,28,46,.10); --hair-2: rgba(10,28,46,.06);
+    --bg-a: #d6e7f8; --bg-b: #fbfdff;
+
+    --panel: rgba(255,255,255,.62); --panel-brd: rgba(255,255,255,.78);
+    --accent: #0fa3c0; --accent-dk: #06798f; --accent-sf: rgba(15,163,192,.12);
+
+    --shadow: 0 1px 2px rgba(10,28,46,.06), 0 8px 24px -8px rgba(10,28,46,.16),
+              0 32px 64px -24px rgba(10,28,46,.22);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body { font-family: var(--sans); color: var(--ink); background: var(--bg-b); -webkit-font-smoothing: antialiased; }
+
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+  /* ---------- boot ---------- */
+  #boot {
+    position: fixed; inset: 0; z-index: 90; display: grid; place-items: center;
+    background: linear-gradient(178deg, var(--bg-a), var(--bg-b));
+    transition: opacity .5s ease; text-align: center;
+  }
+  #boot.gone { opacity: 0; pointer-events: none; }
+  .bt { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+  .bs { font-family: var(--mono); font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); margin-top: 8px; }
+  .bar { width: 190px; height: 2px; border-radius: 2px; background: var(--hair); margin: 18px auto 0; overflow: hidden; }
+  .bar i { display: block; width: 40%; height: 100%; background: var(--accent); animation: slide 1.15s cubic-bezier(.5,0,.5,1) infinite; }
+  @keyframes slide { 0% { transform: translateX(-110%); } 100% { transform: translateX(320%); } }
+  .err { max-width: 340px; margin: 16px auto 0; font-size: 12px; line-height: 1.55; color: #b4353f; }
+
+  /* ---------- panel ---------- */
+  #panel {
+    position: fixed; left: 16px; top: 16px; bottom: 16px; width: 330px;
+    display: flex; flex-direction: column; border-radius: 18px;
+    background: var(--panel); border: 1px solid var(--panel-brd); box-shadow: var(--shadow);
+    backdrop-filter: blur(26px) saturate(165%); -webkit-backdrop-filter: blur(26px) saturate(165%);
+    overflow: hidden; z-index: 30;
+    transition: transform .42s cubic-bezier(.2,.85,.2,1), opacity .3s ease;
+  }
+  #panel.hidden { transform: translateX(calc(-100% - 24px)); opacity: 0; pointer-events: none; }
+
+  .p-head { padding: 16px 18px 14px; border-bottom: 1px solid var(--hair); flex: none; }
+  .p-eyebrow { font-family: var(--mono); font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent-dk); display: flex; align-items: center; gap: 7px; }
+  .p-eyebrow::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px 1px rgba(15,163,192,.7); }
+  .p-title { font-size: 17px; font-weight: 700; letter-spacing: -.015em; margin: 7px 0 1px; }
+  .p-cn { font-size: 11px; font-weight: 500; color: var(--ink-2); }
+
+  #pbody { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 4px 0 20px; }
+  #pbody::-webkit-scrollbar { width: 8px; }
+  #pbody::-webkit-scrollbar-thumb { background: rgba(10,28,46,.14); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+
+  .sec { border-bottom: 1px solid var(--hair-2); }
+  .sec-h {
+    display: flex; align-items: center; gap: 8px; padding: 13px 18px 11px; cursor: pointer;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .17em; text-transform: uppercase; color: var(--ink-2);
+    user-select: none;
+  }
+  .sec-h:hover { color: var(--accent-dk); }
+  .sec-h .caret { margin-left: auto; width: 7px; height: 7px; border-right: 1.4px solid currentColor; border-bottom: 1.4px solid currentColor; transform: rotate(45deg) translate(-2px,-2px); transition: transform .26s cubic-bezier(.2,.85,.2,1); opacity: .55; }
+  .sec.closed .caret { transform: rotate(-45deg) translate(-1px,1px); }
+  .sec-b { padding: 0 18px 15px; display: grid; gap: 11px; }
+  .sec.closed .sec-b { display: none; }
+
+  .row { display: grid; gap: 6px; }
+  .lab { display: flex; align-items: baseline; gap: 8px; font-size: 11.5px; font-weight: 500; color: var(--ink-2); }
+  .lab .v { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ink); background: rgba(10,28,46,.05); padding: 2px 6px; border-radius: 5px; }
+
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 16px; background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: rgba(10,28,46,.13); }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; margin-top: -5px;
+    background: #fff; border: 1.5px solid var(--accent); box-shadow: 0 1px 4px rgba(10,28,46,.25);
+  }
+  input[type=range]:active::-webkit-slider-thumb { background: var(--accent-sf); }
+
+  input[type=color] { -webkit-appearance: none; appearance: none; width: 100%; height: 26px; padding: 0; border: 1px solid var(--hair); border-radius: 7px; background: none; cursor: pointer; }
+  input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+  input[type=color]::-webkit-color-swatch { border: none; border-radius: 5px; }
+
+  .tog { display: flex; align-items: center; gap: 9px; font-size: 11.5px; font-weight: 500; color: var(--ink-2); cursor: pointer; user-select: none; }
+  .tog .sw { flex: none; width: 32px; height: 18px; border-radius: 999px; background: rgba(10,28,46,.16); position: relative; transition: background .22s ease; }
+  .tog .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(10,28,46,.3); transition: transform .22s cubic-bezier(.3,.8,.3,1); }
+  .tog.on .sw { background: var(--accent); }
+  .tog.on .sw::after { transform: translateX(14px); }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    padding: 6px 11px; border-radius: 8px; border: 1px solid var(--hair); background: rgba(255,255,255,.5);
+    font-size: 11px; font-weight: 500; color: var(--ink-2); cursor: pointer; transition: all .18s ease;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent-dk); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 2px 8px -2px rgba(15,163,192,.6); }
+
+  .note { font-size: 10.5px; line-height: 1.5; color: var(--ink-3); }
+
+  /* ---------- hud ---------- */
+  #hud {
+    position: fixed; right: 16px; top: 16px; z-index: 20; padding: 12px 14px; border-radius: 13px;
+    background: var(--panel); border: 1px solid var(--panel-brd); box-shadow: var(--shadow);
+    backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+    font-family: var(--mono); font-size: 10px; letter-spacing: .04em; color: var(--ink-2);
+    display: grid; grid-template-columns: auto auto; gap: 4px 16px; min-width: 168px;
+  }
+  #hud b { color: var(--ink); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  #hud .k { text-transform: uppercase; letter-spacing: .14em; font-size: 8.5px; color: var(--ink-3); align-self: center; }
+
+  /* ---------- floating buttons ---------- */
+  .fab {
+    position: fixed; z-index: 40; display: flex; align-items: center; gap: 7px;
+    padding: 9px 14px; border-radius: 11px; border: 1px solid var(--panel-brd);
+    background: var(--panel); box-shadow: var(--shadow); backdrop-filter: blur(20px) saturate(160%);
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-2); cursor: pointer; user-select: none; transition: all .2s ease;
+  }
+  .fab:hover { color: var(--accent-dk); border-color: var(--accent); }
+  #fab-panel { left: 16px; top: 16px; opacity: 0; pointer-events: none; }
+  #panel.hidden ~ #fab-panel { opacity: 1; pointer-events: auto; }
+  #fab-reset { right: 16px; bottom: 16px; }
+  #fab-shot { right: 128px; bottom: 16px; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 14px); z-index: 60;
+    padding: 9px 16px; border-radius: 10px; background: rgba(10,28,46,.9); color: #fff;
+    font-size: 12px; font-weight: 500; opacity: 0; pointer-events: none;
+    transition: opacity .25s ease, transform .25s cubic-bezier(.2,.85,.2,1);
+  }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 720px) {
+    #panel { left: 8px; right: 8px; width: auto; top: auto; height: 46vh; bottom: 8px; }
+    #hud { right: 8px; top: 8px; }
+  }
+</style>
+
+<canvas id="gl"></canvas>
+
+<div id="hud">
+  <span class="k">Points</span><b id="hud-pts">—</b>
+  <span class="k">Body tris</span><b id="hud-tris">—</b>
+  <span class="k">Organ tris</span><b id="hud-otris">—</b>
+  <span class="k">FPS</span><b id="hud-fps">—</b>
+</div>
+
+<div id="panel">
+  <div class="p-head">
+    <div class="p-eyebrow">Stage 1 · Spike</div>
+    <div class="p-title">Point Body</div>
+    <div class="p-cn">点状人体 + 体内器官 — 深度与混合验证</div>
+  </div>
+  <div id="pbody"></div>
+</div>
+
+<div class="fab" id="fab-panel">Panel</div>
+<div class="fab" id="fab-shot">PNG</div>
+<div class="fab" id="fab-reset">Reset view</div>
+<div id="toast"></div>
+
+<div id="boot">
+  <div>
+    <div class="bt">Loading render engine</div>
+    <div class="bs" id="boot-sub">Fetching three.js</div>
+    <div class="bar"><i></i></div>
+    <div class="err" id="boot-err" hidden></div>
+  </div>
+</div>
+
+<script type="module">
+/* ==========================================================================
+   Point Body — Stage 1 spike.
+
+   Goal of this file: prove ONE thing before any further work happens — that a
+   3D point-sampled body shell and a solid organ mesh inside it composite into
+   a readable "organ is inside the person" image. Everything else (organ
+   library, placement editor, texture pipeline) is deliberately out of scope.
+
+   Why not reuse the lab's halftone: that pass is a fullscreen quad with
+   depthTest off, so nothing can ever sit behind it. Here the shell is real
+   geometry — THREE.Points sampled on the body surface — so the depth buffer
+   does the work.
+
+   Only dependency is the three.js core. GLB parsing, surface sampling and
+   orbit control are hand-rolled, matching the existing lab.
+   ========================================================================== */
+
+const $ = (s) => document.querySelector(s);
+const boot = $('#boot');
+
+/* ---------------------------------------------------------------- 1. loader */
+/* vendor/ copy first so the spike still runs with no network; CDN mirrors are
+   the fallback for when this file gets moved somewhere without the vendor dir. */
+const sources = [
+  './vendor/three.module.js',
+  'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
+  'https://unpkg.com/three@0.160.0/build/three.module.js',
+];
+
+let THREE = null;
+for (const src of sources) {
+  try {
+    const mod = await import(src);
+    if (mod && mod.WebGLRenderer) { THREE = mod; break; }
+  } catch (e) { /* next mirror */ }
+}
+if (!THREE) {
+  boot.querySelector('.bt').textContent = 'Could not load three.js';
+  boot.querySelector('.bar').remove();
+  const err = $('#boot-err');
+  err.hidden = false;
+  err.textContent = 'vendor/three.module.js is missing and every CDN mirror failed.';
+  throw new Error('three.js unavailable');
+}
+
+const hex2vec = (h) => {
+  const v = parseInt(h.slice(1), 16);
+  return new THREE.Vector3(((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255);
+};
+
+/* ------------------------------------------------------------- 2. app state */
+const BODY_H = 2.6;                     // every model is normalised to this height
+
+const state = {
+  body: 'Male',
+
+  /* point shell */
+  count: 130000,
+  dotSize: 0.0052,
+  soft: 0.35,
+  frontColor: '#12405e',
+  backColor: '#9dc4e0',
+  backFade: 0.62,       // how much dots facing away lose
+  rim: 0.35,            // silhouette boost
+  shellOpacity: 0.95,
+  additive: false,
+  showShell: true,
+  showSkin: false,      // reference mesh, for checking placement
+
+  /* organ */
+  showOrgan: true,
+  organScale: 1,        // multiplier on the anatomically-derived fit
+  organX: 0.022, organY: 0, organZ: 0.028,
+  organYaw: -12,
+  organColor: '#c8384f',
+  organEmissive: 0.16,
+  organTransmission: 0.25,
+
+  /* view */
+  autoRotate: true,
+  exposure: 1.05,
+};
+
+/* Fraction of total body height, measured foot-to-crown, used to size and seat
+   the heart. Numbers are the usual adult figures: a ~12 cm heart on a ~175 cm
+   frame, centred just under the midpoint of the sternum. They get you close
+   enough that the sliders only need small corrections. */
+const HEART = { heightFrac: 0.069, seatFrac: 0.715 };
+
+/* ------------------------------------------------------------- 3. renderer */
+const canvas = $('#gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
+const PIXEL = Math.min(window.devicePixelRatio || 1, 2);
+renderer.setPixelRatio(PIXEL);
+if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = state.exposure;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(34, 1, 0.02, 200);
+
+let W = 1, H = 1;
+
+/* ---------------------------------------------------- 4. gradient backdrop */
+const bgUniforms = {
+  uTop: { value: hex2vec('#d6e7f8') },
+  uBottom: { value: hex2vec('#fbfdff') },
+  uGlow: { value: hex2vec('#9edcff') },
+  uGlowAmt: { value: 0.5 },
+};
+const bgSphere = new THREE.Mesh(
+  new THREE.SphereGeometry(60, 32, 24),
+  new THREE.ShaderMaterial({
+    uniforms: bgUniforms,
+    side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false,
+    vertexShader: `
+      varying vec3 vP;
+      void main() { vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `
+      varying vec3 vP;
+      uniform vec3 uTop, uBottom, uGlow;
+      uniform float uGlowAmt;
+      void main() {
+        float t = clamp(normalize(vP).y * 0.5 + 0.5, 0.0, 1.0);
+        vec3 c = mix(uBottom, uTop, pow(t, 0.85));
+        vec3 d = normalize(vP);
+        float halo = pow(max(0.0, 1.0 - length(d.xy - vec2(0.0, 0.12))), 3.0);
+        c += uGlow * halo * uGlowAmt * 0.35;
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  })
+);
+bgSphere.renderOrder = -1000;
+bgSphere.frustumCulled = false;
+scene.add(bgSphere);
+
+/* ------------------------------------------------------------- 5. lighting */
+scene.add(new THREE.AmbientLight('#dfeaf7', 0.6));
+const keyLight = new THREE.DirectionalLight('#ffffff', 2.2);
+keyLight.position.set(2.4, 3.2, 2.6);
+scene.add(keyLight);
+const rimLight = new THREE.DirectionalLight('#bfeaff', 3.2);
+rimLight.position.set(-2.6, 1.4, -2.8);
+scene.add(rimLight);
+const fillLight = new THREE.DirectionalLight('#ffd6e0', 0.8);
+fillLight.position.set(-1.8, -1.2, 2.2);
+scene.add(fillLight);
+
+/* -------------------------------------------------- 6. hand-rolled GLB read */
+const COMP = {
+  5120: { A: Int8Array, s: 1, get: (d, o) => d.getInt8(o) },
+  5121: { A: Uint8Array, s: 1, get: (d, o) => d.getUint8(o) },
+  5122: { A: Int16Array, s: 2, get: (d, o) => d.getInt16(o, true) },
+  5123: { A: Uint16Array, s: 2, get: (d, o) => d.getUint16(o, true) },
+  5125: { A: Uint32Array, s: 4, get: (d, o) => d.getUint32(o, true) },
+  5126: { A: Float32Array, s: 4, get: (d, o) => d.getFloat32(o, true) },
+};
+const NUM = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT2: 4, MAT3: 9, MAT4: 16 };
+
+function parseContainer(buffer, name) {
+  const dv = new DataView(buffer);
+  if (dv.getUint32(0, true) !== 0x46546c67) throw new Error(`${name} is not a binary glTF`);
+  let off = 12, json = null, bin = null;
+  while (off + 8 <= buffer.byteLength) {
+    const len = dv.getUint32(off, true);
+    const type = dv.getUint32(off + 4, true);
+    const start = off + 8;
+    if (type === 0x4e4f534a) json = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer, start, len)));
+    else if (type === 0x004e4942) bin = new Uint8Array(buffer, start, len);
+    off = start + len;
+  }
+  if (!json) throw new Error(`${name} has no JSON chunk`);
+  return { json, bin };
+}
+
+function readTyped(json, bin, bvIndex, byteOffset, componentType, count, num) {
+  const comp = COMP[componentType];
+  const out = new comp.A(count * num);
+  if (bvIndex === undefined) return out;
+  const bv = json.bufferViews[bvIndex];
+  const base = (bv.byteOffset || 0) + byteOffset;
+  const stride = bv.byteStride || comp.s * num;
+  const dv = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  for (let i = 0; i < count; i++) {
+    const o = base + i * stride;
+    for (let j = 0; j < num; j++) out[i * num + j] = comp.get(dv, o + j * comp.s);
+  }
+  return out;
+}
+
+function readAccessor(json, bin, index) {
+  const acc = json.accessors[index];
+  const num = NUM[acc.type];
+  const array = readTyped(json, bin, acc.bufferView, acc.byteOffset || 0, acc.componentType, acc.count, num);
+  return { array, itemSize: num, normalized: !!acc.normalized };
+}
+
+function buildGeometries(json, bin, meshIndex, cache) {
+  if (cache.has(meshIndex)) return cache.get(meshIndex);
+  const list = [];
+  for (const prim of json.meshes[meshIndex].primitives) {
+    if ((prim.mode === undefined ? 4 : prim.mode) !== 4) continue;   // triangles only
+    const geo = new THREE.BufferGeometry();
+    const attrs = prim.attributes || {};
+    const map = { POSITION: 'position', NORMAL: 'normal', TEXCOORD_0: 'uv' };
+    for (const key in map) {
+      if (attrs[key] === undefined) continue;
+      const acc = readAccessor(json, bin, attrs[key]);
+      geo.setAttribute(map[key], new THREE.BufferAttribute(acc.array, acc.itemSize, acc.normalized));
+    }
+    if (!geo.getAttribute('position')) continue;
+    if (prim.indices !== undefined) {
+      const i = readAccessor(json, bin, prim.indices);
+      geo.setIndex(new THREE.BufferAttribute(i.array, 1));
+    }
+    if (!geo.getAttribute('normal')) geo.computeVertexNormals();
+    list.push(geo);
+  }
+  cache.set(meshIndex, list);
+  return list;
+}
+
+function buildNode(json, bin, index, cache, seen) {
+  if (seen.has(index)) return null;
+  seen.add(index);
+  const n = json.nodes[index];
+  const obj = new THREE.Group();
+  obj.name = n.name || `node_${index}`;
+  if (n.matrix) {
+    new THREE.Matrix4().fromArray(n.matrix).decompose(obj.position, obj.quaternion, obj.scale);
+  } else {
+    if (n.translation) obj.position.fromArray(n.translation);
+    if (n.rotation) obj.quaternion.fromArray(n.rotation);
+    if (n.scale) obj.scale.fromArray(n.scale);
+  }
+  if (n.mesh !== undefined) {
+    for (const geo of buildGeometries(json, bin, n.mesh, cache)) {
+      obj.add(new THREE.Mesh(geo, refMat));
+    }
+  }
+  if (n.children) for (const c of n.children) { const k = buildNode(json, bin, c, cache, seen); if (k) obj.add(k); }
+  seen.delete(index);
+  return obj;
+}
+
+const refMat = new THREE.MeshBasicMaterial({ visible: false });
+
+async function loadGLB(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
+  const { json, bin } = parseContainer(await res.arrayBuffer(), url);
+  const root = new THREE.Group();
+  const cache = new Map();
+  const sceneDef = json.scenes?.[json.scene ?? 0];
+  const roots = sceneDef ? sceneDef.nodes : json.nodes.map((_, i) => i);
+  for (const i of roots) { const n = buildNode(json, bin, i, cache, new Set()); if (n) root.add(n); }
+  root.updateMatrixWorld(true);
+  return root;
+}
+
+/* ------------------------------------------- 7. normalise + collect triangles */
+/* Every source file arrives at a different scale, pivot and handedness — the
+   set here spans roughly 0.5 to 1300 units for the same real-world object. So
+   nothing is trusted: measure the bounding box, drop the model onto y = 0 and
+   rescale to a fixed height. After that one world unit is a known length and
+   anatomical fractions can be used directly. */
+function normalise(root, targetH) {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  if (box.isEmpty()) throw new Error('model has no renderable triangles');
+  const size = box.getSize(new THREE.Vector3());
+  const centre = box.getCenter(new THREE.Vector3());
+  const k = targetH / Math.max(size.y, 1e-6);
+
+  const holder = new THREE.Group();
+  root.position.set(-centre.x, -box.min.y, -centre.z);   // centred in x/z, feet on the floor
+  holder.scale.setScalar(k);
+  holder.add(root);
+  holder.updateMatrixWorld(true);
+  return { holder, scale: k, sourceSize: size };
+}
+
+/* Flatten a subtree into one world-space triangle soup. Sampling needs raw
+   triangles, not a scene graph. */
+function collectTriangles(root) {
+  root.updateMatrixWorld(true);
+  const pos = [], nrm = [];
+  const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+  const nA = new THREE.Vector3(), nB = new THREE.Vector3(), nC = new THREE.Vector3();
+  const nMat = new THREE.Matrix3();
+  let tris = 0;
+
+  root.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    const g = o.geometry;
+    const p = g.getAttribute('position');
+    if (!p) return;
+    const n = g.getAttribute('normal');
+    const idx = g.index;
+    const count = idx ? idx.count : p.count;
+    nMat.getNormalMatrix(o.matrixWorld);
+
+    for (let i = 0; i < count; i += 3) {
+      const a = idx ? idx.getX(i) : i, b = idx ? idx.getX(i + 1) : i + 1, c = idx ? idx.getX(i + 2) : i + 2;
+      vA.fromBufferAttribute(p, a).applyMatrix4(o.matrixWorld);
+      vB.fromBufferAttribute(p, b).applyMatrix4(o.matrixWorld);
+      vC.fromBufferAttribute(p, c).applyMatrix4(o.matrixWorld);
+      if (n) {
+        nA.fromBufferAttribute(n, a).applyMatrix3(nMat).normalize();
+        nB.fromBufferAttribute(n, b).applyMatrix3(nMat).normalize();
+        nC.fromBufferAttribute(n, c).applyMatrix3(nMat).normalize();
+      } else {
+        nA.subVectors(vC, vB).cross(vB.clone().sub(vA)).normalize();
+        nB.copy(nA); nC.copy(nA);
+      }
+      pos.push(vA.x, vA.y, vA.z, vB.x, vB.y, vB.z, vC.x, vC.y, vC.z);
+      nrm.push(nA.x, nA.y, nA.z, nB.x, nB.y, nB.z, nC.x, nC.y, nC.z);
+      tris++;
+    }
+  });
+
+  return { pos: new Float32Array(pos), nrm: new Float32Array(nrm), tris };
+}
+
+/* --------------------------------------------- 8. area-weighted point sample */
+/* Sampling the vertices directly does not work: the model is dense at the face
+   and hands and sparse across the back, so the shell reads blotchy exactly
+   where it should read even. Weighting by triangle area and picking a random
+   barycentric point inside gives a uniform field regardless of tessellation. */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function samplePoints(soup, count, seed = 1) {
+  const { pos, nrm, tris } = soup;
+  const cdf = new Float64Array(tris);
+  const ab = new THREE.Vector3(), ac = new THREE.Vector3(), cr = new THREE.Vector3();
+  let total = 0;
+
+  for (let t = 0; t < tris; t++) {
+    const o = t * 9;
+    ab.set(pos[o + 3] - pos[o], pos[o + 4] - pos[o + 1], pos[o + 5] - pos[o + 2]);
+    ac.set(pos[o + 6] - pos[o], pos[o + 7] - pos[o + 1], pos[o + 8] - pos[o + 2]);
+    total += cr.crossVectors(ab, ac).length() * 0.5;
+    cdf[t] = total;
+  }
+  if (total <= 0) throw new Error('degenerate mesh — zero surface area');
+
+  const rand = mulberry32(seed);
+  const outP = new Float32Array(count * 3);
+  const outN = new Float32Array(count * 3);
+
+  for (let i = 0; i < count; i++) {
+    /* binary search the cumulative area, so a triangle twice the size gets
+       twice the dots */
+    const target = rand() * total;
+    let lo = 0, hi = tris - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (cdf[mid] < target) lo = mid + 1; else hi = mid; }
+    const o = lo * 9;
+
+    /* uniform barycentric point: fold the unit square onto the triangle */
+    let u = rand(), v = rand();
+    if (u + v > 1) { u = 1 - u; v = 1 - v; }
+    const w = 1 - u - v;
+    const k = i * 3;
+    for (let j = 0; j < 3; j++) {
+      outP[k + j] = pos[o + j] * w + pos[o + 3 + j] * u + pos[o + 6 + j] * v;
+      outN[k + j] = nrm[o + j] * w + nrm[o + 3 + j] * u + nrm[o + 6 + j] * v;
+    }
+    const len = Math.hypot(outN[k], outN[k + 1], outN[k + 2]) || 1;
+    outN[k] /= len; outN[k + 1] /= len; outN[k + 2] /= len;
+  }
+
+  return { position: outP, normal: outN };
+}
+
+/* --------------------------------------------------- 9. the point material */
+/* Round sprites sized in world units, not pixels, so the shell keeps a
+   constant density on the body as the camera dollies.
+
+   depthWrite is off on purpose. With it on, front dots punch holes in the
+   depth buffer and the organ behind them disappears in a ring of dead pixels;
+   with it off, the organ writes depth first, near dots pass the test and far
+   dots are correctly rejected. That is the whole trick of this file. */
+const shellUniforms = {
+  uSize: { value: state.dotSize },
+  uViewportH: { value: 800 },
+  uFront: { value: hex2vec(state.frontColor) },
+  uBack: { value: hex2vec(state.backColor) },
+  uBackFade: { value: state.backFade },
+  uRim: { value: state.rim },
+  uSoft: { value: state.soft },
+  uOpacity: { value: state.shellOpacity },
+};
+
+const shellMat = new THREE.ShaderMaterial({
+  uniforms: shellUniforms,
+  transparent: true,
+  depthTest: true,
+  depthWrite: false,
+  vertexShader: `
+    uniform float uSize, uViewportH;
+    varying float vFacing;
+    void main() {
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      vec3 n = normalize(normalMatrix * normal);
+      vec3 v = normalize(-mv.xyz);
+      /* signed, not abs: a dot on the far side of the body should read as far,
+         which is what separates the two shell layers visually */
+      vFacing = dot(n, v);
+      float pxPerUnit = uViewportH * projectionMatrix[1][1] * 0.5;
+      gl_PointSize = clamp(uSize * pxPerUnit / max(-mv.z, 0.001), 0.75, 48.0);
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: `
+    varying float vFacing;
+    uniform vec3 uFront, uBack;
+    uniform float uBackFade, uRim, uSoft, uOpacity;
+    void main() {
+      vec2 q = gl_PointCoord - 0.5;
+      float d = length(q);
+      float aa = fwidth(d) + 0.001;
+      float mask = 1.0 - smoothstep(0.5 - uSoft * 0.5 - aa, 0.5, d);
+      if (mask <= 0.004) discard;
+
+      float f = vFacing * 0.5 + 0.5;                 // 0 = away, 1 = toward
+      float away = 1.0 - smoothstep(0.35, 0.75, f);
+      /* silhouette dots sit near f = 0.5; lifting them draws the outline that
+         makes the figure legible without adding any more points */
+      float silhouette = 1.0 - abs(vFacing);
+      vec3 col = mix(uFront, uBack, away);
+      float a = mix(1.0, 1.0 - uBackFade, away);
+      a *= 1.0 + uRim * pow(silhouette, 3.0);
+      gl_FragColor = vec4(col, clamp(a, 0.0, 1.0) * uOpacity * mask);
+    }`,
+});
+
+/* --------------------------------------------------- 10. reference skin mesh */
+const skinMat = new THREE.MeshPhysicalMaterial({
+  color: '#dfeaf5', roughness: 0.75, metalness: 0,
+  transparent: true, opacity: 0.14, side: THREE.DoubleSide, depthWrite: false,
+});
+
+/* -------------------------------------------------------- 11. organ material */
+const organMat = new THREE.MeshPhysicalMaterial({
+  color: state.organColor,
+  roughness: 0.28, metalness: 0,
+  clearcoat: 0.5, clearcoatRoughness: 0.24,
+  sheen: 0.4,
+  emissive: state.organColor, emissiveIntensity: state.organEmissive,
+  transmission: state.organTransmission, thickness: 1.1, ior: 1.4,
+  attenuationColor: new THREE.Color('#6e0c22'), attenuationDistance: 0.5,
+  side: THREE.FrontSide,
+});
+
+/* ------------------------------------------------------------- 12. scene mount */
+const stage = new THREE.Group();
+scene.add(stage);
+
+const world = {
+  bodySoup: null,
+  bodyHolder: null,
+  shell: null,
+  skin: null,
+  organHolder: null,
+  organRoot: null,
+  torso: null,
+  bodyTris: 0,
+  organTris: 0,
+  organBaseScale: 1,
+};
+
+/* The heart has to be seated relative to the torso, not the bounding box: this
+   figure stands in an A-pose, so the box is 0.6 as wide as it is tall and its
+   centre is meaningless. Take a horizontal slab at chest height, use the median
+   x to find the midline (robust to the arms, which a mean is not), then keep
+   only what is near that midline to measure the trunk's depth. */
+function measureTorso(soup, height) {
+  const { pos } = soup;
+  const n = pos.length / 3;
+  const lo = height * 0.60, hi = height * 0.80;
+  const xs = [];
+  for (let i = 0; i < n; i++) { const y = pos[i * 3 + 1]; if (y >= lo && y <= hi) xs.push(pos[i * 3]); }
+  if (!xs.length) return { x: 0, z: 0, depth: height * 0.14, width: height * 0.16 };
+  xs.sort((a, b) => a - b);
+  const midX = xs[xs.length >> 1];
+
+  const near = height * 0.085;
+  let zMin = Infinity, zMax = -Infinity, xMin = Infinity, xMax = -Infinity;
+  for (let i = 0; i < n; i++) {
+    const y = pos[i * 3 + 1];
+    if (y < lo || y > hi) continue;
+    const x = pos[i * 3];
+    if (Math.abs(x - midX) > near) continue;
+    const z = pos[i * 3 + 2];
+    if (z < zMin) zMin = z; if (z > zMax) zMax = z;
+    if (x < xMin) xMin = x; if (x > xMax) xMax = x;
+  }
+  if (!isFinite(zMin)) return { x: midX, z: 0, depth: height * 0.14, width: height * 0.16 };
+  return { x: midX, z: (zMin + zMax) / 2, depth: zMax - zMin, width: xMax - xMin };
+}
+
+function rebuildShell() {
+  if (world.shell) { stage.remove(world.shell); world.shell.geometry.dispose(); world.shell = null; }
+  if (!world.bodySoup) return;
+
+  const t0 = performance.now();
+  const { position, normal } = samplePoints(world.bodySoup, state.count, 7);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(position, 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
+
+  const pts = new THREE.Points(geo, shellMat);
+  pts.frustumCulled = false;
+  pts.renderOrder = 10;              // after the organ, so depth is already laid down
+  world.shell = pts;
+  stage.add(pts);
+
+  $('#hud-pts').textContent = state.count.toLocaleString('en-US');
+  return performance.now() - t0;
+}
+
+function placeOrgan() {
+  if (!world.organHolder || !world.torso) return;
+  const h = BODY_H;
+  const s = world.organBaseScale * state.organScale;
+  world.organHolder.scale.setScalar(s);
+  world.organHolder.position.set(
+    world.torso.x + state.organX * h,
+    HEART.seatFrac * h + state.organY * h,
+    world.torso.z + state.organZ * h
+  );
+  world.organHolder.rotation.y = state.organYaw * Math.PI / 180;
+}
+
+async function loadBody(name) {
+  const root = await loadGLB(`GLB/${name}.glb`);
+  const { holder } = normalise(root, BODY_H);
+
+  if (world.bodyHolder) { stage.remove(world.bodyHolder); }
+  world.bodyHolder = holder;
+
+  const soup = collectTriangles(holder);
+  world.bodySoup = soup;
+  world.bodyTris = soup.tris;
+  world.torso = measureTorso(soup, BODY_H);
+
+  /* the reference skin is the same mesh, just materialised */
+  holder.traverse((o) => { if (o.isMesh) o.material = skinMat; });
+  holder.visible = state.showSkin;
+  stage.add(holder);
+  world.skin = holder;
+
+  $('#hud-tris').textContent = soup.tris.toLocaleString('en-US');
+  rebuildShell();
+  placeOrgan();
+}
+
+async function loadOrgan(path) {
+  const root = await loadGLB(path);
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  const size = box.getSize(new THREE.Vector3());
+  const centre = box.getCenter(new THREE.Vector3());
+
+  /* Source heart measures 3.2 units tall in its own file while the body
+     measures 24. Neither number means anything on its own, so scale by the
+     anatomical fraction instead of trusting either. */
+  world.organBaseScale = (HEART.heightFrac * BODY_H) / Math.max(size.y, 1e-6);
+
+  root.position.sub(centre);
+  let tris = 0;
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = organMat;
+    o.renderOrder = 0;
+    const g = o.geometry;
+    tris += g.index ? g.index.count / 3 : g.getAttribute('position').count / 3;
+  });
+
+  const holder = new THREE.Group();
+  holder.add(root);
+  if (world.organHolder) stage.remove(world.organHolder);
+  world.organHolder = holder;
+  world.organRoot = root;
+  world.organTris = Math.round(tris);
+  holder.visible = state.showOrgan;
+  stage.add(holder);
+
+  $('#hud-otris').textContent = world.organTris.toLocaleString('en-US');
+  placeOrgan();
+}
+
+/* ------------------------------------------------------- 13. orbit control */
+class Orbit {
+  constructor(cam, el) {
+    this.cam = cam; this.el = el;
+    this.target = new THREE.Vector3(0, BODY_H * 0.55, 0);
+    this.theta = 0.28; this.phi = Math.PI / 2 - 0.06; this.dist = 5.2;
+    this.minDist = 0.6; this.maxDist = 22;
+    this.drag = null; this.last = { x: 0, y: 0 };
+    this.spin = 0;
+
+    el.addEventListener('pointerdown', (e) => {
+      el.setPointerCapture(e.pointerId);
+      this.drag = e.button === 2 || e.shiftKey ? 'pan' : 'rotate';
+      this.last = { x: e.clientX, y: e.clientY };
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!this.drag) return;
+      const dx = e.clientX - this.last.x, dy = e.clientY - this.last.y;
+      this.last = { x: e.clientX, y: e.clientY };
+      if (this.drag === 'rotate') {
+        this.theta -= dx * 0.0058;
+        this.phi = Math.min(Math.PI - 0.05, Math.max(0.05, this.phi - dy * 0.0058));
+      } else {
+        const k = this.dist * 0.0016;
+        const right = new THREE.Vector3().setFromMatrixColumn(this.cam.matrix, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(this.cam.matrix, 1);
+        this.target.addScaledVector(right, -dx * k).addScaledVector(up, dy * k);
+      }
+    });
+    const end = (e) => { this.drag = null; try { el.releasePointerCapture(e.pointerId); } catch (_) {} };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+    el.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.dist = Math.min(this.maxDist, Math.max(this.minDist, this.dist * Math.exp(e.deltaY * 0.0011)));
+    }, { passive: false });
+  }
+  update(dt) {
+    if (state.autoRotate && !this.drag) this.theta += dt * 0.22;
+    const sp = Math.sin(this.phi);
+    this.cam.position.set(
+      this.target.x + this.dist * sp * Math.sin(this.theta),
+      this.target.y + this.dist * Math.cos(this.phi),
+      this.target.z + this.dist * sp * Math.cos(this.theta)
+    );
+    this.cam.lookAt(this.target);
+  }
+  reset() {
+    this.target.set(0, BODY_H * 0.55, 0);
+    this.theta = 0.28; this.phi = Math.PI / 2 - 0.06; this.dist = 5.2;
+  }
+  focusChest() {
+    this.target.set(0, HEART.seatFrac * BODY_H, 0);
+    this.theta = 0.35; this.phi = Math.PI / 2; this.dist = 1.5;
+  }
+}
+const orbit = new Orbit(camera, canvas);
+
+/* ------------------------------------------------------------ 14. the panel */
+const SECTIONS = [
+  { id: 'shell', title: 'Point shell · 点壳', open: true, items: [
+    { t: 'select', k: 'body', label: '人体模型', opts: ['Male', 'Female'] },
+    { t: 'range', k: 'count', label: '点数', min: 20000, max: 260000, step: 10000, fmt: (v) => (v / 1000).toFixed(0) + 'k', slow: true },
+    { t: 'range', k: 'dotSize', label: '点直径', min: 0.0015, max: 0.016, step: 0.0001, fmt: (v) => v.toFixed(4) },
+    { t: 'range', k: 'soft', label: '边缘柔化', min: 0, max: 1, step: 0.01 },
+    { t: 'color', k: 'frontColor', label: '正面色' },
+    { t: 'color', k: 'backColor', label: '背面色' },
+    { t: 'range', k: 'backFade', label: '背面淡出', min: 0, max: 1, step: 0.01 },
+    { t: 'range', k: 'rim', label: '轮廓增强', min: 0, max: 1.5, step: 0.01 },
+    { t: 'range', k: 'shellOpacity', label: '整体不透明度', min: 0.05, max: 1, step: 0.01 },
+    { t: 'tog', k: 'additive', label: '叠加混合' },
+    { t: 'tog', k: 'showShell', label: '显示点壳' },
+    { t: 'tog', k: 'showSkin', label: '显示参考皮肤 (对位用)' },
+  ]},
+  { id: 'organ', title: 'Organ · 器官', open: true, items: [
+    { t: 'tog', k: 'showOrgan', label: '显示心脏' },
+    { t: 'range', k: 'organScale', label: '尺寸倍率', min: 0.4, max: 2.2, step: 0.01 },
+    { t: 'range', k: 'organX', label: '左右位移', min: -0.15, max: 0.15, step: 0.001, fmt: (v) => v.toFixed(3) },
+    { t: 'range', k: 'organY', label: '上下位移', min: -0.15, max: 0.15, step: 0.001, fmt: (v) => v.toFixed(3) },
+    { t: 'range', k: 'organZ', label: '前后位移', min: -0.15, max: 0.15, step: 0.001, fmt: (v) => v.toFixed(3) },
+    { t: 'range', k: 'organYaw', label: '绕 Y 旋转', min: -180, max: 180, step: 1, fmt: (v) => v + '°' },
+    { t: 'color', k: 'organColor', label: '器官颜色' },
+    { t: 'range', k: 'organEmissive', label: '自发光', min: 0, max: 1, step: 0.01 },
+    { t: 'range', k: 'organTransmission', label: '透光', min: 0, max: 1, step: 0.01 },
+    { t: 'note', text: '位移单位是身高的比例，不是米。切换模型后数值仍然有效。' },
+  ]},
+  { id: 'view', title: 'View · 视图', items: [
+    { t: 'tog', k: 'autoRotate', label: '自动旋转' },
+    { t: 'range', k: 'exposure', label: '曝光', min: 0.4, max: 2, step: 0.01 },
+    { t: 'chips', label: '相机', opts: [
+      { label: '全身', fn: () => orbit.reset() },
+      { label: '胸腔特写', fn: () => orbit.focusChest() },
+    ]},
+  ]},
+];
+
+const pbody = $('#pbody');
+const ui = {};
+let resampleTimer = null;
+
+function apply(key) {
+  switch (key) {
+    case 'count':
+      clearTimeout(resampleTimer);
+      resampleTimer = setTimeout(() => rebuildShell(), 220);
+      break;
+    case 'body':
+      loadBody(state.body).catch(fail);
+      break;
+    case 'dotSize': shellUniforms.uSize.value = state.dotSize; break;
+    case 'soft': shellUniforms.uSoft.value = state.soft; break;
+    case 'frontColor': shellUniforms.uFront.value.copy(hex2vec(state.frontColor)); break;
+    case 'backColor': shellUniforms.uBack.value.copy(hex2vec(state.backColor)); break;
+    case 'backFade': shellUniforms.uBackFade.value = state.backFade; break;
+    case 'rim': shellUniforms.uRim.value = state.rim; break;
+    case 'shellOpacity': shellUniforms.uOpacity.value = state.shellOpacity; break;
+    case 'additive':
+      shellMat.blending = state.additive ? THREE.AdditiveBlending : THREE.NormalBlending;
+      shellMat.needsUpdate = true;
+      break;
+    case 'showShell': if (world.shell) world.shell.visible = state.showShell; break;
+    case 'showSkin': if (world.skin) world.skin.visible = state.showSkin; break;
+    case 'showOrgan': if (world.organHolder) world.organHolder.visible = state.showOrgan; break;
+    case 'organScale': case 'organX': case 'organY': case 'organZ': case 'organYaw':
+      placeOrgan(); break;
+    case 'organColor':
+      organMat.color.set(state.organColor);
+      organMat.emissive.set(state.organColor);
+      break;
+    case 'organEmissive': organMat.emissiveIntensity = state.organEmissive; break;
+    case 'organTransmission': organMat.transmission = state.organTransmission; break;
+    case 'exposure': renderer.toneMappingExposure = state.exposure; break;
+  }
+}
+
+function buildPanel() {
+  for (const sec of SECTIONS) {
+    const el = document.createElement('div');
+    el.className = 'sec' + (sec.open ? '' : ' closed');
+    const head = document.createElement('div');
+    head.className = 'sec-h';
+    head.innerHTML = `<span>${sec.title}</span><span class="caret"></span>`;
+    head.addEventListener('click', () => el.classList.toggle('closed'));
+    el.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'sec-b';
+
+    for (const it of sec.items) {
+      if (it.t === 'note') {
+        const n = document.createElement('div');
+        n.className = 'note';
+        n.textContent = it.text;
+        body.appendChild(n);
+        continue;
+      }
+      if (it.t === 'range') {
+        const row = document.createElement('div');
+        row.className = 'row';
+        const fmt = it.fmt || ((v) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2)));
+        row.innerHTML = `<div class="lab"><span>${it.label}</span><span class="v"></span></div>`;
+        const inp = document.createElement('input');
+        inp.type = 'range'; inp.min = it.min; inp.max = it.max; inp.step = it.step; inp.value = state[it.k];
+        const out = row.querySelector('.v');
+        out.textContent = fmt(state[it.k]);
+        inp.addEventListener('input', () => {
+          state[it.k] = parseFloat(inp.value);
+          out.textContent = fmt(state[it.k]);
+          apply(it.k);
+        });
+        row.appendChild(inp);
+        body.appendChild(row);
+        ui[it.k] = inp;
+        continue;
+      }
+      if (it.t === 'color') {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `<div class="lab"><span>${it.label}</span></div>`;
+        const inp = document.createElement('input');
+        inp.type = 'color'; inp.value = state[it.k];
+        inp.addEventListener('input', () => { state[it.k] = inp.value; apply(it.k); });
+        row.appendChild(inp);
+        body.appendChild(row);
+        continue;
+      }
+      if (it.t === 'tog') {
+        const t = document.createElement('div');
+        t.className = 'tog' + (state[it.k] ? ' on' : '');
+        t.innerHTML = `<span class="sw"></span><span>${it.label}</span>`;
+        t.addEventListener('click', () => {
+          state[it.k] = !state[it.k];
+          t.classList.toggle('on', state[it.k]);
+          apply(it.k);
+        });
+        body.appendChild(t);
+        continue;
+      }
+      if (it.t === 'select') {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `<div class="lab"><span>${it.label}</span></div>`;
+        const wrap = document.createElement('div');
+        wrap.className = 'chips';
+        for (const o of it.opts) {
+          const c = document.createElement('div');
+          c.className = 'chip' + (state[it.k] === o ? ' on' : '');
+          c.textContent = o;
+          c.addEventListener('click', () => {
+            state[it.k] = o;
+            wrap.querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x === c));
+            apply(it.k);
+          });
+          wrap.appendChild(c);
+        }
+        row.appendChild(wrap);
+        body.appendChild(row);
+        continue;
+      }
+      if (it.t === 'chips') {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `<div class="lab"><span>${it.label}</span></div>`;
+        const wrap = document.createElement('div');
+        wrap.className = 'chips';
+        for (const o of it.opts) {
+          const c = document.createElement('div');
+          c.className = 'chip';
+          c.textContent = o.label;
+          c.addEventListener('click', o.fn);
+          wrap.appendChild(c);
+        }
+        row.appendChild(wrap);
+        body.appendChild(row);
+      }
+    }
+    el.appendChild(body);
+    pbody.appendChild(el);
+  }
+}
+buildPanel();
+
+/* ------------------------------------------------------------- 15. chrome */
+const panel = $('#panel');
+$('#fab-panel').addEventListener('click', () => panel.classList.remove('hidden'));
+$('#fab-reset').addEventListener('click', () => orbit.reset());
+$('#fab-shot').addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const a = document.createElement('a');
+  a.download = `point-body-${Date.now()}.png`;
+  a.href = renderer.domElement.toDataURL('image/png');
+  a.click();
+  toast('已导出 PNG');
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'p' || e.key === 'P') panel.classList.toggle('hidden');
+  if (e.key === ' ') { e.preventDefault(); state.autoRotate = !state.autoRotate; }
+});
+
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 2000);
+}
+
+function fail(err) {
+  console.error(err);
+  boot.classList.remove('gone');
+  boot.querySelector('.bt').textContent = 'Load failed';
+  boot.querySelector('.bs').textContent = 'asset error';
+  boot.querySelector('.bar')?.remove();
+  const e = $('#boot-err');
+  e.hidden = false;
+  e.textContent = `${err.message}\n\nfile:// cannot fetch local GLB. Serve the folder over HTTP, e.g.  python -m http.server 8000`;
+  e.style.whiteSpace = 'pre-wrap';
+}
+
+/* -------------------------------------------------------------- 16. resize */
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  renderer.setSize(W, H, false);
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+  shellUniforms.uViewportH.value = H * PIXEL;
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* ---------------------------------------------------------------- 17. loop */
+let last = performance.now(), fpsAcc = 0, fpsN = 0;
+function loop() {
+  const now = performance.now();
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+
+  fpsAcc += dt; fpsN++;
+  if (fpsAcc >= 0.5) {
+    $('#hud-fps').textContent = Math.round(fpsN / fpsAcc);
+    fpsAcc = 0; fpsN = 0;
+  }
+
+  orbit.update(dt);
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+
+/* ----------------------------------------------------------------- 18. go */
+try {
+  $('#boot-sub').textContent = 'Loading body';
+  await loadBody(state.body);
+  $('#boot-sub').textContent = 'Loading heart';
+  await loadOrgan('GLB/organ/realistic_human_heart.glb');
+  boot.classList.add('gone');
+  requestAnimationFrame(loop);
+} catch (err) {
+  fail(err);
+}
+</script>

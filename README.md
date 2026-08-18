@@ -25,6 +25,12 @@ python -m http.server 8777
 ```
 index.html                 跳转到 digitaltwin.html（供 GitHub Pages 根路径使用）
 digitaltwin.html           设计系统文档 + 两个 WebGL 示例
+
+organ-material-lab.html    材质实验台（拖入任意 .glb 即可换标本），材质参数的准绳
+home-hero-lab.html         主视觉预设表：男/女 × 全身/半身
+organ-body-full.html       器官视图完整版（用到 realistic_stomach / realistic_human_lungs）
+organ-body-stage1.html     器官视图早期版本，保留作演进记录
+
 vendor/
   three.module.js          three.js r160（本地副本；代码内置 jsDelivr / unpkg 兜底）
 GLB/
@@ -37,7 +43,13 @@ GLB/
     small_and_large_intestine.glb    Gut Health
     human_liver_and_gallbladder.glb  Detox
     human_kidney.glb                 Hormones
+    realistic_human_lungs.glb        organ-body-full.html 专用
+    realistic_stomach.glb            organ-body-full.html 专用
 ```
+
+四个 lab 页与 `digitaltwin.html` 用的是同一套根相对路径（`vendor/`、`GLB/`），所以必须留在仓库根目录，同一个服务器起来后都能直接访问，例如 `http://localhost:8777/home-hero-lab.html`。
+
+`_local/` 是不纳入版本控制的本地目录（见 `.gitignore`），存放没有任何页面引用的备选模型、来源文档，以及仅作设计参考的第三方截图。**它不会被提交，也就没有备份**，需要留存请自行另行归档。
 
 ## 浏览器要求
 

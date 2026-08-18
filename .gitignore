@@ -18,3 +18,9 @@ venv/
 temp/
 tmp/
 *.log
+
+# Kept on disk, deliberately not published:
+#   - spare GLBs no page references
+#   - the source docx (contains an internal Lark link)
+#   - Neko主页.png (third-party screenshot, used only as a design reference)
+_local/

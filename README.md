@@ -1,84 +1,103 @@
 # Phenome · Digital Twin
 
-一个单文件的健康扫描门户设计稿：`digitaltwin.html` 里同时包含了设计系统说明和两个可交互的 WebGL 示例——屏幕空间半调（halftone）人体主视觉，以及分步引导的器官视图。
+A single-file design study for a health-scan portal. `digitaltwin.html` carries the design system and two interactive WebGL pages side by side: a screen-space halftone figure for the home page, and a stepped organ view for the body page.
 
-**在线预览：https://tiffanydesign.github.io/phenome-digital-twin/**
+**Live: https://tiffanydesign.github.io/phenome-digital-twin/**
 
-- 排版系统：Contralto（四个光学尺寸）+ New Science Mono（仅 80px 主数字）+ Helvetica Neue
-- 三维部分：three.js r160，自带最小 GLB 解析器（不依赖 GLTFLoader）
-- 人体为静态构图：不旋转、不可轨道拖拽，主光在被摄体后方，无投影
+- Type: Contralto in four optical sizes, New Science Mono for the 80px display numeral only, Helvetica Neue for everything else
+- 3D: three.js r160 with a minimal GLB reader of its own, so no GLTFLoader
+- The figure is a static composition — no rotation, no orbit, key light behind the subject, no cast shadow
 
-## 本地运行
+## The three pages
 
-**必须通过 HTTP 服务器打开。** 页面用相对路径 `fetch()` 加载 `GLB/*.glb`，在 `file://` 协议下会被同源策略拦截，抛出 `Failed to fetch` 并回退到 2D 程序化人体。
+| Tab | What it is |
+| :--- | :--- |
+| **Home page** | The scan summary. A halftone figure whose legs dissolve into the page rather than stopping at the frame. |
+| **Body page** | Pick an organ, the camera flies to it, the body turns to glass around it. |
+| **Design system** | Tokens, type scale, colour, chart types, eleven report patterns, glass surfaces. |
+
+## Running it locally
+
+**It has to be served over HTTP.** The page fetches `GLB/*.glb` by relative path, and under `file://` the same-origin policy blocks that: you get `Failed to fetch` and the page falls back to the 2D procedural figure.
 
 ```bash
 python -m http.server 8777
 ```
 
-然后访问 `http://localhost:8777/`（根路径会自动跳转到 `digitaltwin.html`）。
+Then open `http://localhost:8777/` — the root redirects to `digitaltwin.html`.
 
-直接双击 HTML 文件**不会**加载三维模型。
+Double-clicking the HTML file will **not** load the 3D models.
 
-## 目录结构
+## Layout
 
 ```
-index.html                 跳转到 digitaltwin.html（供 GitHub Pages 根路径使用）
-digitaltwin.html           设计系统文档 + 两个 WebGL 示例
+index.html                 redirect to digitaltwin.html, for the Pages root
+digitaltwin.html           design system + the home and body pages
 
-organ-material-lab.html    材质实验台（拖入任意 .glb 即可换标本），材质参数的准绳
-home-hero-lab.html         主视觉预设表：男/女 × 全身/半身
-organ-body-full.html       器官视图完整版（用到 realistic_stomach / realistic_human_lungs）
-organ-body-stage1.html     器官视图早期版本，保留作演进记录
+organ-material-lab.html    material bench — drop in any .glb to swap the specimen;
+                           the source of truth for material values
+home-hero-lab.html         hero preset sheet: male/female x full/upper body
+organ-body-full.html       full organ view, and the reference this page's organ
+                           placement was measured against
+organ-body-stage1.html     an earlier organ view, kept as a record of the work
 
 vendor/
-  three.module.js          three.js r160（本地副本；代码内置 jsDelivr / unpkg 兜底）
+  three.module.js          three.js r160 (local copy; the code falls back to
+                           jsDelivr then unpkg)
 GLB/
-  Male.glb                 人体模型（男）
-  Female.glb               人体模型（女）
+  Male.glb                 body model
+  Female.glb               body model
   organ/
-    pink_brain.glb                   Neurology
-    realistic_human_heart.glb        Cardiovascular
-    lungs.glb                        Respiratory
-    small_and_large_intestine.glb    Gut Health
-    human_liver_and_gallbladder.glb  Detox
-    human_kidney.glb                 Hormones
-    realistic_human_lungs.glb        organ-body-full.html 专用
-    realistic_stomach.glb            organ-body-full.html 专用
+    pink_brain.glb                   Brain
+    realistic_human_heart.glb        Heart
+    realistic_human_lungs.glb        Lungs
+    small_and_large_intestine.glb    Intestines
+    human_liver_and_gallbladder.glb  Liver & Gallbladder
+    human_kidney.glb                 Kidneys
+    realistic_stomach.glb            Stomach — organ-body-full.html only
+    lungs.glb                        no page loads this any more; the body page
+                                     moved to realistic_human_lungs.glb, whose
+                                     proportions the placement was measured on
 ```
 
-四个 lab 页与 `digitaltwin.html` 用的是同一套根相对路径（`vendor/`、`GLB/`），所以必须留在仓库根目录，同一个服务器起来后都能直接访问，例如 `http://localhost:8777/home-hero-lab.html`。
+The four lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/home-hero-lab.html` and so on.
 
-`_local/` 是不纳入版本控制的本地目录（见 `.gitignore`），存放没有任何页面引用的备选模型、来源文档，以及仅作设计参考的第三方截图。**它不会被提交，也就没有备份**，需要留存请自行另行归档。
+`_local/` is an untracked directory (see `.gitignore`) holding spare models no page references, the source document for the model links, and a third-party screenshot kept only as a design reference. **It is never committed, so it is not backed up** — archive anything you need to keep.
 
-## 浏览器要求
+## Browser support
 
-需要支持 WebGL2 与 ES modules 的现代浏览器。three.js 加载顺序为：本地 `vendor/` → jsDelivr → unpkg；三者皆失败时页面保留 2D 图形，不会白屏。
+A current browser with WebGL2 and ES modules. three.js is loaded from local `vendor/` first, then jsDelivr, then unpkg; if all three fail the page keeps its 2D figure rather than going blank.
 
-## 字体
+## Fonts
 
-Contralto 与 New Science Mono 为商业授权字体，**未随仓库分发**，也未嵌入页面。未安装时会回退到系统衬线 / 等宽字体，版式比例仍然成立，只是字形不同。
+Contralto and New Science Mono are licensed faces. They are **not distributed with this repo** and not embedded in the page. Without them installed the page falls back to a system serif and mono — the proportions still hold, the letterforms differ.
 
-## 三维模型来源与授权
+## Model sources and licence
 
-`GLB/` 下的全部模型均来自 Sketchfab，采用 [CC Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)（CC BY 4.0）授权，**允许商业使用，但要求署名**。
+Every model under `GLB/` comes from Sketchfab under [CC Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0), which **permits commercial use and requires attribution**.
 
-| 文件 | 模型 | 作者 | 来源 |
+| File | Model | Author | Source |
 | :--- | :--- | :--- | :--- |
 | `Male.glb` `Female.glb` | Male & Female Base Mesh Pack | FormForge3D (`aleenasani841`) | [Sketchfab](https://sketchfab.com/3d-models/male-female-base-mesh-pack-ec3041da6a214c1c995f3d47dc7d04c1) |
 | `pink_brain.glb` | pink brain | msurovik | [Sketchfab](https://sketchfab.com/3d-models/pink-brain-b032ee889d844af9b4acd4a2c1ccbba5) |
 | `realistic_human_heart.glb` | Realistic Human Heart | neshallads | [Sketchfab](https://sketchfab.com/3d-models/realistic-human-heart-3f8072336ce94d18b3d0d055a1ece089) |
+| `realistic_human_lungs.glb` | Realistic Human Lungs | neshallads | [Sketchfab](https://sketchfab.com/3d-models/realistic-human-lungs-ce09f4099a68467880f46e61eb9a3531) |
 | `lungs.glb` | lungs | reynosa2000 | [Sketchfab](https://sketchfab.com/3d-models/lungs-981d026657984895a90422d5e99e7ac2) |
 | `small_and_large_intestine.glb` | Small and large intestine | antonia.sundberg | [Sketchfab](https://sketchfab.com/3d-models/small-and-large-intestine-8a1ca8e3ca224cdeb9264674416bde38) |
 | `human_liver_and_gallbladder.glb` | Human liver and gallbladder | ElliotSS | [Sketchfab](https://sketchfab.com/3d-models/human-liver-and-gallbladder-6c4e9bd0d49f4828b804259330c0c6c4) |
 | `human_kidney.glb` | Human Kidney | neshallads | [Sketchfab](https://sketchfab.com/3d-models/human-kidney-e1476ceb1e3b4412af5418eee9c5ed08) |
+| `realistic_stomach.glb` | Realistic Stomach | Brain Diagno (`Brain_Diagno`) | [Sketchfab](https://sketchfab.com/3d-models/realistic-stomach-07859d72489d4f818e508b3738ab7449) |
 
-### 前端署名格式
+### Attribution in the interface
 
-模型经过修改（重拓扑 / 材质替换），按 CC BY 要求，界面上的 ⓘ hover 署名格式为：
+The models are modified (retopology, materials replaced), so CC BY asks for the change to be stated alongside the credit. The design system specifies how, as **pattern 11, Provenance mark**: one ⓘ ring per anatomy field opens a panel that names the licence and the modification once, then lists each work and its author.
+
+The credit line reads:
 
 > "Realistic Human Heart" by neshallads is licensed under CC BY 4.0. Modified by Phenome Longevity
 
+The pattern is specified and demonstrated in the design system. It is **not yet wired to the live figure** on the home or body page — that is the outstanding piece of licence compliance for this repo.
+
 ## License
 
-代码部分未指定 license。三维模型依 CC BY 4.0 授权，字体权利归各自作者所有，详见上文。
+No licence is set for the code. The 3D models are CC BY 4.0 as listed above; the fonts remain the property of their foundries.

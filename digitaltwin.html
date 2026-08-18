@@ -2537,7 +2537,7 @@ try {
     </div>
 
     <aside class="lab-cats" id="labCats">
-      <div class="lab-cats-h">Explore categories</div>
+      <div class="lab-cats-h">Explore organs</div>
       <div id="labCatList"></div>
     </aside>
 
@@ -2734,15 +2734,20 @@ const organH = (cat) => cat.hFrac * BODY_H * ORGAN_SCALE;
 const CATS = [
   /* Named for the organ, not for the clinical domain, and named the way
      organ-body-full.html already names the same seven files, so the two pages
-     do not disagree about what a model is called. */
+     do not disagree about what a model is called.
+
+     The readouts follow the same rule. A reader looking at their own body is
+     not owed FEV₁, ApoB, eGFR or a steatosis grade — they are owed what was
+     measured, in words they already have. Plain is not vague: "air in one
+     second" names the same quantity FEV₁ does, and says it. */
   { id:'neuro',  name:'Brain',          file:'pink_brain.glb',
     hFrac:0.058, seat:0.948, x:0,      z:0.000, yaw:-90, colour:'#d9829b', dist:0.62,
-    rows:[['Neurotransmitters','42'],['Cognitive domains','6'],['RNA age gap','−3 y']],
-    note:'Brain markers are read from plasma proteins and the cognitive battery, not from imaging.' },
+    rows:[['Signal chemicals','42'],['Thinking tasks','6'],['Age reading','−3 y']],
+    note:'Read from a blood sample and a set of memory and attention tasks. No scan involved.' },
   { id:'cardio', name:'Heart',          file:'realistic_human_heart.glb',
     hFrac:0.069, seat:0.715, x:0.022,  z:0.028, yaw:-12, colour:'#d6455a', dist:0.60,
-    rows:[['Measuring points','10'],['Blood pressure','118/76'],['ApoB','0.74 g/L']],
-    note:'Ten pressure and rhythm points, read against the fixed adult thresholds.' },
+    rows:[['Points measured','10'],['Blood pressure','118/76'],['Blood fats','0.74 g/L']],
+    note:'Ten points around the chest, every one read against the same adult range.' },
   /* The figure lab measured hFrac against realistic_human_lungs.glb, which
      includes the trachea. Fitting is by height, so the lighter lungs.glb —
      a shorter, broader model without it — came out far too wide for the
@@ -2750,8 +2755,8 @@ const CATS = [
      the lab now, which makes the fraction correct by construction. */
   { id:'resp',   name:'Lungs',          file:'realistic_human_lungs.glb',
     hFrac:0.185, seat:0.748, x:0,      z:0.002, yaw:0,   colour:'#c9748c', dist:0.95,
-    rows:[['FEV₁','3.18 L'],['SpO₂','98 %'],['Limit for age','3.10 L']],
-    note:'Lung volume is judged against a limit computed from age, height and sex.' },
+    rows:[['Air in one second','3.18 L'],['Oxygen carried','98 %'],['Typical for you','3.10 L']],
+    note:'How much air leaves in the first second, beside what is typical for your age, height and build.' },
   /* seat raised from the lab's 0.530. At 0.530 the mass bottomed out at 1.206,
      and the legs of this mesh separate at 1.20 — so the intestines were
      sitting on the perineum rather than ending at the pelvic brim, which is
@@ -2759,16 +2764,16 @@ const CATS = [
      pelvis, and the transverse colon back up at navel height. */
   { id:'gut',    name:'Intestines',     file:'small_and_large_intestine.glb',
     hFrac:0.150, seat:0.560, x:0,      z:0.010, yaw:0,   colour:'#c4855f', dist:0.92,
-    rows:[['Species found','312'],['Diversity','68th pct'],['Off target','4']],
-    note:'Shotgun sequencing of the stool sample, scored against the reference cohort.' },
+    rows:[['Species found','312'],['Variety','68 of 100'],['Out of range','4']],
+    note:'Read from a stool sample, then placed against a large group of other people.' },
   { id:'detox',  name:'Liver & Gallbladder', file:'human_liver_and_gallbladder.glb',
     hFrac:0.098, seat:0.620, x:-0.032, z:-0.004, yaw:-90, colour:'#a04b3c', dist:0.78,
-    rows:[['Liver enzymes','6'],['Steatosis grade','S0'],['Toxin panel','38']],
-    note:'Enzymes and the ultrasound grade read together: neither is conclusive alone.' },
+    rows:[['Liver markers','6'],['Fat in the liver','None'],['Substances screened','38']],
+    note:'The blood markers and the scan are read together. Neither settles it alone.' },
   { id:'horm',   name:'Kidneys',        file:'human_kidney.glb',
     hFrac:0.083, seat:0.583, x:0,      z:-0.032, yaw:0,   colour:'#b8535e', dist:0.72,
-    rows:[['Hormones assayed','24'],['eGFR','96'],['Cortisol curve','4 points']],
-    note:'Adrenal output is sampled four times across one day, not once.' },
+    rows:[['Hormones measured','24'],['Filtering rate','96'],['Stress hormone','4 readings']],
+    note:'Sampled four times across one day rather than once, because the level moves as the day goes on.' },
 ];
 
 /* ------------------------------------------------------------- renderer */

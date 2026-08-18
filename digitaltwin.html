@@ -502,6 +502,87 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   border:1.5px solid #ffffffd9;border-radius:5px;box-shadow:0 0 0 1px #10214b2e}
 .tile.sel{border-color:var(--phenome-blue-500);box-shadow:0 0 0 2px #203a853d}
 
+/* 12 provenance mark
+   CC BY names four things: the work, its author, the licence, and the
+   fact that the work was changed. Two of those are identical for every
+   asset in one field, so they are stated once in the panel's opening
+   line and the list underneath varies only the work and the author.
+   The ring is per field, never per organ — six rings would compete
+   with six readings — and it never takes a fill, because a filled
+   shape in this system is a status. */
+/* the fields stay wider than the panel that opens over them, so the demo
+   shows the real containment rather than a popover hanging off an edge */
+.prov-demo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:24px}
+.prov-field{position:relative;height:270px;border-radius:var(--radius-lg);
+  border:1px solid var(--divider);
+  background:radial-gradient(120% 90% at 50% 6%,#fff,transparent 62%),var(--surface-sunken)}
+/* a stand-in for the halftone field, dotted and masked to a torso-ish
+   blob, so the mark is shown against the kind of ground it really sits
+   on rather than against flat paper */
+.prov-field::before{content:"";position:absolute;inset:0;border-radius:inherit;
+  background-image:radial-gradient(#203a8526 1px,transparent 1.6px);background-size:7px 7px;
+  -webkit-mask-image:radial-gradient(42% 60% at 50% 48%,#000 26%,transparent 74%);
+  mask-image:radial-gradient(42% 60% at 50% 48%,#000 26%,transparent 74%)}
+.prov-cap{margin-top:11px}
+
+/* the anchor spans the field so the panel can be bounded by the field
+   rather than by the viewport; it stays click-through, only the ring and
+   the panel itself take the pointer */
+.prov{position:absolute;left:14px;right:14px;bottom:14px;z-index:3;
+  display:flex;pointer-events:none}
+.prov-btn,.prov-panel{pointer-events:auto}
+/* outline, frosted, no shadow: the same logic as .tag — an outline in
+   this system means "not a status" */
+.prov-btn{display:grid;place-items:center;width:18px;height:18px;padding:0;
+  border:1px solid var(--border-strong);border-radius:50%;
+  background:#ffffff8f;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  font-family:var(--font-sans);font-size:11px;font-weight:var(--w-module);line-height:1;
+  color:var(--ink-600);cursor:pointer;transition:.18s var(--ease-frosted-out)}
+.prov-btn:hover,.prov-btn[aria-expanded="true"]{background:#fff;
+  border-color:var(--phenome-blue-400);color:var(--ink-900)}
+
+/* Not glass, though it floats: glass borrows the luminance of whatever
+   is behind it, and a credit has to stay legible over a dark torso as
+   well as over paper. So it takes the card recipe at popover scale. */
+.prov-panel{position:absolute;left:0;bottom:calc(100% + 9px);
+  width:302px;max-width:100%;
+  padding:15px 17px 14px;background:var(--surface-card);
+  border:1px solid var(--border-strong);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-card);
+  opacity:0;visibility:hidden;transform:translateY(4px);
+  transition:opacity .18s var(--ease-frosted-out),transform .18s var(--ease-frosted-out),
+             visibility .18s step-end}
+.prov[data-open="true"] .prov-panel{opacity:1;visibility:visible;transform:none;
+  transition:opacity .18s var(--ease-frosted-out),transform .18s var(--ease-frosted-out),
+             visibility 0s}
+.prov-head{font-size:13px;line-height:1.55;color:var(--ink-600)}
+.prov-head a{color:var(--phenome-blue-500);text-decoration:underline;text-underline-offset:2px;
+  text-decoration-thickness:1px;text-decoration-color:#203a8559}
+.prov-head a:hover{text-decoration-color:var(--phenome-blue-500)}
+.prov-list{list-style:none;margin-top:12px;border-top:1px solid var(--divider)}
+/* work left, author right, one baseline — the same row grammar the panel
+   grid uses for name and value */
+.prov-item{display:flex;align-items:baseline;gap:11px;padding:8px 0;
+  border-bottom:1px solid var(--divider)}
+.prov-item:last-child{border-bottom:0;padding-bottom:2px}
+/* the slot is always rendered so a change of focus never shifts the list */
+.prov-item::before{content:"";flex:none;width:4px;height:4px;border-radius:50%;
+  background:transparent;transform:translateY(-3px)}
+.prov-item b{font-weight:400;font-size:var(--text-micro);line-height:1.4;color:var(--ink-900)}
+.prov-item span{flex:none;margin-left:auto;font-size:12px;color:var(--ink-600)}
+.prov-item.is-on::before{background:var(--phenome-blue-400)}
+
+/* Hover is the convenience, never the record. On paper the panel stops
+   floating and prints as the field's own footer. */
+@media print{
+  .prov-panel{position:static;width:auto;opacity:1;visibility:visible;transform:none;
+    margin-top:10px;border-color:var(--divider);box-shadow:none}
+  .prov{position:static}
+}
+@media (prefers-reduced-motion:reduce){
+  .prov-panel{transition:visibility .18s step-end}
+  .prov[data-open="true"] .prov-panel{transition:visibility 0s}
+}
 
 /* ============================================================
    06 GLASS SURFACES
@@ -910,6 +991,54 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
           <div><span class="overline" style="color:var(--ink-400)">Flagged</span><div style="margin-top:7px;font-size:var(--kpi-value-lg);font-weight:400;letter-spacing:var(--tracking-kpi);font-family:var(--font-sans)" class="num">0</div></div>
         </div>
         <div class="gal" id="galDemo"></div>
+      </div>
+    </section>
+
+    <section class="pat">
+      <div class="pat-head"><div class="pat-n">11</div><h3>Provenance mark</h3></div>
+      <p class="pat-why">Borrowed anatomy carries a licence, and CC BY names four things: the work, its author, the licence, and the fact that the work was changed. Two of those are the same for every asset in one field, so they are stated once in the opening line and the list underneath varies only the work and the author. The mark belongs to the field rather than to each organ — six rings would compete with six readings — and it never takes a fill, because a filled shape in this system is a status. When an organ is in focus its row takes the dot, so the credit answers <em style="font-style:normal;color:var(--ink-900)">whose model am I looking at</em> without the reader hunting the list.</p>
+      <div class="card">
+        <div class="prov-demo">
+          <div>
+            <div class="prov-field">
+              <div class="prov" data-open="false">
+                <button class="prov-btn" type="button" aria-expanded="false"
+                        aria-controls="provPanelA" aria-label="Model credits for this field">i</button>
+                <div class="prov-panel" id="provPanelA" role="group" aria-label="Model credits">
+                  <p class="prov-head">Anatomical models under <a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
+                  <ul class="prov-list">
+                    <li class="prov-item"><b>Male &amp; Female Base Mesh Pack</b><span>FormForge3D</span></li>
+                    <li class="prov-item"><b>Realistic Human Heart</b><span>neshallads</span></li>
+                    <li class="prov-item"><b>pink brain</b><span>msurovik</span></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="overline prov-cap" style="color:var(--ink-400)">Resting · 18px ring, bottom-left of the field</div>
+          </div>
+          <div>
+            <div class="prov-field">
+              <div class="prov" data-open="true">
+                <button class="prov-btn" type="button" aria-expanded="true"
+                        aria-controls="provPanelB" aria-label="Model credits for this field">i</button>
+                <div class="prov-panel" id="provPanelB" role="group" aria-label="Model credits">
+                  <p class="prov-head">Anatomical models under <a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
+                  <ul class="prov-list">
+                    <li class="prov-item"><b>Male &amp; Female Base Mesh Pack</b><span>FormForge3D</span></li>
+                    <li class="prov-item is-on"><b>Realistic Human Heart</b><span>neshallads</span></li>
+                    <li class="prov-item"><b>pink brain</b><span>msurovik</span></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="overline prov-cap" style="color:var(--ink-400)">Open · cardiovascular in focus, so its row takes the dot</div>
+          </div>
+        </div>
+
+        <div class="xlate" style="margin-top:26px">
+          <div><span>Hover is not the record</span><p>A credit that lives only in <code>:hover</code> is absent from touch, from print, and from an exported report, and an absent credit is a breached licence rather than a missing nicety. The ring only decides what is <b>on screen</b>: the same manifest is markup at all times and prints in full as the field's footer.</p></div>
+          <div><span>Wording</span><p>The licence is named by its short form and linked to the deed, never spelled out in prose. Modification is stated once, in the plural — <b>modified by Phenome Longevity</b> — because retopology and material replacement apply to the whole field, not to one organ.</p></div>
+        </div>
       </div>
     </section>
 
@@ -1724,7 +1853,50 @@ function buildGallery(){
   host.innerHTML=h;
 }
 
-/* 12 · inverse surface track */
+/* 12 · provenance mark
+   Hover for a fine pointer, tap for a coarse one, and focus for a
+   keyboard, all driving one data-open flag. Escape and an outside press
+   close it; the panel's text is in the markup either way. */
+function bindProvenance(){
+  var marks=[].slice.call(document.querySelectorAll('.prov'));
+  if(!marks.length) return;
+  function set(m,on){
+    m.dataset.open = on ? 'true' : 'false';
+    m.querySelector('.prov-btn').setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+  var fine = window.matchMedia && window.matchMedia('(hover:hover)').matches;
+  marks.forEach(function(m){
+    var btn=m.querySelector('.prov-btn'), panel=m.querySelector('.prov-panel'), closeT;
+    if(fine){
+      /* the ring and the panel are separated by a 9px gap, so closing waits
+         out a short grace period rather than firing while the pointer is
+         still crossing it */
+      var hold=function(){ clearTimeout(closeT); set(m,true); };
+      var release=function(){
+        clearTimeout(closeT);
+        closeT=setTimeout(function(){
+          if(!m.contains(document.activeElement)) set(m,false);
+        },120);
+      };
+      btn.addEventListener('pointerenter',hold);
+      btn.addEventListener('pointerleave',release);
+      panel.addEventListener('pointerenter',hold);
+      panel.addEventListener('pointerleave',release);
+    }
+    btn.addEventListener('click',function(){ set(m, m.dataset.open!=='true'); });
+    btn.addEventListener('focus',function(){ set(m,true); });
+    m.addEventListener('focusout',function(e){
+      if(!m.contains(e.relatedTarget)) set(m,false);
+    });
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape') marks.forEach(function(m){ set(m,false); });
+  });
+  document.addEventListener('pointerdown',function(e){
+    marks.forEach(function(m){ if(!m.contains(e.target)) set(m,false); });
+  });
+}
+
 /* ────────────────────────── wiring ────────────────────────── */
 var VIEWS={scan:'viewScan',lab:'viewLab',spec:'viewSpec'};
 var TABS ={scan:'tabScan', lab:'tabLab', spec:'tabSpec'};
@@ -1746,7 +1918,7 @@ window.addEventListener('resize',function(){ if(document.getElementById('viewSca
 
 buildScale(); buildRamps(); buildCharts();
 buildTracks(); buildMeter(); buildDial(); buildProj();
-buildPanel(); buildMatrix(); buildGallery();
+buildPanel(); buildMatrix(); buildGallery(); bindProvenance();
 fit(); renderFigure(document.getElementById('bodyCanvas'),W,H,{cx:683,ty:50,hw:244,fh:980},5.4,1);
 buildPinned();
 document.body.style.overflowY='hidden';

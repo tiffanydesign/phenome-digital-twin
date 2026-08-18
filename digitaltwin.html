@@ -123,24 +123,25 @@
                  "New Science Mono Light","New Science Mono","NewScienceMono","New Science",
                  ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
 
-  /* NEW · figure stage. Both pages that carry a figure stand it on this, so
-     the home page and the body page are the same room seen twice.
+  /* NEW · body-page stage. The home page uses the design system's own Page
+     background (section 03) on <body>; this is only for the full-bleed 3D
+     stage, which needs more ground than that wash carries.
 
      Taken from organ-body-full.html, which paints a sky sphere: #d6e7f8 above,
      #fbfdff below, plus a #9edcff bloom just above centre at 0.18 strength.
      Those exact values were built for a page whose figure is a dark point
      cloud. Under a near-white pearl they invert the problem: at #fbfdff the
-     body page's legs and feet had nothing to separate from. So both ends step
-     down, and the bottom steps down further than the top — that is where the
-     figure actually stands. The bloom is kept exactly as it was. */
+     legs and feet had nothing to separate from. So both ends step down, and
+     the bottom steps down further than the top — that is where the figure
+     actually stands. The bloom is kept exactly as it was. */
   --stage-top:#c4d8f1;      /* was #d6e7f8 */
   --stage-bottom:#dde8f6;   /* was #fbfdff */
   --stage-glow:#9edcff;     /* unchanged — it is added, not mixed */
 }
 
-/* One recipe, used by both stages. The sphere's uTop maps to the top of the
-   frame and its bloom sits slightly above centre, so the DOM version is a
-   plain vertical ramp with one soft lobe over it. */
+/* The sphere's uTop maps to the top of the frame and its bloom sits slightly
+   above centre, so the DOM version is a plain vertical ramp with one soft
+   lobe over it. */
 .stage-wash{
   background:
     radial-gradient(56% 44% at 50% 38%, #9edcff30 0%, transparent 72%),
@@ -176,10 +177,7 @@ body{
 /* ============================================================
    VIEW 1 · EXAMPLE  (fixed 1366 x 1024, iPad 13" landscape)
    ============================================================ */
-/* The stage wash sits behind the composition rather than on <body>, so the
-   design-system document — which shares that body — keeps its own paper. */
-#scanBg{position:fixed;inset:0;z-index:0;pointer-events:none}
-#scanWrap{position:relative;z-index:1;margin:0 auto;overflow:hidden}
+#scanWrap{position:relative;margin:0 auto;overflow:hidden}
 #stage{position:absolute;top:0;left:0;width:1366px;height:1024px;transform-origin:top left}
 
 #figure{position:absolute;inset:0;z-index:2;
@@ -696,7 +694,6 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
 <!-- ══════════════════ VIEW 1 · SCAN SUMMARY ══════════════════ -->
 <div class="view is-on" id="viewScan">
-  <div id="scanBg" class="stage-wash"></div>
   <div id="scanWrap">
     <div id="stage">
 
@@ -888,7 +885,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
         </div>
         <ol style="margin-top:14px;padding-left:20px;font-size:var(--text-label);line-height:1.65;color:var(--ink-600);max-width:640px">
           <li>This fixed, low-contrast radial wash is the main background. It runs in full on the homepage, and on the organ half of the organ-highlight page, the side carrying the 3D visual.</li>
-          <li style="margin-top:10px">The information half of that same page is plain white instead, so long readouts stay high-contrast, but the seam where the two halves meet still carries a trace of the same glow bleeding in from the organ side, so the page reads as one surface rather than two screens pushed together. <span style="color:var(--ink-400)">(后续调整会继续优化背景效果)</span></li>
+          <li style="margin-top:10px">The information half of that same page is plain white instead, so long readouts stay high-contrast, but the seam where the two halves meet still carries a trace of the same glow bleeding in from the organ side, so the page reads as one surface rather than two screens pushed together.</li>
         </ol>
       </div>
     </section>
@@ -2057,16 +2054,16 @@ const FRAME = { target: 1.760, dist: 3.68, fov: 30 };
    3, which on this fixed 1366-wide stage reads finer than the page was drawn
    for, so these carry 5. */
 const PRESETS = {
-  contour:   { name: 'Contour Fade', cn: '轮廓渐隐',
+  contour:   { name: 'Contour Fade',
     patch: { ptPitchPx: 5, ptAngle: 0, ptFill: 0.95, ptSoft: 0.1, ptColor: '#c8d9ef', ptTip: '#33518f',
              ptLightMix: 0, ptInvert: true, ptContrast: 1.8, ptFloor: 0.045, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
-  blueprint: { name: 'Blueprint Screen', cn: '蓝版印屏',
+  blueprint: { name: 'Blueprint Screen',
     patch: { ptPitchPx: 5, ptAngle: 0, ptFill: 0.78, ptSoft: 0.12, ptColor: '#1d7fa3', ptTip: '#0b4f68',
              ptLightMix: 0.4, ptInvert: false, ptContrast: 1.2, ptFloor: 0, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
-  redprint:  { name: 'Redprint Screen', cn: '红版印屏',
+  redprint:  { name: 'Redprint Screen',
     patch: { ptPitchPx: 5, ptAngle: 0, ptFill: 0.75, ptSoft: 0.1, ptColor: '#ee4b35', ptTip: '#ee4b35',
              ptLightMix: 0.45, ptInvert: false, ptContrast: 1.15, ptFloor: 0, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
-  scan:      { name: 'Body Scan', cn: '人体扫描',
+  scan:      { name: 'Body Scan',
     patch: { ptPitchPx: 5, ptAngle: 0, ptFill: 0.78, ptSoft: 0.12, ptColor: '#1d7fa3', ptTip: '#0b4f68',
              ptLightMix: 0.4, ptInvert: false, ptContrast: 1.2, ptFloor: 0, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
 };
@@ -2399,25 +2396,25 @@ function draw() {
 
 /* --------------------------------------------------------------- the rig */
 const SEGS = [
-  { lab: 'Subject · 人体', key: 'body', opts: [{ v: 'Male', t: 'Male', s: '男' }, { v: 'Female', t: 'Female', s: '女' }] },
-  { lab: 'Preset · 材质', key: 'preset', opts: PRESET_ORDER.map((k) => ({ v: k, t: PRESETS[k].name, s: PRESETS[k].cn })) },
+  { lab: 'Subject', key: 'body', opts: [{ v: 'Male', t: 'Male' }, { v: 'Female', t: 'Female' }] },
+  { lab: 'Preset', key: 'preset', opts: PRESET_ORDER.map((k) => ({ v: k, t: PRESETS[k].name })) },
 ];
 const RANGES_POSE = [
-  { key: 'yaw', t: 'Body yaw 转角', min: -45, max: 45, step: 1, u: '°' },
-  { key: 'camElev', t: 'Camera rise 仰角', min: -6, max: 16, step: 0.5, u: '°' },
-  { key: 'lightAz', t: 'Light azimuth 光位', min: 100, max: 260, step: 1, u: '°' },
-  { key: 'lightElev', t: 'Light elevation 光高', min: -10, max: 80, step: 1, u: '°' },
+  { key: 'yaw', t: 'Body yaw', min: -45, max: 45, step: 1, u: '°' },
+  { key: 'camElev', t: 'Camera rise', min: -6, max: 16, step: 0.5, u: '°' },
+  { key: 'lightAz', t: 'Light azimuth', min: 100, max: 260, step: 1, u: '°' },
+  { key: 'lightElev', t: 'Light elevation', min: -10, max: 80, step: 1, u: '°' },
 ];
 const RANGES_SCREEN = [
-  { key: 'ptPitchPx', t: 'Cell pitch 网格', min: 2, max: 16, step: 0.5, u: 'px' },
-  { key: 'ptFill', t: 'Dot fill 点径', min: 0.2, max: 1.4, step: 0.01 },
-  { key: 'ptContrast', t: 'Contrast 对比', min: 0.4, max: 3.5, step: 0.01 },
-  { key: 'ptFloor', t: 'Ink floor 最小墨量', min: 0, max: 0.4, step: 0.005 },
+  { key: 'ptPitchPx', t: 'Cell pitch', min: 2, max: 16, step: 0.5, u: 'px' },
+  { key: 'ptFill', t: 'Dot fill', min: 0.2, max: 1.4, step: 0.01 },
+  { key: 'ptContrast', t: 'Contrast', min: 0.4, max: 3.5, step: 0.01 },
+  { key: 'ptFloor', t: 'Ink floor', min: 0, max: 0.4, step: 0.005 },
 ];
 
 const rig = document.createElement('aside');
 rig.id = 'rig';
-rig.innerHTML = `<header><b>Figure rig</b><i>人体调试台</i><button id="rigHide" aria-label="Hide">&times;</button></header>
+rig.innerHTML = `<header><b>Figure rig</b><i>Home page</i><button id="rigHide" aria-label="Hide">&times;</button></header>
                  <div id="rigBody"></div>`;
 document.body.appendChild(rig);
 
@@ -2441,7 +2438,9 @@ function seg(host, cfg) {
     const b = document.createElement('button');
     b.dataset.k = cfg.key; b.dataset.v = o.v;
     b.className = state[cfg.key] === o.v ? 'on' : '';
-    b.innerHTML = `${o.t}<small>${o.s}</small>`;
+    /* the sublabel is optional — without the guard an absent one renders as
+       the literal string "undefined" */
+    b.innerHTML = o.s ? `${o.t}<small>${o.s}</small>` : o.t;
     b.addEventListener('click', () => {
       state[cfg.key] = o.v;
       if (cfg.key === 'preset') Object.assign(state, PRESETS[o.v].patch);
@@ -2486,11 +2485,11 @@ function buildRig() {
   host.innerHTML = '';
   for (const s of SEGS) seg(host, s);
 
-  label(host, 'Pose & light · 姿势与光');
+  label(host, 'Pose & light');
   for (const r of RANGES_POSE) range(host, r);
 
-  label(host, 'Screen · 网屏');
-  colors(host, [{ key: 'ptColor', t: '点色' }, { key: 'ptTip', t: '高光' }]);
+  label(host, 'Screen');
+  colors(host, [{ key: 'ptColor', t: 'Dot' }, { key: 'ptTip', t: 'Highlight' }]);
   for (const r of RANGES_SCREEN) range(host, r);
 }
 
@@ -2508,8 +2507,10 @@ try {
   warn.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:70;' +
     'font:12px/1.6 var(--font-sans);color:#8a2f28;background:#fff;border:1px solid #e0c3c0;' +
     'border-radius:10px;padding:10px 14px;max-width:560px';
-  warn.textContent = `人体模型未能加载（${err.message}）。已回退到原来的 2D 程序化人体。` +
-    ' file:// 无法读取本地 GLB —— 请用 python -m http.server 8777 后访问 localhost。';
+  warn.textContent = `The body model failed to load (${err.message}). ` +
+    'Falling back to the original 2D procedural figure. ' +
+    'file:// cannot fetch a local GLB — serve the folder over HTTP ' +
+    '(python -m http.server 8777) and open it on localhost.';
   document.body.appendChild(warn);
   throw err;
 }

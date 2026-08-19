@@ -92,11 +92,11 @@ Every model under `GLB/` comes from Sketchfab under [CC Attribution 4.0 Internat
 
 The models are modified (retopology, materials replaced), so CC BY asks for the change to be stated alongside the credit. The design system specifies how, as **pattern 11, Provenance mark**: one ⓘ ring per anatomy field opens a panel that names the licence and the modification once, then lists each work and its author.
 
+It is live on both figure pages, bottom-left above the tab bar. The home page shows one borrowed model so its list is one row. The body page's list is **built from the same `CATS` array the page loads its files from**, so the credit cannot name a model the page does not use, or miss one it does — and when an organ is open, its row takes the dot.
+
 The credit line reads:
 
 > "Realistic Human Heart" by neshallads is licensed under CC BY 4.0. Modified by Phenome Longevity
-
-The pattern is specified and demonstrated in the design system. It is **not yet wired to the live figure** on the home or body page — that is the outstanding piece of licence compliance for this repo.
 
 ## License
 

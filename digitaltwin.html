@@ -596,12 +596,33 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .prov-item span{flex:none;margin-left:auto;font-size:12px;color:var(--ink-600)}
 .prov-item.is-on::before{background:var(--phenome-blue-400)}
 
+/* On a live stage the ring anchors to the viewport rather than to a field box.
+   Both figure pages are full-bleed, and the home page's composition is scaled
+   to fit — anchoring inside it would scale an 18px ring along with everything
+   else.
+
+   Bottom-left, just above the tab bar, panel opening upward. This is the one
+   strip both pages leave empty: the home page's lower metrics stop above it and
+   the body page keeps its figure centred with its rail to the right.
+
+   The offsets are measured, not guessed. The tab bar starts at y 836 and the
+   home page's lower metric row ends at 671, so the ring sits at bottom 74 —
+   as low as it can go, because raising it pushes the panel up into that row —
+   which leaves its top edge 10px clear of the tabs and the panel's 14px clear
+   of the readings. The panel widens to 340 here so the longest credit holds one
+   line; the 302 the demo uses wrapped it and cost the 19px that made the
+   difference. Bottom-right was the first attempt and drove the panel straight
+   through Visceral fat / Bone T-score: a credit may cover the page's own
+   furniture, never its readings. */
+.prov.on-stage{position:fixed;left:24px;right:auto;bottom:74px;z-index:58;display:block}
+.prov.on-stage .prov-panel{left:0;right:auto;width:340px;max-width:calc(100vw - 48px)}
+
 /* Hover is the convenience, never the record. On paper the panel stops
    floating and prints as the field's own footer. */
 @media print{
   .prov-panel{position:static;width:auto;opacity:1;visibility:visible;transform:none;
     margin-top:10px;border-color:var(--divider);box-shadow:none}
-  .prov{position:static}
+  .prov,.prov.on-stage{position:static}
 }
 @media (prefers-reduced-motion:reduce){
   .prov-panel{transition:visibility .18s step-end}
@@ -694,6 +715,19 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
 <!-- ══════════════════ VIEW 1 · SCAN SUMMARY ══════════════════ -->
 <div class="view is-on" id="viewScan">
+  <!-- CC BY asks for the credit to travel with the work. The home page shows
+       one borrowed model, so its list is one row and cannot drift. -->
+  <div class="prov on-stage" data-open="false">
+    <button class="prov-btn" type="button" aria-expanded="false" aria-controls="provHome"
+            aria-label="Model credits for this figure">i</button>
+    <div class="prov-panel" id="provHome" role="group" aria-label="Model credits">
+      <p class="prov-head">Anatomical models under <a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
+      <ul class="prov-list">
+        <li class="prov-item"><b>Male &amp; Female Base Mesh Pack</b><span>FormForge3D</span></li>
+      </ul>
+    </div>
+  </div>
+
   <div id="scanWrap">
     <div id="stage">
 
@@ -1890,6 +1924,10 @@ function bindProvenance(){
   }
   var fine = window.matchMedia && window.matchMedia('(hover:hover)').matches;
   marks.forEach(function(m){
+    /* idempotent: the marks live in three different places in the document and
+       this must be safe to call again if any of them ever arrives late */
+    if (m.dataset.provBound) return;
+    m.dataset.provBound = '1';
     var btn=m.querySelector('.prov-btn'), panel=m.querySelector('.prov-panel'), closeT;
     if(fine){
       /* the ring and the panel are separated by a 9px gap, so closing waits
@@ -1942,7 +1980,12 @@ window.addEventListener('resize',function(){ if(document.getElementById('viewSca
 
 buildScale(); buildRamps(); buildCharts();
 buildTracks(); buildMeter(); buildDial(); buildProj();
-buildPanel(); buildMatrix(); buildGallery(); bindProvenance();
+buildPanel(); buildMatrix(); buildGallery();
+/* The provenance marks sit in three places: the design-system demo above, the
+   home page's stage, and the body page's — and the last of those is parsed
+   after this script. Wait for the document rather than racing it. */
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindProvenance);
+else bindProvenance();
 fit(); renderFigure(document.getElementById('bodyCanvas'),W,H,{cx:683,ty:50,hw:244,fh:980},5.4,1);
 buildPinned();
 document.body.style.overflowY='hidden';
@@ -2543,6 +2586,18 @@ try {
 
     <button class="lab-back" id="labBack" aria-label="Back">&#8249;</button>
 
+    <!-- The list is built from CATS, not written here: a hand-kept credit list
+         beside a machine-kept file list is exactly how the README's went stale.
+         Deriving it means the credit cannot name a model the page does not load. -->
+    <div class="prov on-stage" data-open="false">
+      <button class="prov-btn" type="button" aria-expanded="false" aria-controls="provBody"
+              aria-label="Model credits for this figure">i</button>
+      <div class="prov-panel" id="provBody" role="group" aria-label="Model credits">
+        <p class="prov-head">Anatomical models under <a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
+        <ul class="prov-list" id="provBodyList"></ul>
+      </div>
+    </div>
+
     <div class="lab-bar" id="labBar">
       <div class="lab-bar-name"><i id="labBarDot"></i><b id="labBarName"></b></div>
       <div class="lab-bar-nav">
@@ -2748,10 +2803,12 @@ const CATS = [
      second" names the same quantity FEV₁ does, and says it. */
   { id:'neuro',  name:'Brain',          file:'pink_brain.glb',
     hFrac:0.058, seat:0.948, x:0,      z:0.000, yaw:-90, colour:'#d9829b', dist:0.62,
+    credit:{ work:'pink brain', author:'msurovik' },
     rows:[['Signal chemicals','42'],['Thinking tasks','6'],['Age reading','−3 y']],
     note:'Read from a blood sample and a set of memory and attention tasks. No scan involved.' },
   { id:'cardio', name:'Heart',          file:'realistic_human_heart.glb',
     hFrac:0.069, seat:0.715, x:0.022,  z:0.028, yaw:-12, colour:'#d6455a', dist:0.60,
+    credit:{ work:'Realistic Human Heart', author:'neshallads' },
     rows:[['Points measured','10'],['Blood pressure','118/76'],['Blood fats','0.74 g/L']],
     note:'Ten points around the chest, every one read against the same adult range.' },
   /* The figure lab measured hFrac against realistic_human_lungs.glb, which
@@ -2761,6 +2818,7 @@ const CATS = [
      the lab now, which makes the fraction correct by construction. */
   { id:'resp',   name:'Lungs',          file:'realistic_human_lungs.glb',
     hFrac:0.185, seat:0.748, x:0,      z:0.002, yaw:0,   colour:'#c9748c', dist:0.95,
+    credit:{ work:'Realistic Human Lungs', author:'neshallads' },
     rows:[['Air in one second','3.18 L'],['Oxygen carried','98 %'],['Typical for you','3.10 L']],
     note:'How much air leaves in the first second, beside what is typical for your age, height and build.' },
   /* seat raised from the lab's 0.530. At 0.530 the mass bottomed out at 1.206,
@@ -2770,6 +2828,7 @@ const CATS = [
      pelvis, and the transverse colon back up at navel height. */
   { id:'gut',    name:'Intestines',     file:'small_and_large_intestine.glb',
     hFrac:0.150, seat:0.560, x:0,      z:0.010, yaw:0,   colour:'#c4855f', dist:0.92,
+    credit:{ work:'Small and large intestine', author:'antonia.sundberg' },
     rows:[['Species found','312'],['Variety','68 of 100'],['Out of range','4']],
     note:'Read from a stool sample, then placed against a large group of other people.' },
   /* This model rests nose-down. Measured against the mesh, its diaphragmatic
@@ -2786,10 +2845,12 @@ const CATS = [
      clears the back wall by 0.014 and the front by 0.123. */
   { id:'detox',  name:'Liver & Gallbladder', file:'human_liver_and_gallbladder.glb',
     hFrac:0.098, seat:0.620, x:-0.032, z:0.013, yaw:-90, pitch:-14, colour:'#a04b3c', dist:0.78,
+    credit:{ work:'Human liver and gallbladder', author:'ElliotSS' },
     rows:[['Liver markers','6'],['Fat in the liver','None'],['Substances screened','38']],
     note:'The blood markers and the scan are read together. Neither settles it alone.' },
   { id:'horm',   name:'Kidneys',        file:'human_kidney.glb',
     hFrac:0.083, seat:0.583, x:0,      z:-0.032, yaw:0,   colour:'#b8535e', dist:0.72,
+    credit:{ work:'Human Kidney', author:'neshallads' },
     rows:[['Hormones measured','24'],['Filtering rate','96'],['Stress hormone','4 readings']],
     note:'Sampled four times across one day rather than once, because the level moves as the day goes on.' },
 ];
@@ -3024,7 +3085,13 @@ function seatOf(cat, t) {
    centreline are both expressed in. */
 function organAnchor(cat) {
   const rec = bodies[sex];
-  const t = centreAt(rec.cl, cat.seat * BODY_H);
+  /* The render loop starts before the first body finishes loading, so for the
+     first few frames there is no centreline to seat against. centreAt already
+     answers {x:0,z:0} for a missing one — this just stops the lookup throwing
+     on the way there. Long-standing: it threw once per load before the pivot
+     work and three times after, since the hotspot projection now routes
+     through here too. */
+  const t = centreAt(rec && rec.cl, cat.seat * BODY_H);
   const p = seatOf(cat, t);
   /* the pin belongs on the organ's middle, not on the base it is seated from */
   p.y += organH(cat) * 0.5;
@@ -3079,6 +3146,26 @@ function buildRail() {
   }
 }
 
+/* Pattern 11, wired. The base mesh is always on stage, so it leads; the organs
+   follow in CATS order, which is the same order the page loads them in — the
+   credit is derived from the file list rather than kept beside it. */
+function buildCredits() {
+  const host = L('#provBodyList');
+  if (!host) return;
+  const rows = [{ work:'Male &amp; Female Base Mesh Pack', author:'FormForge3D', id:null }]
+    .concat(CATS.map((c) => ({ work:c.credit.work, author:c.credit.author, id:c.id })));
+  host.innerHTML = rows.map((r) =>
+    `<li class="prov-item"${r.id ? ` data-cat="${r.id}"` : ''}><b>${r.work}</b><span>${r.author}</span></li>`
+  ).join('');
+}
+/* the dot marks whichever organ is open, so the panel answers whose model am I
+   looking at without the reader hunting the list */
+function markCredit(id) {
+  for (const li of document.querySelectorAll('#provBodyList .prov-item')) {
+    li.classList.toggle('is-on', !!id && li.dataset.cat === id);
+  }
+}
+
 function cardFor(cat) {
   const rows = cat.rows.map((r) => `<div class="cr"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
   return `<h4>${cat.name}</h4>${rows}<p>${cat.note}</p>`;
@@ -3097,6 +3184,7 @@ async function go(next, cat) {
        already names every organ — the pin's job is to mark the one organ that
        is open, so it earns its place only once something is. */
     for (const c of CATS) { hots[c.id].classList.add('gone'); hots[c.id].classList.remove('named'); }
+    markCredit(null);
     const rec = bodies[sex];
     for (const k in rec.organs) rec.organs[k].holder.userData.fade = 0;
     return;
@@ -3112,6 +3200,7 @@ async function go(next, cat) {
   L('#labBarDot').style.color = cat.colour;
   for (const c of CATS) hots[c.id].classList.toggle('gone', c.id !== cat.id);
   hots[cat.id].classList.add('named');
+  markCredit(cat.id);
 
   flyTo(framing(cat, next === 'closeup').pos, framing(cat, next === 'closeup').tgt, 1.15);
 
@@ -3239,6 +3328,7 @@ async function boot() {
   try {
     buildRail();
     buildHotspots();
+    buildCredits();
     const rec = await loadBodyFor('Male');
     rec.holder.visible = true;
     resize();

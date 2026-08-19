@@ -38,7 +38,10 @@ organ-material-lab.html    material bench — drop in any .glb to swap the speci
                            the source of truth for material values
 home-hero-lab.html         hero preset sheet: male/female x full/upper body
 organ-body-full.html       full organ view, and the reference this page's organ
-                           placement was measured against
+                           placement was measured against. Its panel exposes
+                           every placement value including pitch, so a model's
+                           seating can be dialled in by hand before the numbers
+                           are carried across.
 organ-body-stage1.html     an earlier organ view, kept as a record of the work
 
 vendor/
@@ -55,9 +58,6 @@ GLB/
     human_liver_and_gallbladder.glb  Liver & Gallbladder
     human_kidney.glb                 Kidneys
     realistic_stomach.glb            Stomach — organ-body-full.html only
-    lungs.glb                        no page loads this any more; the body page
-                                     moved to realistic_human_lungs.glb, whose
-                                     proportions the placement was measured on
 ```
 
 The four lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/home-hero-lab.html` and so on.
@@ -82,7 +82,6 @@ Every model under `GLB/` comes from Sketchfab under [CC Attribution 4.0 Internat
 | `pink_brain.glb` | pink brain | msurovik | [Sketchfab](https://sketchfab.com/3d-models/pink-brain-b032ee889d844af9b4acd4a2c1ccbba5) |
 | `realistic_human_heart.glb` | Realistic Human Heart | neshallads | [Sketchfab](https://sketchfab.com/3d-models/realistic-human-heart-3f8072336ce94d18b3d0d055a1ece089) |
 | `realistic_human_lungs.glb` | Realistic Human Lungs | neshallads | [Sketchfab](https://sketchfab.com/3d-models/realistic-human-lungs-ce09f4099a68467880f46e61eb9a3531) |
-| `lungs.glb` | lungs | reynosa2000 | [Sketchfab](https://sketchfab.com/3d-models/lungs-981d026657984895a90422d5e99e7ac2) |
 | `small_and_large_intestine.glb` | Small and large intestine | antonia.sundberg | [Sketchfab](https://sketchfab.com/3d-models/small-and-large-intestine-8a1ca8e3ca224cdeb9264674416bde38) |
 | `human_liver_and_gallbladder.glb` | Human liver and gallbladder | ElliotSS | [Sketchfab](https://sketchfab.com/3d-models/human-liver-and-gallbladder-6c4e9bd0d49f4828b804259330c0c6c4) |
 | `human_kidney.glb` | Human Kidney | neshallads | [Sketchfab](https://sketchfab.com/3d-models/human-kidney-e1476ceb1e3b4412af5418eee9c5ed08) |

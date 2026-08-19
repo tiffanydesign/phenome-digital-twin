@@ -181,7 +181,7 @@
   <div class="p-head">
     <div class="p-eyebrow">Stage 1b · Full viscera</div>
     <div class="p-title">Point Body</div>
-    <div class="p-cn">Contour Fade 点壳 + 7 个完整器官</div>
+    <div class="p-cn">Contour Fade point shell, seven organs in full</div>
   </div>
   <div id="pbody"></div>
 </div>
@@ -290,20 +290,31 @@ const SHELL_PRESETS = {
               anterior; the gallbladder sits at z +2.1 cm and is always right of
               midline, fixing local +Z as the subject's RIGHT. Mapping local +X
               to world +Z and local +Z to world -X is yaw -90, not +90.        */
+/* pitch tips an organ about the body's left-right axis, in degrees, after yaw
+   has pointed it the right way round. yaw alone was never enough: it can get a
+   model facing correctly and still leave it nose-down, and until now nothing
+   here could say so. Liver is the one that needed it — see below. */
 const ORGANS = [
-  { id: 'brain',   file: 'pink_brain.glb',                   name: 'Brain',       cn: '脑',
+  { id: 'brain',   file: 'pink_brain.glb',                   name: 'Brain',       sub: 'with brainstem',
     hFrac: 0.058, seat: 0.948, x: 0,      z: 0.000, yaw: -90, ex: 0,    ez: 0,    color: '#e0a3b4' },
-  { id: 'lungs',   file: 'realistic_human_lungs.glb',        name: 'Lungs',       cn: '肺 · 含气管',
+  { id: 'lungs',   file: 'realistic_human_lungs.glb',        name: 'Lungs',       sub: 'with trachea',
     hFrac: 0.185, seat: 0.748, x: 0,      z: 0.002, yaw: 0,   ex: 0,    ez: 0.35, color: '#d98fa0' },
-  { id: 'heart',   file: 'realistic_human_heart.glb',        name: 'Heart',       cn: '心脏',
+  { id: 'heart',   file: 'realistic_human_heart.glb',        name: 'Heart',       sub: 'with great vessels',
     hFrac: 0.069, seat: 0.715, x: 0.022,  z: 0.028, yaw: -12, ex: 0.75, ez: 0.65, color: '#c8384f' },
-  { id: 'liver',   file: 'human_liver_and_gallbladder.glb',  name: 'Liver + GB',  cn: '肝与胆囊',
-    hFrac: 0.098, seat: 0.620, x: -0.032, z: -0.004, yaw: -90, ex: -0.9, ez: 0.35, color: '#8f3b34' },
-  { id: 'stomach', file: 'realistic_stomach.glb',            name: 'Stomach',     cn: '胃',
+  /* This file rests nose-down: its diaphragmatic surface falls 31.6 degrees
+     front to back while the side-to-side tilt is only 3.1. pitch -14 takes most
+     of that out — not the full amount, because a liver genuinely is a wedge,
+     thick behind and tapering forward, so levelling the measurement exactly
+     would tip it backwards instead. z moves with the pitch, from -0.004 to
+     0.013: rotating about the organ's own centre swings its posterior corner
+     back, and at -0.004 that corner left the body through the spine. */
+  { id: 'liver',   file: 'human_liver_and_gallbladder.glb',  name: 'Liver + GB',  sub: 'with gallbladder',
+    hFrac: 0.098, seat: 0.620, x: -0.032, z: 0.013, yaw: -90, pitch: -14, ex: -0.9, ez: 0.35, color: '#8f3b34' },
+  { id: 'stomach', file: 'realistic_stomach.glb',            name: 'Stomach',     sub: 'with duodenum',
     hFrac: 0.098, seat: 0.596, x: 0.032,  z: -0.010, yaw: 0,  ex: 0.9,  ez: 0.3,  color: '#cf7a80' },
-  { id: 'kidneys', file: 'human_kidney.glb',                 name: 'Kidneys',     cn: '肾 · 含输尿管',
+  { id: 'kidneys', file: 'human_kidney.glb',                 name: 'Kidneys',     sub: 'with ureters',
     hFrac: 0.083, seat: 0.583, x: 0,      z: -0.032, yaw: 0,  ex: 0,    ez: -1,   color: '#a34a52' },
-  { id: 'gut',     file: 'small_and_large_intestine.glb',    name: 'Intestines',  cn: '大小肠',
+  { id: 'gut',     file: 'small_and_large_intestine.glb',    name: 'Intestines',  sub: 'small and large',
     hFrac: 0.150, seat: 0.530, x: 0,      z: 0.010, yaw: 0,   ex: 0,    ez: 0.6,  color: '#c98a6b' },
 ];
 
@@ -349,7 +360,7 @@ const state = {
   selected: 'heart',
 };
 
-for (const o of ORGANS) { o.scale = 1; o.visible = true; }
+for (const o of ORGANS) { o.scale = 1; o.visible = true; if (o.pitch === undefined) o.pitch = 0; }
 
 /* ------------------------------------------------------------- 4. renderer */
 const canvas = $('#gl');
@@ -795,7 +806,9 @@ function placeOrgan(o) {
     o.seat * h,
     t.z + (o.z + (o.ez || 0) * state.explode) * h
   );
-  o.holder.rotation.y = o.yaw * Math.PI / 180;
+  /* Order matters: three's default XYZ Euler applies Rx after Ry, so the pitch
+     tips the already-seated organ in body space rather than in its own frame. */
+  o.holder.rotation.set(o.pitch * Math.PI / 180, o.yaw * Math.PI / 180, 0);
 }
 function placeAll() { for (const o of ORGANS) placeOrgan(o); }
 
@@ -1020,33 +1033,33 @@ function rebuildPanel() {
   pbody.innerHTML = '';
 
   /* --- shell --- */
-  const s1 = section('Point shell · 点壳', true);
-  chipRow(s1, '人体', [{ label: 'Male', v: 'Male' }, { label: 'Female', v: 'Female' }],
+  const s1 = section('Point shell', true);
+  chipRow(s1, 'Subject', [{ label: 'Male', v: 'Male' }, { label: 'Female', v: 'Female' }],
     (o) => state.body === o.v, (o) => { state.body = o.v; apply('body'); rebuildPanel(); });
-  chipRow(s1, '预设 (移植自 lab)',
+  chipRow(s1, 'Preset (carried from the lab)',
     Object.entries(SHELL_PRESETS).map(([k, p]) => ({ label: p.name, v: k })),
     (o) => state.preset === o.v, (o) => applyPreset(o.v));
-  slider(s1, '点数', () => state.count, (v) => { state.count = v; apply('count'); }, 30000, 320000, 10000, (v) => (v / 1000).toFixed(0) + 'k');
-  slider(s1, '点直径', () => state.dotSize, (v) => { state.dotSize = v; syncShell(); }, 0.002, 0.018, 0.0001, (v) => v.toFixed(4));
-  slider(s1, '墨量 fill', () => state.ptFill, (v) => { state.ptFill = v; syncShell(); }, 0.2, 1.4, 0.01);
-  slider(s1, '对比 contrast', () => state.ptContrast, (v) => { state.ptContrast = v; syncShell(); }, 0.4, 4, 0.01);
-  slider(s1, '中心保底 floor', () => state.ptFloor, (v) => { state.ptFloor = v; syncShell(); }, 0, 0.4, 0.001, (v) => v.toFixed(3));
-  slider(s1, '光照混合 lightMix', () => state.ptLightMix, (v) => { state.ptLightMix = v; syncShell(); }, 0, 1, 0.01);
-  slider(s1, '边缘柔化', () => state.ptSoft, (v) => { state.ptSoft = v; syncShell(); }, 0, 1, 0.01);
-  colour(s1, '底色 (中心)', () => state.ptColor, (v) => { state.ptColor = v; syncShell(); });
-  colour(s1, '墨色 (轮廓)', () => state.ptTip, (v) => { state.ptTip = v; syncShell(); });
-  slider(s1, '背面淡出 (3D 专属)', () => state.backFade, (v) => { state.backFade = v; syncShell(); }, 0, 1, 0.01);
-  slider(s1, '整体不透明度', () => state.ptOpacity, (v) => { state.ptOpacity = v; syncShell(); }, 0.05, 1, 0.01);
-  toggle(s1, '反相 invert', () => state.ptInvert, (v) => { state.ptInvert = v; syncShell(); });
-  toggle(s1, '叠加混合', () => state.ptAdditive, (v) => { state.ptAdditive = v; syncShell(); });
-  toggle(s1, '显示点壳', () => state.showShell, (v) => { state.showShell = v; apply('showShell'); });
-  toggle(s1, '显示参考皮肤', () => state.showSkin, (v) => { state.showSkin = v; apply('showSkin'); });
+  slider(s1, 'Point count', () => state.count, (v) => { state.count = v; apply('count'); }, 30000, 320000, 10000, (v) => (v / 1000).toFixed(0) + 'k');
+  slider(s1, 'Dot diameter', () => state.dotSize, (v) => { state.dotSize = v; syncShell(); }, 0.002, 0.018, 0.0001, (v) => v.toFixed(4));
+  slider(s1, 'Ink fill', () => state.ptFill, (v) => { state.ptFill = v; syncShell(); }, 0.2, 1.4, 0.01);
+  slider(s1, 'Contrast', () => state.ptContrast, (v) => { state.ptContrast = v; syncShell(); }, 0.4, 4, 0.01);
+  slider(s1, 'Ink floor', () => state.ptFloor, (v) => { state.ptFloor = v; syncShell(); }, 0, 0.4, 0.001, (v) => v.toFixed(3));
+  slider(s1, 'Light mix', () => state.ptLightMix, (v) => { state.ptLightMix = v; syncShell(); }, 0, 1, 0.01);
+  slider(s1, 'Edge softness', () => state.ptSoft, (v) => { state.ptSoft = v; syncShell(); }, 0, 1, 0.01);
+  colour(s1, 'Centre colour', () => state.ptColor, (v) => { state.ptColor = v; syncShell(); });
+  colour(s1, 'Contour colour', () => state.ptTip, (v) => { state.ptTip = v; syncShell(); });
+  slider(s1, 'Far-side fade (3D only)', () => state.backFade, (v) => { state.backFade = v; syncShell(); }, 0, 1, 0.01);
+  slider(s1, 'Overall opacity', () => state.ptOpacity, (v) => { state.ptOpacity = v; syncShell(); }, 0.05, 1, 0.01);
+  toggle(s1, 'Invert', () => state.ptInvert, (v) => { state.ptInvert = v; syncShell(); });
+  toggle(s1, 'Additive blending', () => state.ptAdditive, (v) => { state.ptAdditive = v; syncShell(); });
+  toggle(s1, 'Show point shell', () => state.showShell, (v) => { state.showShell = v; apply('showShell'); });
+  toggle(s1, 'Show reference skin', () => state.showSkin, (v) => { state.showSkin = v; apply('showSkin'); });
 
   /* --- organ list --- */
-  const s2 = section('Organs · 器官', true);
-  slider(s2, '整体缩放 (全部器官)', () => state.organScaleAll,
+  const s2 = section('Organs', true);
+  slider(s2, 'Scale all organs', () => state.organScaleAll,
     (v) => { state.organScaleAll = v; placeAll(); }, 0.55, 1.25, 0.01);
-  slider(s2, '展开 (>0.012 会穿出体外)', () => state.explode,
+  slider(s2, 'Explode (past 0.012 they leave the body)', () => state.explode,
     (v) => { state.explode = v; placeAll(); }, 0, 0.14, 0.001, (v) => v.toFixed(3));
   const list = document.createElement('div');
   list.className = 'olist';
@@ -1054,7 +1067,7 @@ function rebuildPanel() {
     const r = document.createElement('div');
     r.className = 'orow' + (o.visible ? ' vis' : ' off') + (state.selected === o.id ? ' sel' : '');
     r.innerHTML = `<span class="sw2"></span><span class="swatch" style="background:${o.color}"></span>` +
-                  `<span class="nm">${o.name}</span><span class="cn">${o.cn}</span>`;
+                  `<span class="nm">${o.name}</span><span class="cn">${o.sub}</span>`;
     r.querySelector('.sw2').addEventListener('click', (e) => {
       e.stopPropagation();
       o.visible = !o.visible;
@@ -1068,10 +1081,10 @@ function rebuildPanel() {
   }
   s2.appendChild(list);
   chipRow(s2, null, [
-    { label: '全部', fn: () => ORGANS.forEach((o) => { o.visible = true; }) },
-    { label: '仅胸腔', fn: () => ORGANS.forEach((o) => { o.visible = ['heart', 'lungs'].includes(o.id); }) },
-    { label: '仅腹腔', fn: () => ORGANS.forEach((o) => { o.visible = ['liver', 'stomach', 'kidneys', 'gut'].includes(o.id); }) },
-    { label: '全关', fn: () => ORGANS.forEach((o) => { o.visible = false; }) },
+    { label: 'All', fn: () => ORGANS.forEach((o) => { o.visible = true; }) },
+    { label: 'Chest only', fn: () => ORGANS.forEach((o) => { o.visible = ['heart', 'lungs'].includes(o.id); }) },
+    { label: 'Abdomen only', fn: () => ORGANS.forEach((o) => { o.visible = ['liver', 'stomach', 'kidneys', 'gut'].includes(o.id); }) },
+    { label: 'None', fn: () => ORGANS.forEach((o) => { o.visible = false; }) },
   ], () => false, (o) => {
     o.fn();
     ORGANS.forEach((g) => { if (g.holder) g.holder.visible = g.visible; });
@@ -1082,13 +1095,16 @@ function rebuildPanel() {
   /* --- selected organ --- */
   const o = sel();
   const s3 = section(`Placement · ${o.name}`, true);
-  slider(s3, '解剖高度 hFrac (占身高)', () => o.hFrac, (v) => { o.hFrac = v; placeOrgan(o); }, 0.02, 0.30, 0.001, (v) => v.toFixed(3));
-  slider(s3, '尺寸倍率', () => o.scale, (v) => { o.scale = v; placeOrgan(o); }, 0.4, 2.2, 0.01);
-  slider(s3, '高度 seat', () => o.seat, (v) => { o.seat = v; placeOrgan(o); }, 0.2, 1.02, 0.001, (v) => v.toFixed(3));
-  slider(s3, '左右 (+ 为受检者左)', () => o.x, (v) => { o.x = v; placeOrgan(o); }, -0.18, 0.18, 0.001, (v) => v.toFixed(3));
-  slider(s3, '前后 (+ 为前)', () => o.z, (v) => { o.z = v; placeOrgan(o); }, -0.14, 0.14, 0.001, (v) => v.toFixed(3));
-  slider(s3, '绕 Y 旋转', () => o.yaw, (v) => { o.yaw = v; placeOrgan(o); }, -180, 180, 1, (v) => v.toFixed(0) + '°');
-  colour(s3, '颜色', () => o.color, (v) => {
+  slider(s3, 'Anatomical height hFrac (of stature)', () => o.hFrac, (v) => { o.hFrac = v; placeOrgan(o); }, 0.02, 0.30, 0.001, (v) => v.toFixed(3));
+  slider(s3, 'Size multiplier', () => o.scale, (v) => { o.scale = v; placeOrgan(o); }, 0.4, 2.2, 0.01);
+  slider(s3, 'Seat height', () => o.seat, (v) => { o.seat = v; placeOrgan(o); }, 0.2, 1.02, 0.001, (v) => v.toFixed(3));
+  slider(s3, 'Left / right (+ is subject left)', () => o.x, (v) => { o.x = v; placeOrgan(o); }, -0.18, 0.18, 0.001, (v) => v.toFixed(3));
+  slider(s3, 'Front / back (+ is front)', () => o.z, (v) => { o.z = v; placeOrgan(o); }, -0.14, 0.14, 0.001, (v) => v.toFixed(3));
+  slider(s3, 'Yaw, about the body axis', () => o.yaw, (v) => { o.yaw = v; placeOrgan(o); }, -180, 180, 1, (v) => v.toFixed(0) + '°');
+  /* the axis this panel was missing: a model can face the right way and still
+     be tipped, which is what the liver was doing at pitch 0 */
+  slider(s3, 'Pitch, tip forward or back', () => o.pitch, (v) => { o.pitch = v; placeOrgan(o); }, -60, 60, 1, (v) => v.toFixed(0) + '°');
+  colour(s3, 'Colour', () => o.color, (v) => {
     o.color = v;
     const sw = pbody.querySelector('.orow.sel .swatch');
     if (sw) sw.style.background = v;
@@ -1101,39 +1117,42 @@ function rebuildPanel() {
   s3.appendChild(focusBtn);
 
   /* --- material + view --- */
-  const s4 = section('Organ material · 器官材质', false);
-  toggle(s4, '按器官分色', () => state.organTint, (v) => { state.organTint = v; apply('organTint'); });
-  colour(s4, '统一色 (关闭分色时)', () => state.organUniform, (v) => { state.organUniform = v; apply('organUniform'); });
-  slider(s4, '粗糙度', () => state.organRough, (v) => { state.organRough = v; apply('organRough'); }, 0, 1, 0.01);
-  slider(s4, '自发光', () => state.organEmissive, (v) => { state.organEmissive = v; apply('organEmissive'); }, 0, 0.8, 0.01);
-  slider(s4, '透光', () => state.organTransmission, (v) => { state.organTransmission = v; apply('organTransmission'); }, 0, 1, 0.01);
+  const s4 = section('Organ material', false);
+  toggle(s4, 'Tint each organ separately', () => state.organTint, (v) => { state.organTint = v; apply('organTint'); });
+  colour(s4, 'Shared colour (when tinting is off)', () => state.organUniform, (v) => { state.organUniform = v; apply('organUniform'); });
+  slider(s4, 'Roughness', () => state.organRough, (v) => { state.organRough = v; apply('organRough'); }, 0, 1, 0.01);
+  slider(s4, 'Emissive', () => state.organEmissive, (v) => { state.organEmissive = v; apply('organEmissive'); }, 0, 0.8, 0.01);
+  slider(s4, 'Transmission', () => state.organTransmission, (v) => { state.organTransmission = v; apply('organTransmission'); }, 0, 1, 0.01);
 
-  const s5 = section('View · 视图', false);
-  toggle(s5, '自动旋转', () => state.autoRotate, (v) => { state.autoRotate = v; });
-  slider(s5, '曝光', () => state.exposure, (v) => { state.exposure = v; apply('exposure'); }, 0.4, 2, 0.01);
-  chipRow(s5, '机位', [
-    { label: '全身', fn: () => orbit.reset() },
-    { label: '胸腔', fn: () => orbit.focus(0.73, 1.5) },
-    { label: '腹腔', fn: () => orbit.focus(0.55, 1.7) },
-    { label: '头部', fn: () => orbit.focus(0.94, 0.8) },
+  const s5 = section('View', false);
+  toggle(s5, 'Auto-rotate', () => state.autoRotate, (v) => { state.autoRotate = v; });
+  slider(s5, 'Exposure', () => state.exposure, (v) => { state.exposure = v; apply('exposure'); }, 0.4, 2, 0.01);
+  chipRow(s5, 'Camera', [
+    { label: 'Whole body', fn: () => orbit.reset() },
+    { label: 'Chest', fn: () => orbit.focus(0.73, 1.5) },
+    { label: 'Abdomen', fn: () => orbit.focus(0.55, 1.7) },
+    { label: 'Head', fn: () => orbit.focus(0.94, 0.8) },
   ], () => false, (x) => x.fn());
   const dump = document.createElement('div');
   dump.className = 'btn';
   dump.textContent = 'Copy placement JSON';
   dump.addEventListener('click', () => {
-    const data = ORGANS.map(({ id, file, hFrac, seat, x, z, yaw, scale, color, visible }) =>
-      ({ id, file, hFrac, seat, x, z, yaw, scale, color, visible }));
+    const data = ORGANS.map(({ id, file, hFrac, seat, x, z, yaw, pitch, scale, color, visible }) =>
+      ({ id, file, hFrac, seat, x, z, yaw, pitch, scale, color, visible }));
     navigator.clipboard.writeText(JSON.stringify(data, null, 2))
-      .then(() => toast('摆位 JSON 已复制'))
-      .catch(() => { console.log(JSON.stringify(data, null, 2)); toast('已输出到 console'); });
+      .then(() => toast('Placement JSON copied'))
+      .catch(() => { console.log(JSON.stringify(data, null, 2)); toast('Written to the console'); });
   });
   s5.appendChild(dump);
   const note = document.createElement('div');
   note.className = 'note';
-  note.textContent = '位移单位是身高比例，换模型仍然有效。器官尺寸按 175cm 身高的成人实测值标定。'
-    + '躯干本身是塞满的：肝距腹壁仅约 1cm，所以真实比例下无法做到互不遮挡 —— '
-    + '想看清被挡的器官，用列表逐个关，或调「透光」，或把「展开」拉起来做爆炸图。'
-    + '已排除 kidney_with_labels（剖面+标签）、lungs（中空简模）、brain（与 pink_brain 重复）。';
+  note.textContent = 'Offsets are fractions of stature, so they survive a change of model. '
+    + 'Organ sizes are calibrated against measured adult values at 175cm. '
+    + 'A trunk is full: the liver clears the abdominal wall by about 1cm, so at true '
+    + 'scale nothing can be arranged without overlap. To see something that is hidden, '
+    + 'switch organs off from the list, raise Transmission, or pull Explode up for a '
+    + 'diagram view. Excluded: kidney_with_labels (cutaway plus labels), lungs (hollow, '
+    + 'simplified) and brain (a duplicate of pink_brain).';
   s5.appendChild(note);
 
   pbody.scrollTop = scrollTop;
@@ -1149,7 +1168,7 @@ $('#fab-shot').addEventListener('click', () => {
   a.download = `point-body-${Date.now()}.png`;
   a.href = renderer.domElement.toDataURL('image/png');
   a.click();
-  toast('已导出 PNG');
+  toast('PNG exported');
 });
 window.addEventListener('keydown', (e) => {
   if (e.key === 'p' || e.key === 'P') panel.classList.toggle('hidden');

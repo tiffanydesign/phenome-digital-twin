@@ -62,7 +62,10 @@
   --phenome-blue-100:#e6e9f2;
   /* ink + surface */
   --ink-900:#10214b; --ink-600:#4a5578; --ink-400:#8b93ad;
-  --ink-label:#4d4d4d;   /* data labels: Pulse waves, Tissue, Bloodwork */
+  /* Data labels. Was #4d4d4d, the one neutral grey in the system — every other
+     ink is already struck off the navy. Same weight on the page, now carrying
+     the same hue as everything around it. */
+  --ink-label:#3f4a70;
   --surface-page:#f4f6fb; --surface-card:#fff; --surface-sunken:#e7ebf3;
   --divider:#203a8514; --border-strong:#203a8529; --grid-line:#203a850d;
   /* gradients */
@@ -215,21 +218,42 @@ body{
   letter-spacing:var(--tracking-overline);text-transform:uppercase;color:var(--ink-400)}
 /* module labels on the scan page sit two steps up the scale and take the
    deeper theme grey, so they read as the header of their block */
-.grp > .overline{font-size:var(--text-module);font-family:var(--font-serif-xsmall);
-  font-weight:var(--w-serif-title);color:var(--ink-600)}
+/* Promoted from a 21px module label to a 44px title, which drags two of the
+   system's own rules with it rather than just a number.
+
+   The optical cut has to follow the size: Contralto Xsmall is drawn for 22–24px
+   and Medium for 40–46, and picking the wrong cut for a size is the single
+   mistake the four-cut setup exists to prevent.
+
+   And the case has to drop. All caps has exactly two roles here — module labels
+   and the caption beside a hero numeral — and at 44px this is neither; it is a
+   title, and titles in this system are sentence case. The overline's .06em goes
+   with it, replaced by the tracking the other titles use. */
+.grp > .overline{font-size:var(--text-title-lg);font-family:var(--font-serif-medium);
+  font-weight:var(--w-serif-title);letter-spacing:-.01em;text-transform:none;
+  line-height:1.05;color:var(--ink-600)}
 .hero{display:flex;align-items:baseline;gap:18px;margin-top:6px}
 .grp.right .hero{justify-content:flex-end}
 .hero .arrow{font-size:30px;line-height:1;color:var(--phenome-blue-400);transform:translateY(-24px)}
 .hero .figureNum{font-size:var(--text-display);font-weight:var(--w-numeral);line-height:1;
   letter-spacing:var(--tracking-numeral);color:var(--ink-900);
   font-family:var(--font-numeral)}
+/* lowercase, not caps: these sit beside a display numeral and read as its unit,
+   not as another heading competing with it */
 .hero .cap{font-size:var(--text-hero-cap);font-weight:var(--w-module);letter-spacing:var(--tracking-overline);
-  text-transform:uppercase;color:var(--ink-600)}
+  text-transform:lowercase;color:var(--ink-600)}
 
 /* KPI grid. The container is sized to its columns rather than to the group,
    so the hairline above it spans exactly the width of the data underneath.
    Labels never wrap and values sit in a fixed 38px band, which keeps every
    number on one baseline and every label on another, across all groups. */
+/* Two columns on the left, not three. The tighter half-body crop brings the
+   arm across this block: measured off the render, its left edge is at x 236 by
+   the time it reaches the bottom row, and columns one and two already run to
+   260. A third column has nowhere to stand at that height, so the six cells
+   reflow into 3 x 2 and the block grows downward into space the figure has
+   already faded out of. */
+.grp:not(.right) .sub{grid-template-columns:104px 104px}
 .sub{display:grid;grid-template-columns:104px 104px minmax(104px,max-content);gap:34px 26px;
   width:max-content;margin-top:30px;padding-top:26px;
   border-top:1px solid var(--border-strong);text-align:left}
@@ -2101,7 +2125,9 @@ const BODY_H = 2.6;
 /* The one framing this page is drawn around: head just inside the top edge,
    the stage cutting at mid-thigh, arms reading across both text columns the
    way the reference does. Fixed on purpose — there is nothing to choose. */
-const FRAME = { target: 1.760, dist: 3.68, fov: 30 };
+/* The figure lab's own `upper` crop, verbatim: target 1.92, dist 3.20, fov 30.
+   Was 1.760 / 3.68, which framed the figure down to mid-thigh. */
+const FRAME = { target: 1.92, dist: 3.20, fov: 30 };
 
 /* The lab's screen presets, numbers unchanged except ptPitchPx: the lab ships
    3, which on this fixed 1366-wide stage reads finer than the page was drawn
@@ -2109,7 +2135,11 @@ const FRAME = { target: 1.760, dist: 3.68, fov: 30 };
 const PRESETS = {
   contour:   { name: 'Contour Fade',
     patch: { ptPitchPx: 5, ptAngle: 0, ptFill: 0.95, ptSoft: 0.1, ptColor: '#c8d9ef', ptTip: '#33518f',
-             ptLightMix: 0, ptInvert: true, ptContrast: 1.8, ptFloor: 0.045, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
+             /* ptFloor raised from the lab's 0.045 to 0.190 by request: this is
+                the default render, so the preset and the first paint have to
+                agree, which means the number moves here rather than only in
+                state. The other four presets keep the lab's values exactly. */
+             ptLightMix: 0, ptInvert: true, ptContrast: 1.8, ptFloor: 0.190, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
   blueprint: { name: 'Blueprint Screen',
     patch: { ptPitchPx: 5, ptAngle: 0, ptFill: 0.78, ptSoft: 0.12, ptColor: '#1d7fa3', ptTip: '#0b4f68',
              ptLightMix: 0.4, ptInvert: false, ptContrast: 1.2, ptFloor: 0, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
@@ -2165,8 +2195,13 @@ const camera = new THREE.PerspectiveCamera(FRAME.fov, STAGE_W / STAGE_H, 0.05, 2
    stage bottom sits at world 0.774 (target 1.760 less dist*tan(fov/2)), so
    the ramp has to reach zero above that or the dissolve is itself cut off
    and nothing has been solved. */
-const FADE_HI = 0.46 * BODY_H;   // 1.196 — solid above the hip
-const FADE_LO = 0.31 * BODY_H;   // 0.806 — gone just inside the stage edge
+/* Half body now, dissolving from the waist. These are the lab's own upper-crop
+   numbers rather than new ones: solid to the navel, gone by mid-hip. The frame
+   bottom sits at 1.063 (target 1.92 less dist*tan(fov/2)), so the ramp finishes
+   at 1.196 — inside the picture, which is the constraint that decides the lower
+   end. Was 0.46 to 0.31, tuned for the old mid-thigh crop. */
+const FADE_HI = 0.60 * BODY_H;   // 1.560 — solid at the navel
+const FADE_LO = 0.46 * BODY_H;   // 1.196 — gone by mid-hip, above the frame edge
 
 const matTone = new THREE.ShaderMaterial({
   side: THREE.DoubleSide,

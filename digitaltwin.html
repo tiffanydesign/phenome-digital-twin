@@ -3051,6 +3051,9 @@ if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorS
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.setClearColor(0x000000, 0);
+/* the frame is composited by hand — sky, then the body's dots, then each organ's
+   — so nothing may clear between those passes */
+renderer.autoClear = false;
 
 const scene = new THREE.Scene();
 /* near/far match the lab's 0.05 / 2000, and the far plane is the reason: the
@@ -3179,6 +3182,134 @@ bgSphere.renderOrder = -1;
 bgSphere.frustumCulled = false;
 scene.add(bgSphere);
 
+/* ------------------------------------------------- the screen, Contour Fade */
+/* This page renders through the lab's screen-space halftone now, not through a
+   pearl. Two passes: shade the geometry into a buffer, then lay one dot per
+   screen cell with its radius driven by the tone underneath. The grid is pinned
+   to the viewport, so the dots do not swim when the figure turns.
+
+   Why two passes and not one shader on the mesh: the tone has to be read at the
+   CELL CENTRE, not at the fragment, or the dots stop being circles wherever the
+   shading has a gradient — and the 3x3 tap below is what stops a single sample
+   speckling every crease and stair-stepping the silhouette. Both are the reasons
+   the home page does it this way, and they hold here.
+
+   Invert Tone is what puts the ink on the contour and leaves the middle open: it
+   flips the facing ratio, so a surface square to the camera goes quiet and one
+   at a grazing angle goes dark. Base Tone is the floor that keeps a covered cell
+   from vanishing entirely. Nothing shows through from the far side — the tone
+   pass is depth-tested, so only the nearest surface contributes. */
+const SCREEN = {
+  body:  { pitch: 3, angle: 0, fill: 0.95, soft: 0.1, contrast: 1.8, floor: 0.045,
+           invert: 1, glow: 1, colour: '#c8d9ef', tip: '#33518f' },
+  /* the highlighted organ takes the same screen, one step deeper in the ramp so
+     it separates from the body it sits inside */
+  organ: { pitch: 3, angle: 0, fill: 0.95, soft: 0.1, contrast: 1.8, floor: 0.045,
+           invert: 1, glow: 1, colour: '#9fb9e6', tip: '#203a85' },
+};
+
+const matTone = new THREE.ShaderMaterial({
+  side: THREE.DoubleSide,
+  blending: THREE.NoBlending,
+  uniforms: {
+    uLightMix: { value: 0 },
+    uLightDir: { value: new THREE.Vector3(0.5, 0.7, 0.5) },
+  },
+  vertexShader: `
+    varying vec3 vN; varying vec3 vV;
+    void main() {
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      vN = normalize(normalMatrix * normal);
+      vV = normalize(-mv.xyz);
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: `
+    varying vec3 vN; varying vec3 vV;
+    uniform float uLightMix;
+    uniform vec3 uLightDir;
+    void main() {
+      vec3 nv = normalize(vN);
+      float facing = clamp(abs(dot(nv, normalize(vV))), 0.0, 1.0);
+      float ndl = clamp(dot(nv, normalize(uLightDir)) * 0.5 + 0.5, 0.0, 1.0);
+      float bright = mix(facing, ndl, uLightMix);
+      gl_FragColor = vec4(bright, bright, bright, 1.0);
+    }`,
+});
+
+const matHalftone = new THREE.ShaderMaterial({
+  uniforms: {
+    uTone: { value: null }, uRes: { value: new THREE.Vector2(2, 2) },
+    uPitch: { value: 3 }, uAngle: { value: 0 },
+    uFill: { value: 0.95 }, uSoft: { value: 0.1 }, uContrast: { value: 1.8 }, uFloor: { value: 0.045 },
+    uInvert: { value: 1 }, uOpacity: { value: 1 }, uGlow: { value: 1 },
+    uColor: { value: hex2vec('#c8d9ef') }, uTip: { value: hex2vec('#33518f') },
+  },
+  transparent: true, depthTest: false, depthWrite: false,
+  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform sampler2D uTone;
+    uniform vec2 uRes;
+    uniform vec3 uColor, uTip;
+    uniform float uPitch, uAngle, uFill, uSoft, uContrast, uInvert, uOpacity, uGlow, uFloor;
+    void main() {
+      vec2 px = vUv * uRes;
+      float c = cos(uAngle), s = sin(uAngle);
+      vec2 g = vec2(c * px.x + s * px.y, -s * px.x + c * px.y) / uPitch;
+      vec2 id = floor(g) + 0.5;
+      vec2 cpx = vec2(c * id.x - s * id.y, s * id.x + c * id.y) * uPitch;
+      float tsum = 0.0, asum = 0.0;
+      for (int j = -1; j <= 1; j++) {
+        for (int i = -1; i <= 1; i++) {
+          vec2 o = vec2(float(i), float(j)) * uPitch * 0.34;
+          vec4 sm = texture2D(uTone, (cpx + o) / uRes);
+          tsum += sm.r * sm.a;
+          asum += sm.a;
+        }
+      }
+      float av = asum / 9.0;
+      float tv = asum > 0.0001 ? tsum / asum : 0.0;
+      float bright = mix(tv, 1.0 - tv, uInvert);
+      float cov = av * (uFloor + (1.0 - uFloor) * pow(clamp(bright, 0.0, 1.0), uContrast));
+      if (cov <= 0.0008) discard;
+      float r = 0.5 * uFill * sqrt(cov);
+      float d = length(g - id);
+      float aa = max(0.8 / uPitch, 0.0005);
+      float a = 1.0 - smoothstep(max(r - aa - uSoft * r, 0.0), r + aa, d);
+      if (a <= 0.003) discard;
+      gl_FragColor = vec4(mix(uColor, uTip, clamp(bright, 0.0, 1.0)) * uGlow, a * uOpacity);
+    }`,
+});
+
+const quadScene = new THREE.Scene();
+const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), matHalftone));
+
+let toneRT = null;
+function sizeToneRT(w, h) {
+  const W = Math.max(2, Math.round(w * DPR)), H = Math.max(2, Math.round(h * DPR));
+  if (toneRT) toneRT.dispose();
+  toneRT = new THREE.WebGLRenderTarget(W, H, {
+    minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+    wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
+    depthBuffer: true, stencilBuffer: false,
+  });
+  matHalftone.uniforms.uRes.value.set(W, H);
+}
+/* pitch and the rest come straight off SCREEN; opacity is the one value the
+   state machine drives, so it is passed per pass rather than stored */
+function applyScreen(p, opacity) {
+  const u = matHalftone.uniforms;
+  u.uPitch.value = Math.max(p.pitch * DPR, 2);
+  u.uAngle.value = p.angle * Math.PI / 180;
+  u.uFill.value = p.fill; u.uSoft.value = p.soft;
+  u.uContrast.value = p.contrast; u.uFloor.value = p.floor;
+  u.uInvert.value = p.invert; u.uGlow.value = p.glow;
+  u.uOpacity.value = opacity;
+  u.uColor.value.copy(hex2vec(p.colour));
+  u.uTip.value.copy(hex2vec(p.tip));
+}
+
 /* The lab's rig for this env, including its light positions. Its fill is the
    warm one — #ffd6e0 from below and behind — which is what the old kicker was
    reaching for; this is the tuned version of it. */
@@ -3192,31 +3323,13 @@ const fill = new THREE.DirectionalLight(STERILE.rig.fillColor, STERILE.rig.fill)
 fill.position.set(-3.4, -4.2, 2.6); scene.add(fill);
 
 /* ------------------------------------------------------------- materials */
-/* One pearl that becomes glass. Opacity carries the change rather than
-   transmission: transmission needs its own pass every frame, and at this size
-   the reading is the same for a fraction of the cost. */
-const bodyMat = new THREE.MeshPhysicalMaterial({
-  color:'#cddcf2', roughness:0.11, metalness:0.12,
-  clearcoat:1, clearcoatRoughness:0.05,
-  envMapIntensity:2.1, transparent:true, opacity:1, depthWrite:true,
-  side:THREE.FrontSide,
-});
-if ('iridescence' in bodyMat) {
-  bodyMat.iridescence = 1;
-  bodyMat.iridescenceIOR = 1.32;
-  bodyMat.iridescenceThicknessRange = [120, 440];
-}
-
-function organMaterial(colour) {
-  const m = new THREE.MeshPhysicalMaterial({
-    color:colour, roughness:0.36, metalness:0,
-    clearcoat:0.55, clearcoatRoughness:0.28,
-    sheen:0.7, sheenColor:new THREE.Color('#ffd9df'),
-    emissive:new THREE.Color(colour), emissiveIntensity:0.07,
-    envMapIntensity:0.85, transparent:true, opacity:0, depthWrite:false,
-  });
-  return m;
-}
+/* The pearl and the per-organ physical materials are gone: everything shades
+   into matTone and the visible surface is the halftone pass that reads it. The
+   lights and the PMREM environment stay because the tone shader takes a light
+   direction and the sky sphere is built from the same preset — but no material
+   samples the environment map any more, so it costs one PMREM at startup and
+   nothing after. Left in place rather than stripped: the moment any physical
+   material returns to this page it needs it, and the cost is a single frame. */
 
 /* ----------------------------------------------------- body + centreline */
 const bodies = {};
@@ -3305,7 +3418,9 @@ function centreAt(cl, y) {
 async function loadBodyFor(name) {
   if (bodies[name]) return bodies[name];
   const holder = fitToFloor(await loadGLB(`GLB/${name}.glb`), BODY_H);
-  holder.traverse((o) => { if (o.isMesh) { o.material = bodyMat; o.renderOrder = 20; } });
+  /* everything goes through matTone now — the pearl is gone, and the visible
+     look is produced by the halftone pass that reads this buffer */
+  holder.traverse((o) => { if (o.isMesh) { o.material = matTone; o.renderOrder = 20; } });
   const pivot = new THREE.Group();
   pivot.add(holder);
   stage.add(pivot);
@@ -3327,8 +3442,11 @@ async function organFor(cat) {
     const root = await loadGLB(`GLB/organ/${cat.file}`);
     const holder = fitToFloor(root, organH(cat));
     holder.userData.srcH = BODY_H;
-    const mat = organMaterial(cat.colour);
-    holder.traverse((o) => { if (o.isMesh) { o.material = mat; o.renderOrder = 5; } });
+    /* the organ shades into the same tone buffer; its own screen palette is what
+       separates it, applied on its pass. `mat` survives only as the carrier for
+       the reveal value the state machine animates. */
+    const mat = { opacity: 0 };
+    holder.traverse((o) => { if (o.isMesh) { o.material = matTone; o.renderOrder = 5; } });
     const t = centreAt(rec.cl, cat.seat * BODY_H);
     holder.position.copy(seatOf(cat, t));
     /* cat.yaw and cat.pitch are the source file's own axis corrections and
@@ -3558,6 +3676,9 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / Math.max(h, 1);
   camera.updateProjectionMatrix();
+  /* the tone buffer is the screen's resolution, and the halftone needs to know
+     it in pixels — the dot grid is measured in them */
+  sizeToneRT(w, h);
 }
 addEventListener('resize', () => { if (live) resize(); });
 
@@ -3574,10 +3695,11 @@ function frame(now) {
     if (flight.t >= 1) flight.on = false;
   }
 
+  /* glass used to lower the pearl's opacity; it now lowers the body screen's,
+     which is the same idea in the new material — the dots thin out and the organ
+     inside reads through them */
   glass += (glassTo - glass) * Math.min(dt * 3.4, 1);
-  bodyMat.opacity = 1 - glass * 0.62;
-  bodyMat.depthWrite = bodyMat.opacity > 0.92;
-  bodyMat.roughness = 0.17 + glass * 0.05;
+  const bodyInk = 1 - glass * 0.62;
 
   const rec = bodies[sex];
   if (rec) {
@@ -3594,7 +3716,60 @@ function frame(now) {
 
   camera.position.copy(view.pos);
   camera.lookAt(view.tgt);
+
+  /* Three passes over one frame. autoClear is off for the whole sequence so the
+     halftone quads can composite onto what is already there instead of wiping it.
+
+     1  the sky alone, straight to the screen
+     2  the body alone into the tone buffer, then its dots over the sky
+     3  each revealed organ the same way, with its own palette and its own
+        reveal opacity, drawn after the body so it reads as the thing in focus
+
+     Each tone pass hides everything it is not measuring; without that the sky
+     would shade into the buffer and the whole frame would fill with dots. */
+  const holder = rec ? rec.holder : null;
+  const organList = rec ? Object.keys(rec.organs) : [];
+  const wasVisible = organList.map((k) => rec.organs[k].holder.visible);
+
+  renderer.setRenderTarget(null);
+  renderer.clear(true, true, true);
+
+  bgSphere.visible = true;
+  if (holder) holder.visible = false;
+  organList.forEach((k) => { rec.organs[k].holder.visible = false; });
   renderer.render(scene, camera);
+  bgSphere.visible = false;
+
+  if (holder && bodyInk > 0.004) {
+    holder.visible = true;
+    renderer.setRenderTarget(toneRT);
+    renderer.clear(true, true, true);
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+    holder.visible = false;
+    matHalftone.uniforms.uTone.value = toneRT.texture;
+    applyScreen(SCREEN.body, bodyInk);
+    renderer.render(quadScene, quadCam);
+  }
+
+  organList.forEach((k, i) => {
+    const o = rec.organs[k];
+    if (!wasVisible[i] || o.mat.opacity <= 0.01) return;
+    o.holder.visible = true;
+    renderer.setRenderTarget(toneRT);
+    renderer.clear(true, true, true);
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+    o.holder.visible = false;
+    matHalftone.uniforms.uTone.value = toneRT.texture;
+    applyScreen(SCREEN.organ, o.mat.opacity);
+    renderer.render(quadScene, quadCam);
+  });
+
+  /* hand the scene back the way the rest of the frame expects to find it */
+  if (holder) holder.visible = true;
+  organList.forEach((k, i) => { rec.organs[k].holder.visible = wasVisible[i]; });
+  bgSphere.visible = true;
 
   /* hotspots ride the projection of their own anchor */
   for (const c of CATS) {

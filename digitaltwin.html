@@ -232,15 +232,30 @@ body{
 .grp > .overline{font-size:var(--text-title-lg);font-family:var(--font-serif-medium);
   font-weight:var(--w-serif-title);letter-spacing:-.01em;text-transform:none;
   line-height:1.05;color:var(--ink-600)}
-.hero{display:flex;align-items:baseline;gap:18px;margin-top:6px}
-.grp.right .hero{justify-content:flex-end}
-.hero .arrow{font-size:30px;line-height:1;color:var(--phenome-blue-400);transform:translateY(-24px)}
-.hero .figureNum{font-size:var(--text-display);font-weight:var(--w-numeral);line-height:1;
+/* Two rows, not one line. The caption is 24px now — the size of the age under
+   the name — and at that size it stops being a suffix and becomes a second
+   line, so it sits under the numeral instead of beside it. That is also what
+   keeps the right-hand groups off the figure: on one baseline a 24px caption
+   pushes an 80px numeral 155px to the left, straight into the arm.
+
+   The caption spans both columns rather than sitting in the numeral's. Kept in
+   column 2 it sized that column to itself, and since the right-hand groups
+   right-align, the numeral slid to the far edge and left its arrow stranded 145px
+   away. Spanning lets column 2 hug the numeral, so the arrow stays against it —
+   and it gives each block one edge shared by heading, arrow, caption and grid:
+   left in omics, right in the other two, which text-align already decides. */
+.hero{display:grid;grid-template-columns:auto auto;justify-content:start;
+  align-items:baseline;column-gap:18px;row-gap:4px;margin-top:6px}
+.grp.right .hero{justify-content:end}
+.hero .arrow{grid-row:1;grid-column:1;
+  font-size:30px;line-height:1;color:var(--phenome-blue-400);transform:translateY(-24px)}
+.hero .figureNum{grid-row:1;grid-column:2;
+  font-size:var(--text-display);font-weight:var(--w-numeral);line-height:1;
   letter-spacing:var(--tracking-numeral);color:var(--ink-900);
   font-family:var(--font-numeral)}
-/* lowercase, not caps: these sit beside a display numeral and read as its unit,
-   not as another heading competing with it */
-.hero .cap{font-size:var(--text-hero-cap);font-weight:var(--w-module);letter-spacing:var(--tracking-overline);
+/* lowercase and 24px: it reads as the numeral's unit, not as another heading */
+.hero .cap{grid-row:2;grid-column:1 / -1;
+  font-size:24px;font-weight:var(--w-data);letter-spacing:0;
   text-transform:lowercase;color:var(--ink-600)}
 
 /* KPI grid. The container is sized to its columns rather than to the group,
@@ -795,8 +810,11 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
             <div class="cell"><div class="lab">Proteins</div><div class="val num">3102</div></div>
             <div class="cell"><div class="lab">Metabolites</div><div class="val num">1240</div></div>
             <div class="cell"><div class="lab">Gut species</div><div class="val num">312</div></div>
-            <div class="cell"><div class="lab">Drug responses</div><div class="val num">42</div></div>
-            <div class="cell"><div class="lab">Organs aged</div><div class="val num">11</div></div>
+            <!-- Drug responses and Organs aged are gone. Four cells is the most
+                 this column can hold before it reaches down into the arm, and
+                 these two were the derived readings rather than the omics layers
+                 the block is counting. -->
+
           </div>
         </div>
 
@@ -2125,9 +2143,13 @@ const BODY_H = 2.6;
 /* The one framing this page is drawn around: head just inside the top edge,
    the stage cutting at mid-thigh, arms reading across both text columns the
    way the reference does. Fixed on purpose — there is nothing to choose. */
-/* The figure lab's own `upper` crop, verbatim: target 1.92, dist 3.20, fov 30.
-   Was 1.760 / 3.68, which framed the figure down to mid-thigh. */
-const FRAME = { target: 1.92, dist: 3.20, fov: 30 };
+/* The figure lab's `upper` crop, pulled back from its 3.20 to 3.55. At 3.20 the
+   A-pose hands reached x 1163 and 236 on the stage, which is inside both metric
+   columns however they are arranged — no reflow clears an arm that is already
+   past the text. 3.55 brings the reach to about 1115 and 291, which the columns
+   clear. The fade is untouched: it is defined in world height, so the crop still
+   ends at the waist exactly as before. Was 1.760 / 3.68 before the half body. */
+const FRAME = { target: 1.92, dist: 3.55, fov: 30 };
 
 /* The lab's screen presets, numbers unchanged except ptPitchPx: the lab ships
    3, which on this fixed 1366-wide stage reads finer than the page was drawn

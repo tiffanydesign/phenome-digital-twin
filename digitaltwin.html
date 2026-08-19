@@ -537,7 +537,12 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 /* the fields stay wider than the panel that opens over them, so the demo
    shows the real containment rather than a popover hanging off an edge */
 .prov-demo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:24px}
-.prov-field{position:relative;height:270px;border-radius:var(--radius-lg);
+/* Each field is sized to the form it holds. The panel's foot sits 41px up from
+   the field's (14 inset, 18 ring, 9 gap), so a 71px line wants 200 and a 373px
+   manifest wants 448. Matching them would leave the single-work field 335px
+   empty, which reads as a mistake rather than as a statement; the captions
+   already say the two are different cases. */
+.prov-field{position:relative;height:200px;border-radius:var(--radius-lg);
   border:1px solid var(--divider);
   background:radial-gradient(120% 90% at 50% 6%,#fff,transparent 62%),var(--surface-sunken)}
 /* a stand-in for the halftone field, dotted and masked to a torso-ish
@@ -547,6 +552,8 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   background-image:radial-gradient(#203a8526 1px,transparent 1.6px);background-size:7px 7px;
   -webkit-mask-image:radial-gradient(42% 60% at 50% 48%,#000 26%,transparent 74%);
   mask-image:radial-gradient(42% 60% at 50% 48%,#000 26%,transparent 74%)}
+.prov-field.tall{height:448px}
+.prov-demo{align-items:start}
 .prov-cap{margin-top:11px}
 
 /* the anchor spans the field so the panel can be bounded by the field
@@ -579,7 +586,14 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .prov[data-open="true"] .prov-panel{opacity:1;visibility:visible;transform:none;
   transition:opacity .18s var(--ease-frosted-out),transform .18s var(--ease-frosted-out),
              visibility 0s}
+/* One work, so there is no shared licence to lift out and no list to lift it
+   from: the credit collapses to the line CC BY asks for. Sized to its own text
+   rather than to the list's column, since there is no column. */
+.prov-panel.solo{width:auto;max-width:min(360px,calc(100vw - 48px))}
 .prov-head{font-size:13px;line-height:1.55;color:var(--ink-600)}
+/* the work is the one proper noun in the line, so it carries the ink and
+   nothing else changes weight */
+.prov-head b{font-weight:400;color:var(--ink-900)}
 .prov-head a{color:var(--phenome-blue-500);text-decoration:underline;text-underline-offset:2px;
   text-decoration-thickness:1px;text-decoration-color:#203a8559}
 .prov-head a:hover{text-decoration-color:var(--phenome-blue-500)}
@@ -715,16 +729,13 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
 <!-- ══════════════════ VIEW 1 · SCAN SUMMARY ══════════════════ -->
 <div class="view is-on" id="viewScan">
-  <!-- CC BY asks for the credit to travel with the work. The home page shows
-       one borrowed model, so its list is one row and cannot drift. -->
+  <!-- One borrowed model on this page, so pattern 11's single-work form: the
+       credit is the line, with no licence to factor out of a list of one. -->
   <div class="prov on-stage" data-open="false">
     <button class="prov-btn" type="button" aria-expanded="false" aria-controls="provHome"
-            aria-label="Model credits for this figure">i</button>
-    <div class="prov-panel" id="provHome" role="group" aria-label="Model credits">
-      <p class="prov-head">Anatomical models under <a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
-      <ul class="prov-list">
-        <li class="prov-item"><b>Male &amp; Female Base Mesh Pack</b><span>FormForge3D</span></li>
-      </ul>
+            aria-label="Model credit for this figure">i</button>
+    <div class="prov-panel solo" id="provHome" role="group" aria-label="Model credit">
+      <p class="prov-head"><b>Male &amp; Female Base Mesh Pack</b> by FormForge3D<br><a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
     </div>
   </div>
 
@@ -1054,28 +1065,23 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
     <section class="pat">
       <div class="pat-head"><div class="pat-n">11</div><h3>Provenance mark</h3></div>
-      <p class="pat-why">Borrowed anatomy carries a licence, and CC BY names four things: the work, its author, the licence, and the fact that the work was changed. Two of those are the same for every asset in one field, so they are stated once in the opening line and the list underneath varies only the work and the author. The mark belongs to the field rather than to each organ — six rings would compete with six readings — and it never takes a fill, because a filled shape in this system is a status. When an organ is in focus its row takes the dot, so the credit answers <em style="font-style:normal;color:var(--ink-900)">whose model am I looking at</em> without the reader hunting the list.</p>
+      <p class="pat-why">CC BY names four things: the work, its author, the licence, and that the work was changed. How many works are on screen decides the shape. One work has nothing to factor out, so the credit is a single line. A field full of them shares the licence and the modification, so those lead once and the list varies only work and author. One ring per field either way, and never a fill — a filled shape here is a status.</p>
       <div class="card">
         <div class="prov-demo">
           <div>
             <div class="prov-field">
-              <div class="prov" data-open="false">
-                <button class="prov-btn" type="button" aria-expanded="false"
-                        aria-controls="provPanelA" aria-label="Model credits for this field">i</button>
-                <div class="prov-panel" id="provPanelA" role="group" aria-label="Model credits">
-                  <p class="prov-head">Anatomical models under <a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
-                  <ul class="prov-list">
-                    <li class="prov-item"><b>Male &amp; Female Base Mesh Pack</b><span>FormForge3D</span></li>
-                    <li class="prov-item"><b>Realistic Human Heart</b><span>neshallads</span></li>
-                    <li class="prov-item"><b>pink brain</b><span>msurovik</span></li>
-                  </ul>
+              <div class="prov" data-open="true">
+                <button class="prov-btn" type="button" aria-expanded="true"
+                        aria-controls="provPanelA" aria-label="Model credit">i</button>
+                <div class="prov-panel solo" id="provPanelA" role="group" aria-label="Model credit">
+                  <p class="prov-head"><b>Realistic Human Heart</b> by neshallads<br><a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
                 </div>
               </div>
             </div>
-            <div class="overline prov-cap" style="color:var(--ink-400)">Resting · 18px ring, bottom-left of the field</div>
+            <div class="overline prov-cap" style="color:var(--ink-400)">One work · the whole credit is the line</div>
           </div>
           <div>
-            <div class="prov-field">
+            <div class="prov-field tall">
               <div class="prov" data-open="true">
                 <button class="prov-btn" type="button" aria-expanded="true"
                         aria-controls="provPanelB" aria-label="Model credits for this field">i</button>
@@ -1083,19 +1089,23 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
                   <p class="prov-head">Anatomical models under <a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
                   <ul class="prov-list">
                     <li class="prov-item"><b>Male &amp; Female Base Mesh Pack</b><span>FormForge3D</span></li>
-                    <li class="prov-item is-on"><b>Realistic Human Heart</b><span>neshallads</span></li>
                     <li class="prov-item"><b>pink brain</b><span>msurovik</span></li>
+                    <li class="prov-item is-on"><b>Realistic Human Heart</b><span>neshallads</span></li>
+                    <li class="prov-item"><b>Realistic Human Lungs</b><span>neshallads</span></li>
+                    <li class="prov-item"><b>Small and large intestine</b><span>antonia.sundberg</span></li>
+                    <li class="prov-item"><b>Human liver and gallbladder</b><span>ElliotSS</span></li>
+                    <li class="prov-item"><b>Human Kidney</b><span>neshallads</span></li>
                   </ul>
                 </div>
               </div>
             </div>
-            <div class="overline prov-cap" style="color:var(--ink-400)">Open · cardiovascular in focus, so its row takes the dot</div>
+            <div class="overline prov-cap" style="color:var(--ink-400)">A full field · the dot marks the organ in focus</div>
           </div>
         </div>
 
         <div class="xlate" style="margin-top:26px">
-          <div><span>Hover is not the record</span><p>A credit that lives only in <code>:hover</code> is absent from touch, from print, and from an exported report, and an absent credit is a breached licence rather than a missing nicety. The ring only decides what is <b>on screen</b>: the same manifest is markup at all times and prints in full as the field's footer.</p></div>
-          <div><span>Wording</span><p>The licence is named by its short form and linked to the deed, never spelled out in prose. Modification is stated once, in the plural — <b>modified by Phenome Longevity</b> — because retopology and material replacement apply to the whole field, not to one organ.</p></div>
+          <div><span>Hover is not the record</span><p>A credit that lives only in <code>:hover</code> is absent from touch, from print and from an export, and an absent credit is a breached licence. The panel is markup at all times; the ring decides only what is <b>on screen</b>, and on paper it prints as the field's footer.</p></div>
+          <div><span>Which form</span><p>Count the borrowed works in the field, not the organs on the rail. The home page shows one model and takes the line; the body page carries the base mesh plus every organ and takes the list.</p></div>
         </div>
       </div>
     </section>

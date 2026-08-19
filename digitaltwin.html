@@ -2666,14 +2666,58 @@ function buildRig() {
   for (const r of RANGES_SCREEN) range(host, r);
 }
 
+/* The figure sweeps in. It starts turned away to the left, swings past centre to
+   the right, then eases back and settles on the composition's own 12 degrees —
+   one authored moment on load rather than a permanent spin, which would fight a
+   page whose subject is meant to be still.
+
+   Two curves, not one: cubic ease-out on the sweep so it leaves quickly and
+   arrives softly, then ease-in-out on the return so the settle has no snap at
+   either end. render() is called directly rather than draw(), which throttles
+   through its own rAF and would queue a second frame behind this one.
+
+   It replays whenever the home page comes back on screen, the way the scan line
+   does, and it is skipped outright under prefers-reduced-motion. */
+const REST_YAW = state.yaw;
+/* local to this module — the body page has its own copy and the two scripts
+   share no scope */
+const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+function playYawIntro() {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    state.yaw = REST_YAW; render(); return;
+  }
+  const FROM = REST_YAW - 34, TO = REST_YAW + 24;
+  const SWEEP = 1500, SETTLE = 1700;
+  let t0 = null;
+  state.yaw = FROM;
+  function step(t) {
+    if (t0 === null) t0 = t;
+    const e = t - t0;
+    if (e < SWEEP) {
+      const k = e / SWEEP;
+      state.yaw = FROM + (TO - FROM) * (1 - Math.pow(1 - k, 3));
+    } else if (e < SWEEP + SETTLE) {
+      const k = (e - SWEEP) / SETTLE;
+      state.yaw = TO + (REST_YAW - TO) * easeInOut(k);
+    } else {
+      state.yaw = REST_YAW; render(); buildRig(); return;
+    }
+    render();
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+addEventListener('viewchange', (e) => { if (e.detail === 'scan') playYawIntro(); });
+
 /* ------------------------------------------------------------------ start */
 try {
   await Promise.all([loadBody('Male'), loadBody('Female')]);
   canvas2d.classList.add('is-hidden');
   buildRig();
   render();
+  playYawIntro();
   /* handle for tuning from the console */
-  window.__rig = { state, render, draw, buildRig, FRAME, PRESETS };
+  window.__rig = { state, render, draw, buildRig, FRAME, PRESETS, playYawIntro };
 } catch (err) {
   gl.remove();
   const warn = document.createElement('div');

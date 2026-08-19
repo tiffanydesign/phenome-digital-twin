@@ -2797,40 +2797,101 @@ try {
      be still, and they read as dust on the lens. */
   #labBg{position:absolute;inset:0;pointer-events:none}
 
-  /* ---------- shared glass ---------- */
-  #labWrap .glass{background:#ffffffa6;border:1px solid #ffffffcc;
-    -webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);
-    box-shadow:0 1px 2px #10214b12,0 18px 42px -20px #10214b40}
+  /* ---------- shared glass · section 06's doctrine ----------
+     This page was built before section 06 was rewritten, and every surface on
+     it still carried the old rule: one flat fill, a white line drawn round all
+     four edges, nothing beneath. Over a near-white stage that line has nothing
+     to separate from, so the chrome had no weight at all — the readings card
+     read as loose text lying on the wash, and the bottom bar's right end simply
+     stopped being a surface.
+
+     The doctrine's four parts are the fix, and only one of them was ever here:
+
+       fill      a soft diagonal, so the surface is lit across rather than flat
+       edge      stated, 1px white — see below
+       highlight a hairline of white bedded into the top-left inside face
+       shadow    one wide drop, below and behind
+
+     The edge stays drawn here, and that is the doctrine's own instruction
+     rather than a carry-over: the frosted-card variant states its edge because
+     it is the one surface in section 06 that floats over a moving 3D field, and
+     on this page *everything* does. A bedded highlight alone loses the edge
+     against something that changes underneath it.
+
+     The light sits above and to the left on every surface without exception,
+     which is why the three shadows are variables and not literals — one
+     inconsistent highlight flattens the whole set, and that failure cannot
+     happen if there is only one place to write it down.
+
+     Every hue comes off the brand ramp: the drop is blue-400 (#435ba1), the
+     well blue-300 (#7185bd). Nothing is invented for this page. */
+  #labWrap{
+    --glass-lit:inset 1px 1px 1px #ffffffb3;
+    --glass-drop:0 12px 26px -18px #435ba159;
+    /* hover does not brighten the fill, it raises the surface further off the
+       page — the same light, a longer throw */
+    --glass-lift:0 17px 32px -16px #435ba173;
+    /* a hollow casts nothing, so this is the one recipe with no outer shadow */
+    --glass-well:inset 3px 3px 7px #7185bd4d, inset -3px -3px 7px #ffffffb3;
+    /* panels are wider and heavier than controls, so they throw further */
+    --glass-panel-drop:0 18px 38px -22px #435ba152}
 
   /* ---------- top bar ---------- */
   .lab-top{position:absolute;left:0;right:0;top:0;padding:22px 26px;display:flex;align-items:center;
     pointer-events:none;z-index:6}
-  .lab-seg{margin:0 auto;display:flex;gap:3px;padding:4px;border-radius:999px;pointer-events:auto;
-    background:#ffffff8f;border:1px solid #ffffffcc;
-    -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+  /* A segmented control is the one component section 06 draws twice: a well,
+     and the raised thing sitting in it. It was a flat frosted pill holding a
+     flat blue one, which said nothing about which of the two was selected
+     beyond colour. Now the track is recessed — cool shadow bedded top-left,
+     white bottom-right, no outer shadow — and the active segment is the only
+     surface in it that comes toward you. */
+  .lab-seg{margin:0 auto;display:flex;gap:3px;padding:5px;border-radius:999px;pointer-events:auto;
+    background:linear-gradient(145deg,#e0e6f0b8,#f0f4fa9e);border:1px solid #ffffffb3;
+    -webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);
+    box-shadow:var(--glass-well)}
   .lab-seg button{border:0;cursor:pointer;padding:8px 20px;border-radius:999px;background:transparent;
     font-family:var(--font-sans);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
     color:var(--ink-600);transition:.22s var(--ease-frosted-out)}
-  .lab-seg button.on{background:var(--phenome-blue-500);color:#fff}
+  /* the unselected segment stays bare: it is floor, not furniture */
+  .lab-seg button:not(.on):hover{color:var(--ink-900)}
+  /* Brand blue stays — a selection has to read as one — and the raised light is
+     laid over it: white bedded into the top-left inside face, one shadow below. */
+  .lab-seg button.on{background:linear-gradient(145deg,#2b47968f,var(--phenome-blue-500));color:#fff;
+    box-shadow:0 6px 14px -8px #10214b8c, inset 1px 1px 1px #ffffff5e}
   .lab-brand{position:absolute;right:26px;top:24px;font-family:var(--font-sans);font-size:19px;
     font-weight:600;letter-spacing:-.01em;color:var(--ink-900)}
   .lab-brand em{font-style:normal;font-weight:300;color:var(--ink-600);margin-left:2px}
 
   /* ---------- category rail ---------- */
+  /* The frosted-card recipe at panel scale, and a fill raised from 37% to 58%:
+     at 37 the rail was so thin that its left edge dissolved into the wash and
+     the rows appeared to float unattached. It carries seven rows over a live
+     field, so it has to be a surface before it is a pane. */
   .lab-cats{position:absolute;right:26px;top:50%;transform:translateY(-50%);width:288px;z-index:6;
     border-radius:22px;padding:16px 14px 14px;
-    background:#ffffff5e;border:1px solid #ffffff8f;
-    -webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);
+    background:linear-gradient(140deg,#ffffff94,#e9f0fa5e);border:1px solid #ffffffa6;
+    -webkit-backdrop-filter:blur(30px) saturate(150%);backdrop-filter:blur(30px) saturate(150%);
+    box-shadow:var(--glass-panel-drop),var(--glass-lit);
     transition:opacity .38s var(--ease-frosted-out),transform .38s var(--ease-frosted-out)}
   .lab-cats.away{opacity:0;transform:translate(26px,-50%);pointer-events:none}
   .lab-cats-h{font-family:var(--font-sans);font-size:11px;font-weight:700;letter-spacing:.18em;
     text-transform:uppercase;color:var(--ink-600);text-align:center;margin-bottom:12px}
+  /* Raised rows sitting on the panel, not tinted rectangles cut out of it. */
   .lab-cat{display:flex;align-items:center;gap:13px;width:100%;margin-bottom:7px;padding:13px 15px;
-    border:1px solid #ffffff00;border-radius:14px;background:#ffffffa8;cursor:pointer;
+    border:1px solid #ffffffc4;border-radius:14px;cursor:pointer;
+    background:linear-gradient(145deg,#ffffffc4,#eef3fb85);
+    box-shadow:var(--glass-drop),var(--glass-lit);
     font-family:var(--font-sans);font-size:17px;color:var(--ink-900);text-align:left;
     transition:.2s var(--ease-frosted-out)}
   .lab-cat:last-child{margin-bottom:0}
-  .lab-cat:hover{background:#fff;transform:translateX(-3px);border-color:#ffffff}
+  /* the row comes further off the panel and slides toward the figure it names */
+  .lab-cat:hover{background:linear-gradient(145deg,#ffffff,#f3f7fdb8);transform:translateX(-3px);
+    border-color:#fff;box-shadow:var(--glass-lift),var(--glass-lit)}
+  /* pressed, it goes the other way: the doctrine already has a word for a
+     surface moving away from you, so the row briefly becomes the well */
+  .lab-cat:active{transform:translateX(-1px);
+    background:linear-gradient(145deg,#e4eaf4a6,#f0f4fa8f);
+    box-shadow:inset 2px 2px 5px #7185bd3d, inset -2px -2px 5px #ffffffa6}
   /* Orbs, on section 06's recipe: a radial fill lit from 34% 28%, white bedded
      into the top-left inside edge and cool into the bottom-right. They were
      ringed dots in the organ's own red or amber, which put a status colour on
@@ -2861,27 +2922,55 @@ try {
   .hot .tag{max-width:0;overflow:hidden;white-space:nowrap;opacity:0;
     font-family:var(--font-sans);font-size:15px;color:var(--ink-900);
     transition:max-width .42s var(--ease-frosted-out),opacity .3s ease,padding .42s var(--ease-frosted-out)}
+  /* The tag sits directly over the organ it names — the surface with the most
+     movement behind it anywhere on the page — so it takes the stated edge and
+     the full raised light, and its blur goes to 22px. */
   .hot.named .tag{max-width:260px;opacity:1;padding:11px 20px 11px 26px;margin-left:-16px;
-    border-radius:999px;background:#ffffffb8;border:1px solid #ffffffd9;
-    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);order:2}
+    border-radius:999px;background:linear-gradient(145deg,#ffffffd6,#eaf1fa94);
+    border:1px solid #ffffffe0;box-shadow:var(--glass-drop),var(--glass-lit);
+    -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);order:2}
+  .hot:hover .tag{box-shadow:var(--glass-lift),var(--glass-lit)}
   .hot.named .pin{order:1;z-index:1}
   .hot.gone{opacity:0;pointer-events:none}
 
   /* ---------- back, bottom bar, card ---------- */
+  /* It had no visible surface at all against the top-left of the wash: a white
+     fill inside a white border on a white ground, with nothing under it. The
+     glyph was doing the entire job of looking like a button. */
   .lab-back{position:absolute;left:26px;top:24px;z-index:6;width:44px;height:44px;border-radius:50%;
     display:grid;place-items:center;cursor:pointer;font-size:20px;line-height:1;color:var(--ink-900);
-    background:#ffffffb3;border:1px solid #ffffffe0;
-    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-    opacity:0;pointer-events:none;transition:opacity .3s ease}
+    background:linear-gradient(145deg,#ffffffd6,#eaf1fa94);border:1px solid #ffffffe0;
+    box-shadow:var(--glass-drop),var(--glass-lit);
+    -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
+    opacity:0;pointer-events:none;
+    transition:opacity .3s ease,box-shadow .2s var(--ease-frosted-out),background .2s var(--ease-frosted-out)}
   .lab-back.on{opacity:1;pointer-events:auto}
+  .lab-back:hover{background:linear-gradient(145deg,#ffffff,#f2f6fdb8);
+    box-shadow:var(--glass-lift),var(--glass-lit)}
+  .lab-back:active{background:linear-gradient(145deg,#e4eaf4b3,#f0f4fa9e);box-shadow:var(--glass-well)}
 
-  .lab-bar{position:absolute;left:50%;bottom:34px;transform:translate(-50%,26px);z-index:6;
+  /* Bottom 80, not 34. At 34 the tab bar sat straight over the organ's name and
+     its status orb — the bar's left end runs to x 293 at 1366 and the tabs reach
+     409, over the top at z-index 50. The page's own rule, written when the
+     provenance ring was placed on this same stage, is that such chrome may cover
+     the page's furniture and never its readings — and an organ's name is the one
+     thing this bar exists to say.
+
+     So the bar is lifted the same way the ring was, and measured the same way:
+     the tabs stand 46px tall on a 24px offset, so their top edge is 70 from the
+     bottom, and 80 leaves the bar's underside 10px clear of it — the ring's own
+     clearance. */
+  .lab-bar{position:absolute;left:50%;bottom:80px;transform:translate(-50%,26px);z-index:6;
     display:flex;align-items:center;gap:14px;width:min(780px,calc(100% - 460px));
     opacity:0;pointer-events:none;transition:opacity .34s ease,transform .34s var(--ease-frosted-out)}
   .lab-bar.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  /* The widest surface on the page, and the one the missing shadow cost most:
+     with nothing beneath it the pill's right half had no edge to find and the
+     name appeared to sit on the stage rather than on a bar. */
   .lab-bar-name{flex:1;display:flex;align-items:center;gap:16px;padding:16px 30px;border-radius:999px;
-    background:#ffffffbf;border:1px solid #ffffffe0;
-    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+    background:linear-gradient(140deg,#ffffffd1,#eaf1fa8c);border:1px solid #ffffffe0;
+    box-shadow:var(--glass-panel-drop),var(--glass-lit);
+    -webkit-backdrop-filter:blur(30px) saturate(150%);backdrop-filter:blur(30px) saturate(150%)}
   /* the same orb as the rail row it came from, at the same depth */
   .lab-bar-name i{flex:none;width:26px;height:26px;border-radius:50%;
     background:radial-gradient(circle at 34% 28%,#fffffff2,
@@ -2891,13 +2980,32 @@ try {
   .lab-bar-name b{font-family:var(--font-sans);font-size:32px;font-weight:400;letter-spacing:-.01em;color:var(--ink-900)}
   .lab-bar-nav{display:flex;gap:10px}
   .lab-bar-nav button{width:62px;height:62px;border-radius:50%;cursor:pointer;font-size:22px;line-height:1;
-    color:var(--ink-900);background:#ffffffbf;border:1px solid #ffffffe0;
-    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);transition:.2s var(--ease-frosted-out)}
-  .lab-bar-nav button:hover{background:#fff}
+    color:var(--ink-900);background:linear-gradient(145deg,#ffffffd6,#eaf1fa94);border:1px solid #ffffffe0;
+    box-shadow:var(--glass-drop),var(--glass-lit);
+    -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
+    transition:.2s var(--ease-frosted-out)}
+  .lab-bar-nav button:hover{background:linear-gradient(145deg,#ffffff,#f2f6fdb8);
+    box-shadow:var(--glass-lift),var(--glass-lit)}
+  /* pressing the organ you are moving to should feel like pressing something */
+  .lab-bar-nav button:active{background:linear-gradient(145deg,#e4eaf4b3,#f0f4fa9e);
+    box-shadow:var(--glass-well)}
 
-  .lab-card{position:absolute;left:26px;bottom:120px;z-index:6;width:296px;padding:20px 22px;border-radius:20px;
-    background:#ffffffa6;border:1px solid #ffffffcc;
-    -webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);
+  /* The worst of the old recipe's failures. This card carries the only numbers
+     on the page, and with no shadow and an invisible white edge the readings
+     read as text lying loose on the stage — a reader could not tell where the
+     card began. It keeps a higher alpha than section 06's demo card for the
+     reason the provenance panel gives for not being glass at all: a reading has
+     to stay legible over a dark organ as well as over the wash.
+
+     Bottom 165, not 120: the bar above now stands from 80 to 151, and at 120
+     the card's bottom-right corner crossed the bar's left end — 29px by 31px of
+     one frosted panel over another, which doubles the blur and runs two lit
+     edges through each other. 165 leaves 14px between them, the same gap the
+     provenance panel keeps off the readings it must not touch. */
+  .lab-card{position:absolute;left:26px;bottom:165px;z-index:6;width:296px;padding:20px 22px;border-radius:20px;
+    background:linear-gradient(140deg,#ffffffc4,#e9f0fa7d);border:1px solid #ffffffd9;
+    box-shadow:var(--glass-panel-drop),var(--glass-lit);
+    -webkit-backdrop-filter:blur(30px) saturate(150%);backdrop-filter:blur(30px) saturate(150%);
     opacity:0;transform:translateY(14px);pointer-events:none;transition:.4s var(--ease-frosted-out)}
   .lab-card.on{opacity:1;transform:none}
   .lab-card h4{font-family:var(--font-sans);font-size:11px;font-weight:700;letter-spacing:.16em;
@@ -2909,9 +3017,14 @@ try {
     letter-spacing:0;color:var(--ink-900);font-variant-numeric:tabular-nums}
   .lab-card p{margin-top:12px;font-size:13.5px;line-height:1.6;color:var(--ink-600)}
 
+  /* It was the one frosted surface on the page with no backdrop-filter at all,
+     so it alone sat on the field rather than in front of it. */
   .lab-load{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:7;
     display:none;align-items:center;gap:10px;padding:11px 20px;border-radius:999px;
-    background:#ffffffbf;border:1px solid #ffffffe0;font-family:var(--font-sans);font-size:12px;
+    background:linear-gradient(145deg,#ffffffd6,#eaf1fa94);border:1px solid #ffffffe0;
+    box-shadow:var(--glass-drop),var(--glass-lit);
+    -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
+    font-family:var(--font-sans);font-size:12px;
     letter-spacing:.1em;text-transform:uppercase;color:var(--ink-600)}
   .lab-load.on{display:flex}
   .lab-load i{width:13px;height:13px;border-radius:50%;border:1.6px solid #10214b26;
@@ -2920,7 +3033,11 @@ try {
 
   @media (max-width:900px){
     .lab-cats{right:14px;width:232px}
-    .lab-bar{bottom:20px;width:calc(100% - 28px)}
+    /* the bottom offset is not overridden here: the tab bar is the same 46px on
+       the same 24px offset at every width, so the 80 that clears it holds. At
+       the old 20 the tabs covered the name outright, since the bar runs the full
+       width at this size and cannot simply be pushed out of their column. */
+    .lab-bar{width:calc(100% - 28px)}
     .lab-bar-name b{font-size:22px}
     .lab-bar-nav button{width:50px;height:50px}
     .lab-card{display:none}

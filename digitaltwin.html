@@ -607,9 +607,9 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    fact that the work was changed. Two of those are identical for every
    asset in one field, so they are stated once in the panel's opening
    line and the list underneath varies only the work and the author.
-   The ring is per field, never per organ — six rings would compete
-   with six readings — and it never takes a fill, because a filled
-   shape in this system is a status. */
+   The ring is per field, never per organ — a ring on every credited
+   asset would compete with the readings it sits among — and it never
+   takes a fill, because a filled shape in this system is a status. */
 /* the fields stay wider than the panel that opens over them, so the demo
    shows the real containment rather than a popover hanging off an edge */
 .prov-demo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:24px}
@@ -2989,12 +2989,12 @@ const CATS = [
      measured, in words they already have. Plain is not vague: "air in one
      second" names the same quantity FEV₁ does, and says it. */
   { id:'neuro',  name:'Brain',          file:'pink_brain.glb',
-    hFrac:0.058, seat:0.948, x:0,      z:0.000, yaw:-90, colour:'#d9829b', dist:0.62,
+    hFrac:0.058, seat:0.948, x:0,      z:0.000, yaw:-90, dist:0.62,
     credit:{ work:'pink brain', author:'msurovik' },
     rows:[['Signal chemicals','42'],['Thinking tasks','6'],['Age reading','−3 y']],
     note:'Read from a blood sample and a set of memory and attention tasks. No scan involved.' },
   { id:'cardio', name:'Heart',          file:'realistic_human_heart.glb',
-    hFrac:0.069, seat:0.715, x:0.022,  z:0.028, yaw:-12, colour:'#d6455a', dist:0.60,
+    hFrac:0.069, seat:0.715, x:0.022,  z:0.028, yaw:-12, dist:0.60,
     credit:{ work:'Realistic Human Heart', author:'neshallads' },
     rows:[['Points measured','10'],['Blood pressure','118/76'],['Blood fats','0.74 g/L']],
     note:'Ten points around the chest, every one read against the same adult range.' },
@@ -3004,17 +3004,30 @@ const CATS = [
      same 0.185 and burst through the rib cage on both sides. Same file as
      the lab now, which makes the fraction correct by construction. */
   { id:'resp',   name:'Lungs',          file:'realistic_human_lungs.glb',
-    hFrac:0.185, seat:0.748, x:0,      z:0.002, yaw:0,   colour:'#c9748c', dist:0.95,
+    hFrac:0.185, seat:0.748, x:0,      z:0.002, yaw:0,   dist:0.95,
     credit:{ work:'Realistic Human Lungs', author:'neshallads' },
     rows:[['Air in one second','3.18 L'],['Oxygen carried','98 %'],['Typical for you','3.10 L']],
     note:'How much air leaves in the first second, beside what is typical for your age, height and build.' },
+  /* The stomach. Its GLB was already in the repo and already credited, but no
+     category loaded it, so the one organ the figure lab shows and this page did
+     not. Placement is the lab's, verbatim: hFrac 0.098, seat 0.596, x +0.032 to
+     the subject's left of the axis, z -0.010 back. dist matches the liver's 0.78
+     because their hFrac is identical, so the same framing suits both.
+
+     It sits before Intestines: stomach then intestines is the order the tract
+     runs in, and the rail had no digestive sequence before this. */
+  { id:'stom',   name:'Stomach',        file:'realistic_stomach.glb',
+    hFrac:0.098, seat:0.596, x:0.032,  z:-0.010, yaw:0,   dist:0.78,
+    credit:{ work:'Realistic Stomach', author:'Brain Diagno' },
+    rows:[['Emptying time','3 h 10 m'],['Acid balance','Normal'],['Bacteria test','Clear']],
+    note:'A breath test times how fast it empties and the scan looks at the wall. Neither says much without the other.' },
   /* seat raised from the lab's 0.530. At 0.530 the mass bottomed out at 1.206,
      and the legs of this mesh separate at 1.20 — so the intestines were
      sitting on the perineum rather than ending at the pelvic brim, which is
      what read as too low. 0.560 puts the bottom at 1.284, inside the lower
      pelvis, and the transverse colon back up at navel height. */
   { id:'gut',    name:'Intestines',     file:'small_and_large_intestine.glb',
-    hFrac:0.150, seat:0.560, x:0,      z:0.010, yaw:0,   colour:'#c4855f', dist:0.92,
+    hFrac:0.150, seat:0.560, x:0,      z:0.010, yaw:0,   dist:0.92,
     credit:{ work:'Small and large intestine', author:'antonia.sundberg' },
     rows:[['Species found','312'],['Variety','68 of 100'],['Out of range','4']],
     note:'Read from a stool sample, then placed against a large group of other people.' },
@@ -3031,12 +3044,12 @@ const CATS = [
      -0.004 that corner left the body through the spine. At 0.013 the mesh
      clears the back wall by 0.014 and the front by 0.123. */
   { id:'detox',  name:'Liver & Gallbladder', file:'human_liver_and_gallbladder.glb',
-    hFrac:0.098, seat:0.620, x:-0.032, z:0.013, yaw:-90, pitch:-14, colour:'#a04b3c', dist:0.78,
+    hFrac:0.098, seat:0.620, x:-0.032, z:0.013, yaw:-90, pitch:-14, dist:0.78,
     credit:{ work:'Human liver and gallbladder', author:'ElliotSS' },
     rows:[['Liver markers','6'],['Fat in the liver','None'],['Substances screened','38']],
     note:'The blood markers and the scan are read together. Neither settles it alone.' },
   { id:'horm',   name:'Kidneys',        file:'human_kidney.glb',
-    hFrac:0.083, seat:0.583, x:0,      z:-0.032, yaw:0,   colour:'#b8535e', dist:0.72,
+    hFrac:0.083, seat:0.583, x:0,      z:-0.032, yaw:0,   dist:0.72,
     credit:{ work:'Human Kidney', author:'neshallads' },
     rows:[['Hormones measured','24'],['Filtering rate','96'],['Stress hormone','4 readings']],
     note:'Sampled four times across one day rather than once, because the level moves as the day goes on.' },
@@ -3558,9 +3571,12 @@ function buildRail() {
 
    The steps are spread evenly rather than bunched. A first pass ran c3d7f2 to
    aec6ec to 9ab6e4 across the top three, and at 26px those read as one colour,
-   which would have made the claim above untrue. These six are far enough apart to
-   tell at that size, and the last is blue-400 itself. */
-const ORB_RAMP = ['#d8e5f7', '#bcd0ef', '#9fb8e4', '#8098d4', '#6277b8', '#435ba1'];
+   which would have made the claim above untrue. These are far enough apart to
+   tell at that size, and the last is blue-400 itself.
+
+   Seven stops, one per category. Six would have wrapped once the stomach was
+   added and given two rows the same orb. */
+const ORB_RAMP = ['#dce8f8', '#c4d5f1', '#aabfe9', '#90a8dd', '#7690cc', '#5c74b4', '#435ba1'];
 const orbOf = (cat) => ORB_RAMP[Math.max(0, CATS.indexOf(cat)) % ORB_RAMP.length];
 
 /* Pattern 11, wired. The base mesh is always on stage, so it leads; the organs
@@ -3596,8 +3612,8 @@ async function go(next, cat) {
     L('#labBack').classList.remove('on');
     L('#labBar').classList.remove('on');
     L('#labCard').classList.remove('on');
-    /* The whole figure carries no pins. Six pulsing dots on an untouched body
-       is six claims competing with the body itself, and the rail beside it
+    /* The whole figure carries no pins. A pulsing dot on every organ is a
+       row of claims competing with the body itself, and the rail beside it
        already names every organ — the pin's job is to mark the one organ that
        is open, so it earns its place only once something is. */
     for (const c of CATS) { hots[c.id].classList.add('gone'); hots[c.id].classList.remove('named'); }

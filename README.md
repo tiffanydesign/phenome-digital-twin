@@ -54,10 +54,10 @@ GLB/
     pink_brain.glb                   Brain
     realistic_human_heart.glb        Heart
     realistic_human_lungs.glb        Lungs
+    realistic_stomach.glb            Stomach
     small_and_large_intestine.glb    Intestines
     human_liver_and_gallbladder.glb  Liver & Gallbladder
     human_kidney.glb                 Kidneys
-    realistic_stomach.glb            Stomach — organ-body-full.html only
 ```
 
 The four lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/home-hero-lab.html` and so on.

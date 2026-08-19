@@ -232,35 +232,52 @@ body{
 .grp > .overline{font-size:var(--text-title-lg);font-family:var(--font-serif-medium);
   font-weight:var(--w-serif-title);letter-spacing:-.01em;text-transform:none;
   line-height:1.05;color:var(--ink-600)}
-/* One baseline: arrow, numeral, caption. The caption stays at 24px, the size of
-   the age under the name, and sits on the numeral's baseline rather than under it.
+/* Three columns, two rows. The title leaves its own line and moves in beside the
+   numeral, stacked directly over the caption; arrow, numeral and caption stay on
+   one shared baseline in the lower row. So the title now names the caption rather
+   than floating above the whole block, and the numeral reads against both.
 
-   This is a deliberate trade, not an oversight. The row is arrow plus numeral
-   plus caption, so on the right-hand groups it extends leftward from the page
-   edge far enough to reach the figure's arm — measured, the body group's row
-   starts at x 891 while the arm reaches 1102. Stacking the caption was what
-   bought the clearance; one line gives it back. The numbers are in the commit.
+       row 1                    Omics
+       row 2   →      7         molecular layers
 
-   align-items:baseline is what makes it work typographically: a 24px caption and
-   an 80px numeral share a baseline, so the caption reads as the numeral's unit
-   rather than as a floating label. The arrow keeps its -24px lift, which is what
-   puts it against the numeral's cap height instead of its baseline. */
-.hero{display:flex;align-items:baseline;gap:18px;margin-top:6px;flex-wrap:nowrap}
-.grp.right .hero{justify-content:flex-end}
-.hero .arrow{font-size:30px;line-height:1;color:var(--phenome-blue-400);transform:translateY(-24px)}
-.hero .figureNum{font-size:var(--text-display);font-weight:var(--w-numeral);line-height:1;
+   Grid, not flex, for exactly this reason: with a flex column beside the numeral,
+   align-items:baseline would lock the numeral to the TITLE's baseline and push
+   the caption below it. Explicit rows put the caption on the numeral's baseline
+   and let the title sit above, which is the arrangement asked for.
+
+   The row still extends leftward from the page edge on the right-hand groups, so
+   the body group's hero still crosses the arm; that trade is unchanged and
+   documented where the figure is framed. */
+.hero{display:grid;grid-template-columns:auto auto auto;grid-template-rows:auto auto;
+  align-items:baseline;column-gap:18px;row-gap:2px;justify-content:start;margin-top:6px}
+.grp.right .hero{justify-content:end}
+.hero .arrow{grid-row:2;grid-column:1;
+  font-size:30px;line-height:1;color:var(--phenome-blue-400);transform:translateY(-24px)}
+.hero .figureNum{grid-row:2;grid-column:2;
+  font-size:var(--text-display);font-weight:var(--w-numeral);line-height:1;
   letter-spacing:var(--tracking-numeral);color:var(--ink-900);
   font-family:var(--font-numeral)}
-/* lowercase and 24px: it reads as the numeral's unit, not as another heading.
-   nowrap keeps it on the one line the layout is built around. */
-.hero .cap{flex:none;white-space:nowrap;
+/* the title, in its new home: same 44px Contralto Medium and sentence case as
+   before, just sitting over the caption instead of over the block */
+.hero > .overline{grid-row:1;grid-column:3;white-space:nowrap;
+  font-size:var(--text-title-lg);font-family:var(--font-serif-medium);
+  font-weight:var(--w-serif-title);letter-spacing:-.01em;text-transform:none;
+  line-height:1.05;color:var(--ink-600)}
+/* lowercase and 24px: it reads as the numeral's unit, not as another heading */
+.hero .cap{grid-row:2;grid-column:3;white-space:nowrap;
   font-size:24px;font-weight:var(--w-data);letter-spacing:0;
   text-transform:lowercase;color:var(--ink-600)}
 
-/* KPI grid. The container is sized to its columns rather than to the group,
-   so the hairline above it spans exactly the width of the data underneath.
+/* KPI grid. The container is sized to its columns rather than to the group, so
+   the hairline above it spans the width of the data underneath.
    Labels never wrap and values sit in a fixed 38px band, which keeps every
-   number on one baseline and every label on another, across all groups. */
+   number on one baseline and every label on another, across all groups.
+
+   On the omics block the rule is given a longer measure than its two columns
+   need. Cut to the data it read as a short tick under a wide hero; run out to
+   the hero's own width it reads as a rule belonging to the block. The number
+   below is that width, not a round guess. */
+.grp:not(.right) .sub{min-width:430px}
 /* Two columns on the left, not three. The tighter half-body crop brings the
    arm across this block: measured off the render, its left edge is at x 236 by
    the time it reaches the bottom row, and columns one and two already run to
@@ -306,14 +323,27 @@ body{
 @keyframes rise{to{opacity:1;transform:none}}
 
 /* ---------- floating view toggle ---------- */
-.toggle{position:fixed;left:24px;bottom:24px;z-index:50;display:flex;gap:2px;padding:3px;
-  border:1px solid #ffffffb3;border-radius:var(--radius-md);background:#ffffffcc;
-  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:var(--shadow-card)}
+/* Built on section 06's doctrine: the bar is a recessed well and the active tab
+   is the one raised face in it, so which view you are on is told by depth rather
+   than by a block of dark fill. Cool shadow bedded into the well's top-left,
+   white into its bottom-right, no outer shadow — a hollow casts none. The pill
+   inverts that and adds the one wide shadow behind it. */
+.toggle{position:fixed;left:24px;bottom:24px;z-index:50;display:flex;gap:4px;padding:6px;
+  border-radius:999px;
+  background:linear-gradient(145deg,#e0e6f0b3,#f0f4fa99);
+  -webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);
+  box-shadow:inset 3px 3px 7px #7185bd4d, inset -3px -3px 7px #ffffffe0}
+/* ink-600, not ink-400. The inactive tabs sit on a near-white well, where
+   ink-400 measures about 2.9:1 — under the floor for text this size. */
 .toggle button{border:0;background:transparent;cursor:pointer;font-family:inherit;
-  font-size:var(--text-micro);font-weight:700;letter-spacing:var(--tracking-overline);
-  color:var(--ink-400);padding:8px 14px;border-radius:8px;
-  transition:.18s var(--ease-frosted-out)}
-.toggle button[aria-pressed="true"]{background:var(--phenome-blue-900);color:#fff}
+  font-size:var(--text-micro);font-weight:var(--w-module);letter-spacing:var(--tracking-overline);
+  color:var(--ink-600);padding:9px 18px;border-radius:999px;
+  transition:.2s var(--ease-frosted-out)}
+.toggle button:hover{color:var(--ink-900)}
+.toggle button[aria-pressed="true"]{
+  color:#2c3f6e;
+  background:linear-gradient(145deg,#f6f9fdf2,#e7edf7cc);
+  box-shadow:0 9px 18px -13px #435ba166, inset 1px 1px 1px #fffffff2}
 
 /* ============================================================
    VIEW 2 · DESIGN SYSTEM
@@ -837,10 +867,10 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
         <!-- OMICS -->
         <div class="grp stagger" id="grpOmics" style="animation-delay:.6s">
-          <div class="overline">Omics</div>
           <div class="hero">
             <span class="arrow">&#8594;</span>
             <span class="figureNum num">7</span>
+            <span class="overline">Omics</span>
             <span class="cap">Molecular layers</span>
           </div>
           <div class="sub">
@@ -858,10 +888,10 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
         <!-- VITALS -->
         <div class="grp right stagger" id="grpVitals" style="animation-delay:.75s">
-          <div class="overline">Vitals</div>
           <div class="hero">
             <span class="arrow">&#8594;</span>
             <span class="figureNum num">41</span>
+            <span class="overline">Vitals</span>
             <span class="cap">of 52 markers optimal</span>
           </div>
           <div class="sub">
@@ -880,10 +910,10 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
         <!-- BODY -->
         <div class="grp right stagger" id="grpBody" style="animation-delay:.9s">
-          <div class="overline">Body</div>
           <div class="hero">
             <span class="arrow">&#8594;</span>
             <span class="figureNum num">18<span class="dp">.</span>4</span>
+            <span class="overline">Body</span>
             <span class="cap">% body fat</span>
           </div>
           <div class="sub">
@@ -2186,28 +2216,22 @@ const BODY_H = 2.6;
    ends at the waist exactly as before. Was 1.760 / 3.68 before the half body. */
 const FRAME = { target: 1.92, dist: 3.55, fov: 30 };
 
-/* The lab's screen presets, numbers unchanged except ptPitchPx: the lab ships
-   3, which on this fixed 1366-wide stage reads finer than the page was drawn
-   for, so these carry 5. */
+/* Contour Fade only. Blueprint Screen, Redprint Screen and Body Scan are gone
+   from this page — the home page has one look, and three alternates in the rig
+   invited the reader to change it. They remain intact in the figure lab, which
+   is where a preset belongs; nothing about their numbers changed.
+
+   ptPitchPx carries 5 rather than the lab's 3: on this fixed 1366-wide stage the
+   lab's pitch reads finer than the page was drawn for. */
 const PRESETS = {
-  contour:   { name: 'Contour Fade',
+  contour: { name: 'Contour Fade',
     patch: { ptPitchPx: 5, ptAngle: 0, ptFill: 0.95, ptSoft: 0.1, ptColor: '#c8d9ef', ptTip: '#33518f',
              /* ptFloor raised from the lab's 0.045 to 0.190 by request: this is
                 the default render, so the preset and the first paint have to
-                agree, which means the number moves here rather than only in
-                state. The other four presets keep the lab's values exactly. */
+                agree, which means the number moves here rather than only in state. */
              ptLightMix: 0, ptInvert: true, ptContrast: 1.8, ptFloor: 0.190, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
-  blueprint: { name: 'Blueprint Screen',
-    patch: { ptPitchPx: 5, ptAngle: 0, ptFill: 0.78, ptSoft: 0.12, ptColor: '#1d7fa3', ptTip: '#0b4f68',
-             ptLightMix: 0.4, ptInvert: false, ptContrast: 1.2, ptFloor: 0, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
-  redprint:  { name: 'Redprint Screen',
-    patch: { ptPitchPx: 5, ptAngle: 0, ptFill: 0.75, ptSoft: 0.1, ptColor: '#ee4b35', ptTip: '#ee4b35',
-             ptLightMix: 0.45, ptInvert: false, ptContrast: 1.15, ptFloor: 0, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
-  scan:      { name: 'Body Scan',
-    patch: { ptPitchPx: 5, ptAngle: 0, ptFill: 0.78, ptSoft: 0.12, ptColor: '#1d7fa3', ptTip: '#0b4f68',
-             ptLightMix: 0.4, ptInvert: false, ptContrast: 1.2, ptFloor: 0, ptOpacity: 1, ptGlow: 1, ptAdditive: false } },
 };
-const PRESET_ORDER = ['contour', 'blueprint', 'redprint', 'scan'];
+const PRESET_ORDER = ['contour'];
 
 const state = {
   body: 'Male',
@@ -2759,9 +2783,18 @@ try {
     transition:.2s var(--ease-frosted-out)}
   .lab-cat:last-child{margin-bottom:0}
   .lab-cat:hover{background:#fff;transform:translateX(-3px);border-color:#ffffff}
-  .lab-cat .ic{flex:none;width:26px;height:26px;border-radius:50%;position:relative}
-  .lab-cat .ic::after{content:"";position:absolute;inset:7px;border-radius:50%;background:currentColor;opacity:.9}
-  .lab-cat .ic{border:1.5px solid currentColor}
+  /* Orbs, on section 06's recipe: a radial fill lit from 34% 28%, white bedded
+     into the top-left inside edge and cool into the bottom-right. They were
+     ringed dots in the organ's own red or amber, which put a status colour on
+     something that carries no status — a rail row is a place to go, not a
+     verdict. Depth distinguishes them now, walked down the ramp, which is the
+     same move the glass section makes. The organ materials keep their
+     anatomical colour; only these markers changed. */
+  .lab-cat .ic{flex:none;width:26px;height:26px;border-radius:50%;border:0;
+    background:radial-gradient(circle at 34% 28%,#fffffff2,
+      color-mix(in srgb,var(--orb) 46%,#ffffff) 48%, var(--orb));
+    box-shadow:0 5px 11px -8px #435ba14d,
+               inset 2px 2px 5px #ffffffcc, inset -2px -2px 6px #435ba13d}
   .lab-cat .nm{flex:1}
   .lab-cat .ch{color:var(--ink-400);font-size:17px;line-height:1}
 
@@ -2801,8 +2834,12 @@ try {
   .lab-bar-name{flex:1;display:flex;align-items:center;gap:16px;padding:16px 30px;border-radius:999px;
     background:#ffffffbf;border:1px solid #ffffffe0;
     -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
-  .lab-bar-name i{flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid currentColor;position:relative}
-  .lab-bar-name i::after{content:"";position:absolute;inset:7px;border-radius:50%;background:currentColor}
+  /* the same orb as the rail row it came from, at the same depth */
+  .lab-bar-name i{flex:none;width:26px;height:26px;border-radius:50%;
+    background:radial-gradient(circle at 34% 28%,#fffffff2,
+      color-mix(in srgb,var(--orb) 46%,#ffffff) 48%, var(--orb));
+    box-shadow:0 5px 11px -8px #435ba14d,
+               inset 2px 2px 5px #ffffffcc, inset -2px -2px 6px #435ba13d}
   .lab-bar-name b{font-family:var(--font-sans);font-size:32px;font-weight:400;letter-spacing:-.01em;color:var(--ink-900)}
   .lab-bar-nav{display:flex;gap:10px}
   .lab-bar-nav button{width:62px;height:62px;border-radius:50%;cursor:pointer;font-size:22px;line-height:1;
@@ -3278,11 +3315,22 @@ function buildRail() {
   for (const c of CATS) {
     const b = document.createElement('button');
     b.className = 'lab-cat';
-    b.innerHTML = `<span class="ic" style="color:${c.colour}"></span><span class="nm">${c.name}</span><span class="ch">&#8250;</span>`;
+    b.innerHTML = `<span class="ic" style="--orb:${orbOf(c)}"></span><span class="nm">${c.name}</span><span class="ch">&#8250;</span>`;
     b.addEventListener('click', () => go('category', c));
     host.appendChild(b);
   }
 }
+
+/* The rail and bottom-bar orbs walk the ramp instead of carrying an organ colour.
+   Order follows CATS, so depth reads as position in the list — not as severity,
+   which a red or amber dot would imply.
+
+   The steps are spread evenly rather than bunched. A first pass ran c3d7f2 to
+   aec6ec to 9ab6e4 across the top three, and at 26px those read as one colour,
+   which would have made the claim above untrue. These six are far enough apart to
+   tell at that size, and the last is blue-400 itself. */
+const ORB_RAMP = ['#d8e5f7', '#bcd0ef', '#9fb8e4', '#8098d4', '#6277b8', '#435ba1'];
+const orbOf = (cat) => ORB_RAMP[Math.max(0, CATS.indexOf(cat)) % ORB_RAMP.length];
 
 /* Pattern 11, wired. The base mesh is always on stage, so it leads; the organs
    follow in CATS order, which is the same order the page loads them in — the
@@ -3335,7 +3383,7 @@ async function go(next, cat) {
   L('#labBack').classList.add('on');
   L('#labBar').classList.add('on');
   L('#labBarName').textContent = cat.name;
-  L('#labBarDot').style.color = cat.colour;
+  L('#labBarDot').style.setProperty('--orb', orbOf(cat));
   for (const c of CATS) hots[c.id].classList.toggle('gone', c.id !== cat.id);
   hots[cat.id].classList.add('named');
   markCredit(cat.id);

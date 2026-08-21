@@ -102,6 +102,88 @@
   --radius-sm:8px; --radius-md:10px; --radius-lg:12px; --radius-xl:16px;
   --shadow-card:0 8px 32px #10214b14; --shadow-raised:0 2px 8px #10214b14;
   --ease-frosted-out:cubic-bezier(.16,1,.3,1);
+
+  /* ---------- GLASS · flat frosted doctrine ----------
+     The doctrine changed again, and this time in the other direction.
+     The last one pressed every surface out of the page with a
+     directional emboss: a 145deg fill, white bedded into the top-left
+     face, cool into the bottom-right, and for a well the same pair
+     inverted. That is soft-UI, and soft-UI reads as moulded plastic —
+     it sculpts the surface, and a sheet of glass is not sculpted.
+
+     One pane, laid flat over whatever is behind it. Nothing is raised
+     and nothing is hollow; what varies between surfaces is only how
+     thick the glass is and how much light it has let through. Six
+     layers, in the order light meets them:
+
+       backdrop   blur + saturate + a small BRIGHTNESS LIFT. The lift is
+                  the whole difference between frosted glass and a grey
+                  mask. Real glass scatters light forward, so what is
+                  behind it comes out lighter and slightly warmer, never
+                  darker. Every grey-looking "glass" panel on the web is
+                  a panel missing this one filter term.
+       tint       a near-flat fog-white wash, 180deg and shallow. Glass
+                  tint is uniform through its thickness; it is the light
+                  that varies, not the fill, which is why the diagonal
+                  ramps are gone.
+       grain      ground glass has tooth. A monochrome noise tiled at
+                  120px, blended soft-light so it lightens and darkens
+                  in equal measure — the single cheapest thing that
+                  stops a translucent rectangle reading as plastic film.
+       rim        1px, graduated: bright on the top-left arc, gone by the
+                  middle, with a faint return along the bottom edge where
+                  light has crossed the thickness and come back out. It
+                  is masked to the perimeter rather than set as a border,
+                  because a border is the same weight on all four sides
+                  and so reads as a drawn line instead of a lit edge.
+       sheen      two very faint wide lobes, 3-5% — the room reflected in
+                  the face of the pane. This is the "air" in the surface.
+       shadow     one soft low drop, plus a UNIFORM inner glow. Uniform
+                  is the operative word: a directional pair of insets is
+                  an emboss, an even one is glass thickness.
+
+     Chromium additionally gets a real refractive bezel — see the lens
+     filter further down. That is an enhancement on top of these six,
+     never a replacement for them. */
+  --gl-blur:blur(20px) saturate(165%) brightness(1.06);
+  --gl-blur-panel:blur(32px) saturate(155%) brightness(1.05);
+  --gl-blur-thin:blur(13px) saturate(170%) brightness(1.05);
+  /* fills. Fog white and pale blue-grey, all of it well under half alpha
+     so the backdrop stays legible through the pane. */
+  --gl-tint:linear-gradient(180deg,#ffffff4a,#f3f7fd26);
+  --gl-tint-panel:linear-gradient(180deg,#ffffff5e,#f1f5fd33);
+  --gl-tint-solid:linear-gradient(180deg,#ffffffbd,#f4f7fd94);
+  /* the step between panel and solid. A pane over a near-white ground can
+     only ever look like a lighter grey rectangle if you tint it heavily —
+     glass has nothing to show there — so the chrome on the body page sits
+     here and leans on its rim and its drop for the edge instead. */
+  --gl-tint-mid:linear-gradient(180deg,#ffffff8c,#f2f6fd5e);
+  /* a sunken surface is not a hollow, it is thicker glass: more tint,
+     less light through, and no drop — see --gl-inner-sunk */
+  --gl-tint-sunk:linear-gradient(180deg,#9fb2d43d,#dfe7f52e);
+  /* Alpha is forced to 1 and the strength lives in the rect's opacity, so the
+     tile is an even mid-grey speckle rather than a noisy mask. It is applied
+     with background-blend-mode:overlay, so the deviations either side of
+     mid-grey lighten and darken in equal measure — tooth, not a veil. A grain
+     that only darkens is dirt on the glass. Overlay was the first choice and
+     it was wrong: over a near-white pane it dulls to grey, which is the exact
+     failure the brightness lift exists to prevent. Soft-light is applied with
+     background-blend-mode, so it touches the pane's own tint and not the page
+     under it — the grain belongs to the glass, not to what you see through it. */
+  --gl-grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='table' tableValues='1 1'/></feComponentTransfer></filter><rect width='120' height='120' filter='url(%23g)' opacity='.3'/></svg>");
+  /* Shadows are struck off #2a3f6e — navy, not black. A black shadow
+     under a blue-grey pane is the other half of the plastic look. */
+  --gl-shadow:0 1px 1px -.5px #2a3f6e12,0 9px 22px -15px #2a3f6e30;
+  --gl-shadow-panel:0 1px 2px -1px #2a3f6e14,0 20px 46px -26px #2a3f6e3b;
+  --gl-shadow-lift:0 2px 4px -1px #2a3f6e17,0 16px 34px -19px #2a3f6e42;
+  --gl-inner:inset 0 0 18px -7px #ffffffd6;
+  --gl-inner-sunk:inset 0 1px 3px -1px #45598e33,inset 0 0 15px -9px #45598e2b;
+  --gl-bezel:1.5px;
+  /* the marks. Flat discs off the brand ramp, no radial sphere, no pair
+     of insets — the same weight as a dot on a chart, which is the point:
+     depth is not a data channel. */
+  --gl-mark-1:#c3d3ec; --gl-mark-2:#93aad5; --gl-mark-3:#6b8cbe; --gl-mark-4:#435ba1;
+
   --font-sans:"Helvetica Neue",Helvetica,"HN Substitute",Arial,sans-serif;
   /* four installed cuts of the same family, chosen by size, not by role.
      Big and Medium carry names/titles or numerals depending on where
@@ -151,6 +233,118 @@
     linear-gradient(180deg, var(--stage-top) 0%, var(--stage-bottom) 100%);
 }
 
+/* ============================================================
+   THE GLASS RECIPE · one place, every surface
+   The token block above says what the six layers are; this says it in
+   CSS exactly once. Three selector lists, deliberately written out in
+   full rather than hidden behind a class the markup has to remember:
+   the lens experiment on the tab bar proved that a component which
+   forgets one layer stops reading as the same material, and a list you
+   can see is a list you can audit.
+
+   Geometry — radius, padding, size — stays with the component. Only the
+   material lives here.
+   ============================================================ */
+.gl,
+.icon-btn,.prov-btn,.toggle,
+.lab-seg,.lab-cats,.lab-cat,.lab-back,.lab-bar-name,.lab-bar-nav button,
+.lab-card,.lab-load,.hot.named .tag{
+  position:relative;
+  border:0;                       /* the edge is lit, never drawn */
+  background-image:var(--gl-grain),var(--gl-tint);
+  background-size:120px 120px,auto;background-blend-mode:soft-light,normal;
+  -webkit-backdrop-filter:var(--gl-blur);backdrop-filter:var(--gl-blur);
+  box-shadow:var(--gl-shadow),var(--gl-inner);
+}
+
+/* --- rim: 1px, graduated, masked to the perimeter ---
+   Two gradients stacked. The first is the return along the bottom edge,
+   light that has crossed the thickness of the pane and come back out;
+   the second is the specular arc on the top-left, which is gone by 40%
+   and never comes back. Because the two are graduated and out of phase
+   the ring is nowhere the same weight twice, which is what separates a
+   lit edge from a drawn one.
+
+   The band is --gl-bezel wide rather than exactly 1px so Chromium can
+   put a real refraction inside it (see the @supports below) without the
+   highlight and the bend landing in two different places — the mistake
+   the tab-bar lens made on its first pass. */
+.gl::before,
+.icon-btn::before,.prov-btn::before,.toggle::before,
+.lab-seg::before,.lab-cats::before,.lab-cat::before,.lab-back::before,
+.lab-bar-name::before,.lab-bar-nav button::before,
+.lab-card::before,.lab-load::before,.hot.named .tag::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  pointer-events:none;padding:var(--gl-bezel);
+  background:
+    linear-gradient(0deg,#ffffff7a 0%,#ffffff00 26%),
+    linear-gradient(145deg,#ffffffed 0%,#ffffff59 13%,#ffffff00 40%,#ffffff00 100%);
+  -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+          mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+}
+
+/* --- sheen: the room, in the face of the pane ---
+   Two lobes at 4% and 2%, one off the top-left corner and one climbing
+   in from the bottom-right. Both are wider than the surface they sit on,
+   so no lobe ever closes into a visible shape — an "air" term, not a
+   highlight. It paints over the content because on real glass it does:
+   the reflection is on the near face and the content is behind it. */
+.gl::after,
+.icon-btn::after,.prov-btn::after,.toggle::after,
+.lab-seg::after,.lab-cats::after,.lab-cat::after,.lab-back::after,
+.lab-bar-name::after,.lab-bar-nav button::after,
+.lab-card::after,.lab-load::after,.hot.named .tag::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  pointer-events:none;
+  background:
+    radial-gradient(135% 78% at 4% -18%,#ffffff2e,#ffffff00 56%),
+    radial-gradient(85% 60% at 92% 118%,#ffffff1c,#ffffff00 62%);
+}
+
+/* Where a nested backdrop-filter works, the rim band carries a real
+   bend and a brightness bump — the thickness of the glass, actually
+   refracting, in the same 1.5px the highlight occupies. Everywhere else
+   the highlight alone stands in for it, which is why it is graduated. */
+@supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+  .gl::before,
+  .icon-btn::before,.prov-btn::before,.toggle::before,
+  .lab-seg::before,.lab-cats::before,.lab-cat::before,.lab-back::before,
+  .lab-bar-name::before,.lab-bar-nav button::before,
+  .lab-card::before,.lab-load::before,.hot.named .tag::before{
+    -webkit-backdrop-filter:blur(2px) brightness(1.07) saturate(120%);
+            backdrop-filter:blur(2px) brightness(1.07) saturate(120%);
+  }
+}
+
+/* Sunken is not hollow. It is the same pane, thicker: more tint, less
+   light through it, one soft occlusion under the top lip where the
+   surround cuts the light off — and no drop, because nothing is above
+   the page here. What it is emphatically not is the old well, which put
+   a white return on the bottom-right and so became a moulded dish. */
+.gl-sunk{
+  background-image:var(--gl-grain),var(--gl-tint-sunk);
+  background-size:120px 120px,auto;background-blend-mode:soft-light,normal;
+  -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin);
+  box-shadow:var(--gl-inner-sunk);
+}
+.gl-sunk::before{
+  background:linear-gradient(0deg,#ffffff45 0%,#ffffff00 30%),
+             linear-gradient(145deg,#ffffff00 0%,#ffffff00 60%,#ffffff42 100%);
+}
+.gl-sunk::after{background:none}
+
+/* Panel scale: wider surfaces are thicker, throw further, and hold more
+   tint because they carry readings that have to stay legible over a
+   moving field rather than over paper. */
+.gl-panel{
+  background-image:var(--gl-grain),var(--gl-tint-panel);
+  background-size:120px 120px,auto;background-blend-mode:soft-light,normal;
+  -webkit-backdrop-filter:var(--gl-blur-panel);backdrop-filter:var(--gl-blur-panel);
+  box-shadow:var(--gl-shadow-panel),var(--gl-inner);
+  --gl-bezel:2px;
+}
+
 /* ============================================================ */
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -196,13 +390,22 @@ body{
 .hud{position:absolute;inset:0;z-index:4}
 
 /* --- chrome --- */
+/* Material comes from the glass recipe; only the geometry is here. The
+   radius went 10 -> 12: at 10 a 36px pane has too little arc for the
+   rim's specular to travel round, and it read as a lit rectangle. */
 .icon-btn{position:absolute;display:grid;place-items:center;width:36px;height:36px;
-  border:1px solid #ffffffb3;border-radius:var(--radius-md);
-  background:#ffffff8f;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
-  box-shadow:var(--shadow-raised);color:var(--ink-600);cursor:pointer;transition:.18s var(--ease-frosted-out)}
-.icon-btn:hover{background:#fff;color:var(--ink-900)}
-.icon-btn svg{width:16px;height:16px;display:block}
-#btnAudio{right:24px;top:24px;border-color:transparent;background:transparent;box-shadow:none}
+  border-radius:var(--radius-lg);
+  color:var(--ink-600);cursor:pointer;
+  transition:box-shadow .18s var(--ease-frosted-out),color .18s var(--ease-frosted-out)}
+/* hover lifts the pane off the page; it does not brighten the fill.
+   Brightening a translucent fill on hover reads as the glass going
+   opaque, which is the one thing the material cannot do. */
+.icon-btn:hover{box-shadow:var(--gl-shadow-lift),var(--gl-inner);color:var(--ink-900)}
+.icon-btn svg{width:16px;height:16px;display:block;position:relative}
+/* not a surface at all — the glyph alone, so it has to leave the material */
+#btnAudio{right:24px;top:24px;background-image:none;box-shadow:none;
+  -webkit-backdrop-filter:none;backdrop-filter:none}
+#btnAudio::before,#btnAudio::after{display:none}
 
 /* --- patient identity --- */
 .identity{position:absolute;left:40px;top:60px}
@@ -327,27 +530,89 @@ body{
 @keyframes rise{to{opacity:1;transform:none}}
 
 /* ---------- floating view toggle ---------- */
-/* Built on section 06's doctrine: the bar is a recessed well and the active tab
-   is the one raised face in it, so which view you are on is told by depth rather
-   than by a block of dark fill. Cool shadow bedded into the well's top-left,
-   white into its bottom-right, no outer shadow — a hollow casts none. The pill
-   inverts that and adds the one wide shadow behind it. */
-.toggle{position:fixed;left:24px;bottom:24px;z-index:50;display:flex;gap:4px;padding:6px;
+/* Was a well holding a raised thumb: which view you were on was told by
+   depth. Depth is gone, and the bar is now one pane with a second,
+   clearer pane inside it — the selected tab is the place where the glass
+   has let more light through, which is a thing glass does. Nothing is
+   dished and nothing is domed. */
+/* It carries more tint and a longer drop than any other control, and the
+   reason is not aesthetic. This is fixed chrome that has to be findable
+   over whatever the page happens to be showing — and what this page
+   mostly shows is a near-white wash, where a pane at the ordinary tint
+   has nothing to be lighter than and effectively disappears. Glass over
+   white can only be found by its edge and its shadow, so both are given
+   the panel's weight rather than a control's. */
+.toggle{position:fixed;left:24px;bottom:24px;z-index:50;display:flex;gap:4px;padding:5px;
   border-radius:999px;
-  background:linear-gradient(145deg,#e0e6f0b3,#f0f4fa99);
-  -webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);
-  box-shadow:inset 3px 3px 7px #7185bd4d, inset -3px -3px 7px #ffffffe0}
-/* ink-600, not ink-400. The inactive tabs sit on a near-white well, where
+  background-image:var(--gl-grain),var(--gl-tint-mid);
+  box-shadow:var(--gl-shadow-panel),var(--gl-inner)}
+/* ink-600, not ink-400. The inactive tabs sit on a near-white pane, where
    ink-400 measures about 2.9:1 — under the floor for text this size. */
-.toggle button{border:0;background:transparent;cursor:pointer;font-family:inherit;
+.toggle button{border:0;background:none;cursor:pointer;font-family:inherit;
   font-size:var(--text-micro);font-weight:var(--w-module);letter-spacing:var(--tracking-overline);
-  color:var(--ink-600);padding:9px 18px;border-radius:999px;
-  transition:.2s var(--ease-frosted-out)}
-.toggle button:hover{color:var(--ink-900)}
+  color:var(--ink-600);padding:9px 18px;border-radius:999px;position:relative;
+  transition:color .2s var(--ease-frosted-out),box-shadow .2s var(--ease-frosted-out),
+             background-color .2s var(--ease-frosted-out)}
+.toggle button:hover{color:var(--ink-900);background-color:#ffffff40}
 .toggle button[aria-pressed="true"]{
   color:#2c3f6e;
-  background:linear-gradient(145deg,#f6f9fdf2,#e7edf7cc);
-  box-shadow:0 9px 18px -13px #435ba166, inset 1px 1px 1px #fffffff2}
+  background-image:var(--gl-tint-solid);
+  /* the selected pane sits *in* the bar, so it throws almost nothing —
+     3px of drop, not 18. What marks it is clarity, not altitude. */
+  box-shadow:0 1px 3px -1px #2a3f6e1f,inset 0 0 12px -6px #ffffffe6}
+/* the one hairline it does get: the top edge only, where a clearer pane
+   set into a foggier one catches the light */
+.toggle button[aria-pressed="true"]::before{content:"";position:absolute;inset:0;
+  border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,#ffffffe0,#ffffff00 42%);
+  -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+          mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+  padding:1px;-webkit-mask-composite:xor;mask-composite:exclude}
+
+/* ------------------------------------------------------------------
+   The tab bar as a refractive lens — one component, as an experiment.
+
+   Everything above is the baseline and stays the baseline: this class is
+   only added when backdrop-filter can actually take an SVG filter, which
+   today is Chromium alone (WebKit 245510 is open, Gecko has never shipped
+   it). This bar is how the study is navigated, so it degrades to the well
+   rather than to a broken surface, and deleting the class plus its script
+   leaves the well untouched.
+
+   It is worth being honest that this departs from section 06 rather than
+   extending it. A recessed surface goes away from you and a lens comes
+   toward you; the doctrine has no lens in it. If this is kept, section 06
+   needs a paragraph, not a silent exception.
+
+   The fill is much thinner than the flat pane's. A lens that also carries
+   an opaque fill is just the pane with a filter attached, and would
+   refract nothing worth seeing.
+
+   Under the flat doctrine this is no longer the exception it used to be.
+   The doctrine's rim term already claims that a pane has thickness and
+   that light bends crossing it; the flat surfaces state that with a
+   graduated highlight because they have no other way to. Here it is
+   actually measured. The bezel is handed to --gl-bezel so the shared rim
+   and the displacement occupy one band rather than two.
+   ------------------------------------------------------------------ */
+.toggle.liquid{
+  --gl-bezel:var(--tab-bezel,11px);
+  /* thin, but not as thin as the first pass: at 17% the bar itself could not
+     be found over the home page's near-white wash, and only the selected pill
+     was visible. 27% is the least that keeps the bar locatable while still
+     leaving the lens something to bend. */
+  background-image:var(--gl-grain),linear-gradient(180deg,#ffffff45,#eef4fd24);
+  -webkit-backdrop-filter:var(--tab-glass);backdrop-filter:var(--tab-glass)}
+/* the specular has to travel much further across an 11px band than a
+   1.5px one, so it is stretched to match — same shape, same phase */
+.toggle.liquid::before{
+  background:
+    linear-gradient(0deg,#ffffffa1 0%,#ffffff00 58%),
+    linear-gradient(145deg,#fffffff0 0%,#ffffff6b 22%,#ffffff00 52%,#ffffff00 100%);
+  -webkit-backdrop-filter:none;backdrop-filter:none}
+.toggle.liquid button[aria-pressed="true"]{
+  background-image:var(--gl-tint-solid);
+  box-shadow:0 1px 3px -1px #2a3f6e26,inset 0 0 12px -6px #ffffffe6}
 
 /* ============================================================
    VIEW 2 · DESIGN SYSTEM
@@ -640,13 +905,18 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .prov-btn,.prov-panel{pointer-events:auto}
 /* outline, frosted, no shadow: the same logic as .tag — an outline in
    this system means "not a status" */
+/* 18px across — the one place the lit rim cannot carry the edge on its
+   own, because there is not enough arc for a graduated highlight to
+   travel. So it keeps the outline, and the outline keeps its meaning.
+   Everything else about it is the glass recipe. */
 .prov-btn{display:grid;place-items:center;width:18px;height:18px;padding:0;
-  border:1px solid var(--border-strong);border-radius:50%;
-  background:#ffffff8f;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  border-radius:50%;--gl-bezel:1px;
+  box-shadow:0 0 0 1px var(--border-strong),var(--gl-shadow),var(--gl-inner);
   font-family:var(--font-sans);font-size:11px;font-weight:var(--w-module);line-height:1;
   color:var(--ink-600);cursor:pointer;transition:.18s var(--ease-frosted-out)}
-.prov-btn:hover,.prov-btn[aria-expanded="true"]{background:#fff;
-  border-color:var(--phenome-blue-400);color:var(--ink-900)}
+.prov-btn:hover,.prov-btn[aria-expanded="true"]{
+  box-shadow:0 0 0 1px var(--phenome-blue-400),var(--gl-shadow-lift),var(--gl-inner);
+  color:var(--ink-900)}
 
 /* Not glass, though it floats: glass borrows the luminance of whatever
    is behind it, and a credit has to stay legible over a dark torso as
@@ -721,110 +991,235 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
 /* ============================================================
    06 GLASS SURFACES
-   The doctrine changed. The old rule was a cut edge and no shadow
-   at all: one flat fill, a near-zero-blur white line along the top
-   face, nothing beneath. That reads as a pane held up to a light.
+   Third doctrine, and the first one that is about glass.
 
-   These surfaces read as pressed out of the page instead. One
-   light sits above and to the left; every surface answers it the
-   same way, and the only thing that varies is whether the surface
-   comes toward you or goes away from you.
+   The first was a cut edge and no shadow: a flat fill with a hard white
+   line along the top face and nothing beneath. That read as a pane held
+   up to a light.
 
-   Raised   a soft diagonal fill, a hairline of white bedded into
-            the top-left inside edge, and one wide shadow dropped
-            below and behind.
-   Recessed the same light, inverted: cool shadow bedded into the
-            top-left, white into the bottom-right. No outer shadow —
-            a hollow cannot cast one.
-   Orb      a sphere, so it takes both at once: white inside the
-            top-left, cool inside the bottom-right, over a radial
-            fill lit from 34% 28%.
+   The second pressed every surface out of the page — a 145deg fill,
+   white bedded into the top-left inside face, cool into the bottom-right,
+   and for a well the same pair inverted. It fixed the missing weight and
+   introduced a worse fault: it sculpted. A dished segmented track, domed
+   pills, modelled spheres for status. That is soft-UI, and soft-UI is
+   moulded plastic. It also made depth carry meaning, so a status was
+   told by how raised its dot looked — a channel the charts in section 05
+   have no way to speak.
 
-   Every tint comes off the brand ramp. The shadow hue is blue-400
-   and the recess hue is blue-300 — the values the two source
-   comps were already built on, which is why they drop straight in.
+   This one is flat, and the material does the work. Every surface is the
+   same sheet of frosted glass laid over the page; what differs between
+   them is only how thick it is and how much light it has let through.
+   Nothing is raised, nothing is hollow, nothing is domed. The six layers
+   are written down once, in the token block at the top of this file, and
+   the recipe that applies them is written once directly under it. What
+   follows is geometry and the demonstrations.
+
+   Two consequences worth stating, because both were arguments:
+
+     Sunken is not hollow.   A segmented track is not a dish. It is the
+     same pane, thicker: more tint, less light through, one soft
+     occlusion under the top lip, and no drop. What made the old well
+     read as moulded was the white return on its bottom-right — the tell
+     that a light was raking across a curved surface. There is no curve.
+
+     A mark is not a sphere.  Status walks the brand ramp as four flat
+     discs, at the weight of any mark on any chart in section 05. Colour
+     is the channel. Depth never was.
    ============================================================ */
-.sg-stage{position:relative;margin-top:22px;padding:52px 44px 56px;border-radius:32px;overflow:hidden;
-  background:linear-gradient(145deg,#edf0f6 0%,#e6eaf2 52%,#dfe4ee 100%)}
-/* the two wide, blurred pools the body comp puts behind everything, so the
-   stage has depth for the surfaces to sit in rather than a flat ground */
-.sg-stage::before,.sg-stage::after{content:"";position:absolute;border-radius:50%;
-  pointer-events:none;filter:blur(34px)}
-.sg-stage::before{left:-160px;top:-160px;width:720px;height:720px;
-  background:radial-gradient(circle,#c4daf799,#c4daf700 68%)}
-.sg-stage::after{right:-160px;bottom:-190px;width:660px;height:660px;
-  background:radial-gradient(circle,#d2e2f880,#d2e2f800 70%)}
+
+/* ---------- the stage ----------
+   The section's own ground is the page's ground: section 03's Page
+   background, scaled into a box the way section 03's own swatch already
+   scales it. The wash on <body> is sized to a viewport, so a box this
+   tall needs the same two pools drawn smaller and a little stronger to
+   read as the same surface — the numbers are lifted off .bgsplit-organ
+   rather than invented, which is why the stage now disappears into the
+   page instead of sitting on it as a blue rectangle.
+
+   This replaces a stage built specifically to be photographed through: a
+   deeper blue-grey wash, five pools out of register in hue as well as in
+   value, and a hairline grid at -14deg for the panes to blur. That was
+   the right instinct about the material and the wrong call about the
+   page. A surface demonstration is still a page, and a section that
+   invents its own ground in order to look good is showing you something
+   the product does not have.
+
+   The cost is real and worth writing down, because someone will be
+   tempted to put the grid back: over a near-white ground with almost no
+   structure in it, frosted glass has very little to show. The panes hold
+   their edge on the rim and the drop rather than on a visible blur. That
+   is not a weaker rendering of the material — it is what this material
+   actually looks like on this page, and a design system that flatters
+   its own components against a ground the product never uses is worse
+   than useless. If the panes need more to work with, the answer is to
+   give the page more, not to give the section a private stage.
+
+   And it carries no background of its own at all, which is the last step
+   of the same argument. Redrawing the wash at box scale got close, but a
+   redrawn wash is not the same wash: the pools land at different sizes
+   against a background-attachment:fixed original, so the stage showed up
+   as a faint ghost rectangle wherever the two disagreed. Transparent, it
+   cannot disagree. There is also nothing left here to establish a
+   backdrop root — no isolation, no clip — so the panes filter the page's
+   own wash rather than a copy of it. */
+.sg-stage{position:relative;margin-top:22px;padding:52px 44px 56px}
 
 .sg-grid{position:relative;z-index:1;display:grid;gap:26px;
   grid-template-columns:repeat(auto-fit,minmax(min(258px,100%),1fr))}
+/* ink-600, not ink-400. This was changed while the stage was a deep
+   blue-grey, where ink-400 measured about 2.1:1, and it stays changed now
+   the stage is the page wash again: on #f4f6fb ink-400 is roughly 2.9:1,
+   which is still under the floor for text this size. */
 .sg-lab{margin-bottom:13px;font-size:var(--text-micro);font-weight:var(--w-module);
-  letter-spacing:var(--tracking-overline);text-transform:uppercase;color:var(--ink-400)}
+  letter-spacing:var(--tracking-overline);text-transform:uppercase;color:var(--ink-600)}
 .sg-col{display:flex;flex-direction:column;gap:14px}
+/* content inside a pane sits above the grain and below the sheen, which
+   is where it is on real glass — so it needs a stacking context of its
+   own and nothing more */
+.sg-pane > *,.sg-card > *,.sg-row > *{position:relative;z-index:1}
 
-/* ---------- raised ---------- */
-.sg-raise{background:linear-gradient(145deg,#f0f4fa9e,#e4eaf46b);
-  -webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);
-  box-shadow:0 10px 22px -16px #435ba152, inset 1px 1px 1px #ffffffb3}
-.sg-pill{border-radius:999px;padding:16px 0;text-align:center;
-  font-size:var(--text-data);font-weight:var(--w-module);color:#2c3f6e}
-.sg-row{display:flex;align-items:center;gap:18px;padding:16px 22px;border-radius:26px}
+/* ---------- pane ---------- */
+.sg-pane{border-radius:22px}
+.sg-row{display:flex;align-items:center;gap:16px;padding:15px 20px;border-radius:22px}
 .sg-row b{display:block;font-size:var(--text-data);font-weight:var(--w-module);color:var(--ink-900)}
 .sg-row span{display:block;margin-top:3px;font-size:var(--text-micro);color:var(--ink-400)}
 
-/* ---------- recessed ---------- */
-.sg-recess{background:linear-gradient(145deg,#e0e6f080,#f0f4fa66);
-  box-shadow:inset 3px 3px 7px #7185bd4d, inset -3px -3px 7px #ffffffb3}
-.sg-seg{display:flex;gap:8px;padding:9px;border-radius:999px}
-.sg-seg > *{flex:1;height:40px;border-radius:50%;display:grid;place-items:center}
-.sg-track{position:relative;height:8px;border-radius:999px}
-.sg-track i{position:absolute;left:0;top:0;bottom:0;width:66%;border-radius:999px;
-  background:linear-gradient(90deg,#7185bdb3,#435ba1d9)}
+/* ---------- buttons ----------
+   Two ranks, one material. The primary is not a block of brand fill laid
+   on top of the glass — it is the same pane with the brand *behind* it,
+   at 83% and 89%, so the backdrop still crosses it and the rim still has
+   something to be a rim of. A fully opaque button in a set of glass ones
+   is the fastest way to make the rest look like film. */
+.sg-btn{display:grid;place-items:center;padding:14px 22px;border-radius:16px;cursor:pointer;
+  font-family:inherit;font-size:var(--text-data);font-weight:var(--w-module);
+  letter-spacing:.01em;color:#2c3f6e;
+  transition:box-shadow .2s var(--ease-frosted-out),color .2s var(--ease-frosted-out)}
+.sg-btn > *{position:relative;z-index:1}
+.sg-btn:hover{box-shadow:var(--gl-shadow-lift),var(--gl-inner);color:var(--ink-900)}
+/* pressed, the pane thickens rather than sinking: the drop goes and the
+   occlusion under the lip arrives. Same vocabulary as a sunken track. */
+.sg-btn:active{box-shadow:var(--gl-inner-sunk)}
+.sg-btn.pri{color:#fff;
+  background-image:var(--gl-grain),linear-gradient(180deg,#1f3b86d4,#142b6ee3)}
+.sg-btn.pri:hover{box-shadow:var(--gl-shadow-lift),inset 0 0 18px -7px #ffffff8c}
+.sg-btn.pri:active{box-shadow:inset 0 1px 3px -1px #0a1e5759,inset 0 0 15px -9px #0a1e5747}
 
-/* ---------- orb ---------- */
-.sg-orb{border-radius:50%;display:grid;place-items:center;
-  box-shadow:0 5px 11px -8px #435ba14d, inset 2px 2px 6px #ffffffbf, inset -3px -3px 8px #435ba13d}
-.sg-orb.pale{background:radial-gradient(circle at 34% 28%,#fffffff5,#c3d7f28c 48%,#9ab6e4b8)}
-.sg-orb.mid {background:radial-gradient(circle at 34% 28%,#fffffff5,#aec6ec99 48%,#6b8cbebf)}
-.sg-orb.deep{background:radial-gradient(circle at 34% 28%,#fffffff5,#b2c5e98c 48%,#435ba1cc)}
-.sg-orbs{display:flex;gap:16px;padding:16px 20px;border-radius:999px}
-.sg-orbs .sg-orb{width:46px;height:46px}
-.sg-thumb{width:26px;height:26px;border-radius:50%;
-  background:radial-gradient(circle at 34% 28%,#fffffff5,#c4d6f099 50%,#7a98d6d1);
-  box-shadow:0 5px 10px -6px #435ba166, inset 2px 2px 5px #ffffffcc, inset -2px -2px 6px #435ba142}
+/* ---------- search field ----------
+   A field is a place to put something, so under the old doctrine it
+   would have been a well and would have been dished. It is a pane like
+   everything else; what says you may type in it is the focus ring, not
+   the moulding. The ring is 1px of blue-400 at 28% laid outside the rim,
+   the only stated line in the section and the only one that earns it. */
+.sg-field{display:flex;align-items:center;gap:11px;height:50px;padding:0 17px;border-radius:16px}
+.sg-field svg{position:relative;z-index:1;flex:none;width:17px;height:17px;color:var(--ink-400)}
+.sg-field input{position:relative;z-index:1;flex:1;min-width:0;border:0;background:none;outline:0;
+  font-family:inherit;font-size:var(--text-data);color:var(--ink-900);letter-spacing:var(--tracking-body)}
+.sg-field input::placeholder{color:var(--ink-400)}
+.sg-field:focus-within{box-shadow:0 0 0 1px #435ba14a,var(--gl-shadow-lift),var(--gl-inner)}
+.sg-field kbd{position:relative;z-index:1;flex:none;padding:3px 7px;border-radius:6px;
+  font-family:var(--font-numeral);font-size:11.5px;color:var(--ink-400);
+  background:#ffffff5c;box-shadow:inset 0 0 0 1px #2a3f6e14}
 
-/* ---------- frosted card: the one that floats over the live 3D field ---------- */
-/* Heavier blur and a real 1px white border, unlike the raised surfaces above.
-   Over a moving field a bedded highlight alone loses the edge, so this variant
-   states it — the only place in the section where an edge is drawn rather than lit. */
-.sg-card{padding:24px 28px 26px;border-radius:28px;
-  background:linear-gradient(140deg,#ffffff80,#ebf2fb42);
-  -webkit-backdrop-filter:blur(30px) saturate(150%);backdrop-filter:blur(30px) saturate(150%);
-  border:1px solid #ffffff8c;
-  box-shadow:0 16px 34px -22px #435ba147, inset 1px 1px 1px #ffffff9e}
+/* ---------- segmented tabs ----------
+   The one component the section draws twice: the bar, and the selected
+   thing in it. Under the old rule that pair was a dish holding a dome.
+   Here the bar is a pane and the selection is the place where the glass
+   has let more light through — clearer, not closer. Its drop is 3px, not
+   18: it is *in* the bar, and altitude is not what marks it. */
+.sg-tabs{display:flex;gap:4px;padding:4px;border-radius:999px}
+.sg-tabs button{flex:1;border:0;background:none;cursor:pointer;position:relative;
+  padding:9px 6px;border-radius:999px;font-family:inherit;
+  font-size:var(--text-micro);font-weight:var(--w-module);color:var(--ink-600);
+  transition:color .2s var(--ease-frosted-out),box-shadow .2s var(--ease-frosted-out),
+             background-color .2s var(--ease-frosted-out)}
+.sg-tabs button:hover{color:var(--ink-900);background-color:#ffffff3d}
+.sg-tabs button[aria-selected="true"]{color:#2c3f6e;background-image:var(--gl-tint-solid);
+  box-shadow:0 1px 3px -1px #2a3f6e1f,inset 0 0 12px -6px #ffffffe6}
+.sg-tabs button[aria-selected="true"]::before{content:"";position:absolute;inset:0;
+  border-radius:inherit;pointer-events:none;padding:1px;
+  background:linear-gradient(180deg,#ffffffe0,#ffffff00 42%);
+  -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+          mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+  -webkit-mask-composite:xor;mask-composite:exclude}
+
+/* ---------- sunken: track and thumb ----------
+   The track is the thicker pane, and the thumb is the one solid object
+   in the section — near-opaque, flat, two soft drops. It has to be
+   solid: a translucent handle over a translucent track is two panes
+   deep, and at 22px there is not enough area to read either. */
+.sg-track{position:relative;height:10px;border-radius:999px}
+.sg-track i{position:absolute;left:1px;top:1px;bottom:1px;width:66%;border-radius:999px;
+  background:linear-gradient(90deg,#9db3d9,#435ba1)}
+.sg-thumb{width:22px;height:22px;border-radius:50%;background:#fbfcfe;
+  box-shadow:0 1px 2px #2a3f6e26,0 5px 11px -5px #2a3f6e3d}
+
+/* ---------- marks ----------
+   Flat discs on the brand ramp. Four steps, one channel, no modelling.
+   The faint navy ring at 8% is not an edge in the sense the panes use —
+   it is what keeps a pale disc from dissolving into a pale pane, and it
+   is the same hairline the chart marks in section 05 already carry. */
+.sg-mark{flex:none;border-radius:50%;display:grid;place-items:center;
+  background:var(--gl-mark-2);box-shadow:0 0 0 1px #2a3f6e14}
+.sg-mark.s1{background:var(--gl-mark-1)}
+.sg-mark.s2{background:var(--gl-mark-2)}
+.sg-mark.s3{background:var(--gl-mark-3)}
+.sg-mark.s4{background:var(--gl-mark-4)}
+.sg-marks{display:flex;align-items:center;justify-content:space-between;
+  padding:15px 26px;border-radius:999px}
+.sg-marks .sg-mark{width:40px;height:40px}
+/* the ramp as it is actually used: a row of readings, mark and label at
+   chart weight, so the two can be compared side by side on this page */
+.sg-ramp{display:flex;flex-direction:column;gap:9px;margin-top:2px}
+.sg-ramp div{display:flex;align-items:center;gap:11px;font-size:var(--text-micro);color:var(--ink-600)}
+.sg-ramp .sg-mark{width:11px;height:11px}
+.sg-ramp b{margin-left:auto;font-family:var(--font-numeral);font-weight:300;
+  font-size:15px;color:var(--ink-900)}
+
+/* ---------- the panel, over the live field ----------
+   This was the one variant that stated its edge with a real 1px border,
+   on the argument that a bedded highlight loses itself against something
+   that changes underneath. The argument was right and the remedy was
+   wrong: a border is the same weight on all four sides, so it reads as a
+   drawn rectangle, and over a moving field it is the drawn rectangle you
+   see rather than the glass. The graduated rim holds the edge because it
+   is never the same weight twice; what this variant gets instead is
+   thickness — 32px of blur, a heavier tint, and a longer throw. */
+.sg-card{padding:24px 28px 26px;border-radius:26px}
 .sg-card h4{font-family:var(--font-serif-xsmall);font-size:24px;font-weight:var(--w-serif-title);
   color:var(--ink-900)}
 .sg-chip{padding:4px 13px;border-radius:999px;font-size:11.5px;font-weight:var(--w-module);
-  letter-spacing:.05em;color:#3a5188;background:#435ba124}
+  letter-spacing:.05em;color:#33487c;background:#ffffff69;box-shadow:inset 0 0 0 1px #2a3f6e14}
 .sg-card .sub-lab{margin-top:6px;font-size:var(--text-micro);color:var(--ink-600)}
 .sg-big{font-family:var(--font-numeral);font-weight:var(--w-numeral);font-size:76px;
   line-height:.8;letter-spacing:-1px;color:var(--ink-900)}
+/* the band keeps its ramp and loses its inset: it is printed on the
+   glass, not cut into it */
 .sg-zone{position:relative;height:10px;border-radius:999px;
-  background:linear-gradient(90deg,#96a8cc59 0 34%,#7896ce52 34% 60%,#435ba180 60% 100%);
-  box-shadow:inset 0 1px 2px #7185bd40}
-.sg-zone u{position:absolute;left:60%;top:50%;width:2px;height:16px;
-  transform:translate(-50%,-50%);background:#3a4a7259}
-.sg-zone b{position:absolute;left:88%;top:50%;width:18px;height:18px;
-  transform:translate(-50%,-50%);border-radius:50%;
-  background:radial-gradient(circle at 34% 30%,#fff,#9fb9e6 60%,#5f83d2);
-  box-shadow:0 4px 10px -3px #435ba199, inset 1px 1px 1px #ffffffe6}
+  background:linear-gradient(90deg,#96a8cc59 0 34%,#7896ce52 34% 60%,#435ba180 60% 100%)}
+.sg-zone u{position:absolute;left:60%;top:50%;width:1px;height:16px;
+  transform:translate(-50%,-50%);background:#2a3f6e4a}
+/* the reading's own mark, and the one place a mark is allowed to be
+   bigger than the ramp's: it is a value, not a category */
+.sg-zone b{position:absolute;left:88%;top:50%;width:16px;height:16px;
+  transform:translate(-50%,-50%);border-radius:50%;background:#2f4a90;
+  box-shadow:0 0 0 2.5px #ffffffb8,0 2px 5px -2px #2a3f6e6b}
 .sg-scale{display:flex;justify-content:space-between;margin-top:9px;
   font-size:11.5px;color:var(--ink-400)}
 .sg-hair{height:1px;margin:16px 0;
-  background:linear-gradient(90deg,transparent,#5a6e962e,transparent)}
+  background:linear-gradient(90deg,transparent,#2a3f6e26,transparent)}
 .sg-line{display:flex;justify-content:space-between;align-items:baseline;gap:14px}
 .sg-line > span{font-size:var(--text-data);color:var(--ink-label)}
 .sg-line em{font-style:normal;color:var(--ink-400);font-size:var(--text-micro)}
 .sg-line b{font-family:var(--font-numeral);font-weight:300;font-size:26px;color:var(--ink-900)}
+
+/* There was a second pane behind this one here for a while, overlapping
+   it, on the argument that watching one edge cross another is the only
+   direct proof that these are two sheets rather than two tints. Cut. The
+   doctrine tells the lab page to keep 14px between its panels precisely
+   so that never happens — two frosted surfaces in line double the blur
+   and run two rims through each other — and a section cannot demonstrate
+   a thing it forbids. The grid passing under a pane already carries the
+   proof, and it carries it without breaking a rule. */
 
 @media (max-width:720px){
   .sg-stage{padding:36px 18px 40px}
@@ -1227,76 +1622,87 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
     <!-- GLASS SURFACES -->
     <section class="blk" style="margin-top:80px">
       <h2 class="sec-h">06 · Glass surfaces</h2>
-      <p class="sec-intro">One light, above and to the left. Every surface answers it the same way, and the only thing that changes is whether the surface comes toward you or goes away from you: raised takes a bedded white highlight on its top-left inside edge and drops one wide shadow behind it, recessed inverts exactly that and casts nothing, because a hollow cannot. This replaces the earlier rule of a cut edge and no shadow at all — that read as a pane held up to a light, and these read as pressed out of the page.</p>
+      <p class="sec-intro">One sheet of frosted glass, laid flat over the page. Nothing is raised, hollow or domed: what differs between surfaces is how thick the glass is and how much light it has let through. This replaces the previous rule, which pressed every surface out of the page with a directional emboss — that fixed the missing weight and introduced a worse fault, because it sculpted. A dished track, domed pills and modelled spheres for status are soft-UI, and soft-UI reads as moulded plastic. It also made depth carry meaning, which is a channel the charts in section 05 have no way to speak.</p>
 
       <div class="sg-stage">
         <div class="sg-grid">
 
           <div class="sg-col">
-            <div class="sg-lab">Raised</div>
-            <div class="sg-raise sg-row">
-              <div class="sg-orb pale" style="flex:none;width:52px;height:52px">
-                <svg width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="#2c3f6e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a5 5 0 0 1 10 0c0 4 1.6 5.5 1.6 5.5H4.4S6 13 6 9Z"/><path d="M9.2 17.5a2 2 0 0 0 3.6 0"/></svg>
+            <div class="sg-lab">Pane</div>
+            <div class="gl sg-pane sg-row">
+              <div class="sg-mark s2" style="width:46px;height:46px">
+                <svg width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="#22345f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a5 5 0 0 1 10 0c0 4 1.6 5.5 1.6 5.5H4.4S6 13 6 9Z"/><path d="M9.2 17.5a2 2 0 0 0 3.6 0"/></svg>
               </div>
               <div><b>Scan ready</b><span>Results in 10 minutes</span></div>
             </div>
-            <div class="sg-raise sg-pill" style="width:172px">Send</div>
-            <p class="note" style="font-size:var(--text-micro)">The edge is lit, not drawn: a 1px white inset along the top-left face, and the shadow below is deepened from blue-400 so the surface and its ground read as one material.</p>
+            <div style="display:flex;gap:10px">
+              <button class="gl sg-btn pri" style="flex:1">Send</button>
+              <button class="gl sg-btn" style="flex:1">Later</button>
+            </div>
+            <p class="note" style="font-size:var(--text-micro)">The rim is 1px, masked to the perimeter and graduated — bright on the top-left arc, gone by the middle, with a faint return along the bottom where light has crossed the thickness. It is not a border: a border is the same weight on all four sides, and so reads as a drawn line rather than a lit edge. The primary button keeps the brand <em>behind</em> the glass at about 85%, so the backdrop still crosses it.</p>
           </div>
 
           <div class="sg-col">
-            <div class="sg-lab">Recessed</div>
-            <div class="sg-recess sg-seg" style="width:222px">
-              <div class="sg-raise" style="border-radius:50%">
-                <svg width="16" height="16" viewBox="0 0 16 16" stroke="#4a6bb0" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 8h8"/></svg>
-              </div>
-              <div class="sg-orb mid">
-                <svg width="16" height="16" viewBox="0 0 16 16" stroke="#fff" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 4v8M4 8h8"/></svg>
-              </div>
-              <div class="sg-raise" style="border-radius:50%">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#4a6bb0" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4"/><path d="M10 10l3 3"/></svg>
-              </div>
+            <div class="sg-lab">Controls</div>
+            <label class="gl sg-field">
+              <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7.6" cy="7.6" r="4.6"/><path d="M11.2 11.2 15 15"/></svg>
+              <input type="search" placeholder="Search readings" aria-label="Search readings">
+              <kbd>⌘K</kbd>
+            </label>
+            <div class="gl sg-tabs" role="tablist" aria-label="Range">
+              <button role="tab" aria-selected="true">Scan</button>
+              <button role="tab" aria-selected="false">Year</button>
+              <button role="tab" aria-selected="false">All</button>
             </div>
             <div style="position:relative;height:26px;display:flex;align-items:center">
-              <div class="sg-recess sg-track" style="width:100%"><i></i></div>
+              <div class="gl gl-sunk sg-track" style="width:100%"><i></i></div>
               <div class="sg-thumb" style="position:absolute;left:66%;transform:translateX(-50%)"></div>
             </div>
-            <p class="note" style="font-size:var(--text-micro)">The same light, inverted — cool shadow bedded top-left, white bottom-right — and no outer shadow at all. A well holds the raised things that sit in it.</p>
+            <p class="note" style="font-size:var(--text-micro)">Sunken is not hollow. A track is the same pane, thicker: more tint, less light through it, one soft occlusion under the top lip, and no drop. What made the old well read as moulded was the white return on its bottom-right — the tell that a light was raking across a curve. There is no curve. The selected tab is the place the glass has let more light through; it is clearer, not closer, and throws 3px rather than 18.</p>
           </div>
 
           <div class="sg-col">
-            <div class="sg-lab">Orb</div>
-            <div class="sg-raise sg-orbs">
-              <div class="sg-orb pale"></div>
-              <div class="sg-orb mid"></div>
-              <div class="sg-orb deep"></div>
+            <div class="sg-lab">Marks</div>
+            <div class="gl sg-marks">
+              <div class="sg-mark s1"></div>
+              <div class="sg-mark s2"></div>
+              <div class="sg-mark s3"></div>
+              <div class="sg-mark s4"></div>
             </div>
-            <p class="note" style="font-size:var(--text-micro)">A sphere takes both at once: white inside the top-left, cool inside the bottom-right, over a radial fill lit from 34% 28%. Depth carries state here — a status ladder walked across the ramp instead of red, amber, green.</p>
+            <div class="sg-ramp">
+              <div><i class="sg-mark s1"></i>Within band<b>4</b></div>
+              <div><i class="sg-mark s2"></i>Watch<b>2</b></div>
+              <div><i class="sg-mark s3"></i>Follow up<b>1</b></div>
+              <div><i class="sg-mark s4"></i>Act now<b>0</b></div>
+            </div>
+            <p class="note" style="font-size:var(--text-micro)">Flat discs on the brand ramp, at the weight of any mark in section 05 — shown twice at the two sizes they are used at, so the pair can be checked against each other here. The orb is gone: it was the one modelled object in a system whose charts are all flat, and it put a reading's severity into how domed its dot looked. Colour is the channel. Depth never was.</p>
           </div>
 
         </div>
 
-        <div class="sg-grid" style="margin-top:34px;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr))">
+        <div class="sg-grid" style="margin-top:38px;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr))">
           <div class="sg-col">
-            <div class="sg-lab">Frosted card, over the live field</div>
-            <div class="sg-card">
-              <div class="sg-line">
-                <h4>Kidney function</h4>
-                <span class="sg-chip">Normal</span>
-              </div>
-              <div class="sub-lab">Enhanced filtration · mL/min/1.73m&sup2;</div>
-              <div style="display:flex;align-items:flex-end;gap:14px;margin-top:14px">
-                <div class="sg-big num">116</div>
-                <div style="font-size:var(--text-micro);color:var(--ink-400);line-height:1.5;padding-bottom:8px">above the<br>expected band</div>
-              </div>
-              <div style="margin-top:26px">
-                <div class="sg-zone"><u></u><b></b></div>
-                <div class="sg-scale"><span>Low</span><span>Mild&nbsp;·&nbsp;60</span><span>Normal&nbsp;·&nbsp;90</span></div>
-              </div>
-              <div class="sg-hair"></div>
-              <div class="sg-line">
-                <span>Cystatin C</span>
-                <b class="num">0.58<em>&nbsp;mg/L</em></b>
+            <div class="sg-lab">Panel, over the live field</div>
+            <div>
+              <div class="gl gl-panel sg-card">
+                <div class="sg-line">
+                  <h4>Kidney function</h4>
+                  <span class="sg-chip">Normal</span>
+                </div>
+                <div class="sub-lab">Enhanced filtration · mL/min/1.73m&sup2;</div>
+                <div style="display:flex;align-items:flex-end;gap:14px;margin-top:14px">
+                  <div class="sg-big num">116</div>
+                  <div style="font-size:var(--text-micro);color:var(--ink-400);line-height:1.5;padding-bottom:8px">above the<br>expected band</div>
+                </div>
+                <div style="margin-top:26px">
+                  <div class="sg-zone"><u></u><b></b></div>
+                  <div class="sg-scale"><span>Low</span><span>Mild&nbsp;·&nbsp;60</span><span>Normal&nbsp;·&nbsp;90</span></div>
+                </div>
+                <div class="sg-hair"></div>
+                <div class="sg-line">
+                  <span>Cystatin C</span>
+                  <b class="num">0.58<em>&nbsp;mg/L</em></b>
+                </div>
               </div>
             </div>
           </div>
@@ -1304,16 +1710,24 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
           <div>
             <div class="xlate" style="grid-template-columns:1fr;margin-top:0;padding-top:0;border-top:0">
               <div>
-                <span>Why this card draws its edge</span>
-                <p>It is the one surface here that floats over a moving 3D field rather than over paper. A bedded highlight alone loses the edge against something that changes underneath it, so this variant states the edge with a <b>1px white border</b> and doubles the blur to 30px. Everywhere else the edge stays lit.</p>
+                <span>Why frosted glass is not a grey overlay</span>
+                <p>The backdrop filter carries a <b>brightness lift</b> as well as a blur, and that single term is the whole difference. Ground glass scatters light forward, so what is behind it comes out lighter — never darker. A pane that only blurs and tints is a mask, and it is why so much of this material on the web reads as dirty acrylic.</p>
               </div>
               <div style="margin-top:22px">
-                <span>Colour</span>
-                <p>Nothing is invented for this section. The shadow hue is <b>blue-400</b>, the recess hue <b>blue-300</b>, and the orbs walk from blue-200 through identity-1 to blue-400 — the values the two source comps were already built on, which is why they drop in without translation.</p>
+                <span>What the stage is</span>
+                <p>Nothing. It is the page — section 03's background, unredrawn, showing straight through. Redrawing that wash at box scale was tried and came close, but a copy is not the original: the pools land at different sizes against a viewport-fixed wash, so the stage appeared as a faint ghost rectangle wherever the two disagreed. It is deliberately <b>not</b> a stage built for the material. An earlier pass gave this section a deeper ground and a hairline grid for the panes to blur, which made the glass far more legible and made the section a lie: a design system that flatters its components against a ground the product never uses is worse than useless. Over the real page the panes have little to blur and hold their edge on the rim and the drop instead. That is what this material looks like here. If it needs more to work with, the page is what should change.</p>
+              </div>
+              <div style="margin-top:22px">
+                <span>Grain</span>
+                <p>Ground glass has tooth, so every surface tiles a monochrome noise over 120px, blended <b>soft-light</b> so it lightens and darkens in equal measure. It is the cheapest thing in the section and the one that does most: without it a translucent rectangle reads as film, however well the edges are lit. Overlay was tried first and dulled the panes to grey — a grain that only darkens is dirt on the glass.</p>
               </div>
               <div style="margin-top:22px">
                 <span>Where the light is</span>
-                <p>Above and to the left, on every surface, without exception. One inconsistent highlight is enough to flatten the whole set, which is the failure this doctrine exists to prevent.</p>
+                <p>Above and to the left, on every surface, without exception — the one clause carried over intact from the previous doctrine. It survived because the failure it prevents has not changed: a single inconsistent highlight flattens the whole set.</p>
+              </div>
+              <div style="margin-top:22px">
+                <span>Refraction</span>
+                <p>Where a nested backdrop filter is supported, the rim's 1.5px band carries a real bend and a brightness bump — the thickness of the glass, actually refracting, inside the same band the highlight occupies. Everywhere else the graduated highlight stands in for it, which is why it is graduated rather than even.</p>
               </div>
             </div>
           </div>
@@ -1329,6 +1743,156 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   <button id="tabLab" aria-pressed="false">Body page</button>
   <button id="tabSpec" aria-pressed="false">Design system</button>
 </div>
+
+<!-- Host for the tab bar's displacement filter. It has to be in the document
+     for url(#id) to resolve; a detached fragment silently fails. -->
+<svg id="tabGlassDefs" aria-hidden="true" style="position:fixed;width:0;height:0;overflow:hidden"></svg>
+
+<script>
+/* ==================================================================
+   The tab bar's lens. Self-contained on purpose: this block and the
+   .toggle.liquid rules are the whole experiment, and removing both
+   restores the recessed well with nothing left behind.
+
+   The technique is feImage carrying a procedurally built displacement
+   map into feDisplacementMap, then that filter used as a
+   backdrop-filter. Three things about it are easy to get wrong and all
+   three are load-bearing:
+
+     · The filter region is in the ELEMENT's coordinates, not the
+       page's. Page coordinates render almost nothing plus a stray arc,
+       which reads exactly like "the browser cannot do this".
+     · color-interpolation-filters must be sRGB. The SVG default is
+       linearRGB, which remaps the map's neutral grey and shifts the
+       whole surface by a constant fraction of the scale.
+     · The map must be fully opaque. Chromium premultiplies filter
+       inputs, so any alpha below 255 drags the red and green channels
+       down and injects a shift toward the top-left.
+
+   The field is a rounded-rect signed distance field rather than a
+   radial one: this bar is a 385x46 pill, and a radial map stretched to
+   that would give a bezel thick at the top and thin at the ends —
+   reporting the bar's aspect ratio instead of its refraction.
+   ================================================================== */
+(function(){
+"use strict";
+var bar = document.querySelector('.toggle');
+var defs = document.getElementById('tabGlassDefs');
+if (!bar || !defs) return;
+
+/* Grammar support only — a browser may parse this and still render
+   nothing, so the class is added after a live check further down. */
+var claims = (window.CSS && CSS.supports &&
+  (CSS.supports('backdrop-filter', 'url(#x)') ||
+   CSS.supports('-webkit-backdrop-filter', 'url(#x)')));
+if (!claims) return;                       // the well is the fallback
+
+/* Tuned on this page, over the design-system sheet, which is the one tab
+   with real detail behind the bar. At scale 78 the refracted text streaks
+   and reads as dirt; at 42 the bend is barely there. 56 bends visibly and
+   stays clean. The shift is scale/2, so this is +/-28px. */
+var BEZEL = 12, CURVE = 2.2, IOR = 1.45, SCALE = 56;
+
+/* How far a ray landing at depth u into the bezel comes out sideways.
+   u is 0 at the rim and 1 at the inner edge, where the slope reaches 0
+   so the glass meets its own flat middle tangentially — which is why
+   the tab labels themselves sit on undisplaced backdrop. */
+function profile() {
+  var N = 256, P = new Float32Array(N), m = new Float32Array(N), i, peak = 0;
+  for (i = 0; i < N; i++) {
+    var u = i / (N - 1);
+    P[i] = Math.pow(1 - Math.pow(1 - u, CURVE), 1 / CURVE);
+  }
+  var SMAX = Math.tan(1.45);               // ~83deg, or tan() runs away
+  for (i = 0; i < N; i++) {
+    var a = P[Math.max(0, i - 1)], b = P[Math.min(N - 1, i + 1)];
+    var s = (b - a) * (N - 1) / 2;
+    if (!isFinite(s) || s > SMAX) s = SMAX;
+    if (s < 0) s = 0;
+    var t1 = Math.atan(s), t2 = Math.asin(Math.min(1, Math.sin(t1) / IOR));
+    m[i] = Math.tan(t1 - t2);
+    if (m[i] > peak) peak = m[i];
+  }
+  /* normalised, so amplitude lives entirely in the scale attribute and
+     the map never needs rebuilding to change how strong the bend is */
+  if (peak > 0) for (i = 0; i < N; i++) m[i] /= peak;
+  return m;
+}
+
+function buildMap(w, h) {
+  var r = Math.min(w, h) / 2;              // a pill: radius is half the short side
+  var b = Math.min(BEZEL, r);
+  var m = profile(), hw = w / 2, hh = h / 2;
+  var buf = new Uint8ClampedArray(w * h * 4);
+  for (var y = 0; y < h; y++) {
+    for (var x = 0; x < w; x++) {
+      var px = x + 0.5, py = y + 0.5;
+      var qx = Math.abs(px - hw) - (hw - r), qy = Math.abs(py - hh) - (hh - r);
+      var ax = Math.max(qx, 0), ay = Math.max(qy, 0);
+      var d = Math.min(Math.max(qx, qy), 0) + Math.sqrt(ax * ax + ay * ay) - r;
+      var e = -d, vx = 0, vy = 0;
+      if (e > 0 && e < b) {
+        var mag = m[Math.min(255, (e / b * 255) | 0)];
+        var gx, gy;
+        if (ax > 0 || ay > 0) { var L = Math.sqrt(ax * ax + ay * ay) || 1; gx = ax / L; gy = ay / L; }
+        else if (qx > qy) { gx = 1; gy = 0; }
+        else { gx = 0; gy = 1; }
+        vx = gx * (px < hw ? -1 : 1) * mag;
+        vy = gy * (py < hh ? -1 : 1) * mag;
+      }
+      var i = (y * w + x) * 4;
+      /* half-LSB ordered dither: 8-bit channels quantise the shift into
+         steps of scale/255 px, and without this the bend contours */
+      var dth = ((x ^ y) & 1) ? 0.5 : -0.5;
+      buf[i]     = 128 + 127 * vx + dth;
+      buf[i + 1] = 128 + 127 * vy + dth;
+      buf[i + 2] = 128;
+      buf[i + 3] = 255;                    // not optional, see the note above
+    }
+  }
+  var cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  cv.getContext('2d').putImageData(new ImageData(buf, w, h), 0, 0);
+  return cv.toDataURL('image/png');
+}
+
+var lastKey = '';
+function build() {
+  var rect = bar.getBoundingClientRect();
+  var w = Math.round(rect.width), h = Math.round(rect.height);
+  if (w < 8 || h < 8) return;
+  var key = w + 'x' + h;
+  if (key === lastKey) return;             // the bar only resizes with the font
+  lastKey = key;
+
+  var pad = Math.ceil(SCALE / 2) + 2;      // a full-amplitude shift must land inside the region
+  defs.innerHTML =
+    '<filter id="tabGlass" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"' +
+    ' x="' + (-pad) + '" y="' + (-pad) + '" width="' + (w + pad * 2) + '" height="' + (h + pad * 2) + '"' +
+    ' color-interpolation-filters="sRGB">' +
+      '<feImage href="' + buildMap(w, h) + '" preserveAspectRatio="none"' +
+      ' x="0" y="0" width="' + w + '" height="' + h + '" result="map"/>' +
+      '<feDisplacementMap in="SourceGraphic" in2="map" scale="' + SCALE + '"' +
+      ' xChannelSelector="R" yChannelSelector="G" result="lens"/>' +
+      /* not a design blur: this smears the 8-bit stair-steps */
+      '<feGaussianBlur in="lens" stdDeviation="0.3"/>' +
+    '</filter>';
+
+  bar.style.setProperty('--tab-glass', 'url(#tabGlass) blur(5px) saturate(160%)');
+  bar.style.setProperty('--tab-bezel', BEZEL + 'px');
+  bar.classList.add('liquid');
+}
+
+build();
+/* the bar is text-sized, so it only reflows when the font metrics change,
+   but a zoom or a font swap does exactly that */
+if (window.ResizeObserver) new ResizeObserver(build).observe(bar);
+window.addEventListener('resize', build);
+
+/* a handle, the same way the figure pages expose theirs */
+window.__tabGlass = { build: build, buildMap: buildMap, bar: bar };
+})();
+</script>
 
 <script>
 (function(){
@@ -2798,66 +3362,68 @@ try {
   #labBg{position:absolute;inset:0;pointer-events:none}
 
   /* ---------- shared glass · section 06's doctrine ----------
-     This page was built before section 06 was rewritten, and every surface on
-     it still carried the old rule: one flat fill, a white line drawn round all
-     four edges, nothing beneath. Over a near-white stage that line has nothing
-     to separate from, so the chrome had no weight at all — the readings card
-     read as loose text lying on the wash, and the bottom bar's right end simply
-     stopped being a surface.
+     This page had its own emboss recipe written out in five variables, from
+     the doctrine section 06 has since replaced. The variables stay, because
+     every surface below still names them and they are the reason the light was
+     never inconsistent — but they are now aliases onto the flat tokens at the
+     top of the file, so this page and the design system cannot drift apart.
 
-     The doctrine's four parts are the fix, and only one of them was ever here:
+     Two of the aliases change meaning rather than value, and both are worth
+     reading before editing anything below:
 
-       fill      a soft diagonal, so the surface is lit across rather than flat
-       edge      stated, 1px white — see below
-       highlight a hairline of white bedded into the top-left inside face
-       shadow    one wide drop, below and behind
+       --glass-lit   was a hairline of white bedded into the top-left inside
+                     face — half of an emboss. It is now an even inner glow:
+                     the thickness of the pane, which has no direction.
+       --glass-well  was a dish, cool bedded top-left and white returned
+                     bottom-right. It is now one soft occlusion under the top
+                     lip and nothing else. A pressed surface here is glass
+                     getting thicker, not a hollow being scooped.
 
-     The edge stays drawn here, and that is the doctrine's own instruction
-     rather than a carry-over: the frosted-card variant states its edge because
-     it is the one surface in section 06 that floats over a moving 3D field, and
-     on this page *everything* does. A bedded highlight alone loses the edge
-     against something that changes underneath it.
-
-     The light sits above and to the left on every surface without exception,
-     which is why the three shadows are variables and not literals — one
-     inconsistent highlight flattens the whole set, and that failure cannot
-     happen if there is only one place to write it down.
-
-     Every hue comes off the brand ramp: the drop is blue-400 (#435ba1), the
-     well blue-300 (#7185bd). Nothing is invented for this page. */
+     The drawn 1px white edge is gone from every surface on the page. The
+     argument for it was that a bedded highlight loses itself against a moving
+     3D field, which was true; the remedy was wrong. A border carries the same
+     weight on all four sides, so over a live field it is the drawn rectangle
+     you see rather than the glass. The graduated rim in the recipe holds the
+     edge because it is nowhere the same weight twice. */
   #labWrap{
-    --glass-lit:inset 1px 1px 1px #ffffffb3;
-    --glass-drop:0 12px 26px -18px #435ba159;
-    /* hover does not brighten the fill, it raises the surface further off the
-       page — the same light, a longer throw */
-    --glass-lift:0 17px 32px -16px #435ba173;
-    /* a hollow casts nothing, so this is the one recipe with no outer shadow */
-    --glass-well:inset 3px 3px 7px #7185bd4d, inset -3px -3px 7px #ffffffb3;
-    /* panels are wider and heavier than controls, so they throw further */
-    --glass-panel-drop:0 18px 38px -22px #435ba152}
+    --glass-lit:var(--gl-inner);
+    --glass-drop:var(--gl-shadow);
+    /* hover does not brighten the fill, it lifts the pane further off the
+       page — the same light, a longer throw. Brightening a translucent fill
+       reads as the glass going opaque, which is the one thing it cannot do. */
+    --glass-lift:var(--gl-shadow-lift);
+    --glass-well:var(--gl-inner-sunk);
+    /* panels are thicker than controls, so they throw further */
+    --glass-panel-drop:var(--gl-shadow-panel)}
 
   /* ---------- top bar ---------- */
   .lab-top{position:absolute;left:0;right:0;top:0;padding:22px 26px;display:flex;align-items:center;
     pointer-events:none;z-index:6}
-  /* A segmented control is the one component section 06 draws twice: a well,
-     and the raised thing sitting in it. It was a flat frosted pill holding a
-     flat blue one, which said nothing about which of the two was selected
-     beyond colour. Now the track is recessed — cool shadow bedded top-left,
-     white bottom-right, no outer shadow — and the active segment is the only
-     surface in it that comes toward you. */
-  .lab-seg{margin:0 auto;display:flex;gap:3px;padding:5px;border-radius:999px;pointer-events:auto;
-    background:linear-gradient(145deg,#e0e6f0b8,#f0f4fa9e);border:1px solid #ffffffb3;
-    -webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);
-    box-shadow:var(--glass-well)}
-  .lab-seg button{border:0;cursor:pointer;padding:8px 20px;border-radius:999px;background:transparent;
+  /* A segmented control is the one component section 06 draws twice: the bar,
+     and the selected thing in it. It has been a flat frosted pill holding a
+     flat blue one, and then a dish holding a dome. It is now a pane holding a
+     clearer pane — the brand stays, because a selection has to read as one,
+     but it sits *behind* the glass rather than on top of it, so the backdrop
+     still crosses the selected segment and it belongs to the same material as
+     the bar around it. */
+  .lab-seg{margin:0 auto;display:flex;gap:3px;padding:5px;border-radius:999px;pointer-events:auto}
+  .lab-seg button{position:relative;border:0;cursor:pointer;padding:8px 20px;border-radius:999px;
+    background:transparent;
     font-family:var(--font-sans);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
     color:var(--ink-600);transition:.22s var(--ease-frosted-out)}
   /* the unselected segment stays bare: it is floor, not furniture */
-  .lab-seg button:not(.on):hover{color:var(--ink-900)}
-  /* Brand blue stays — a selection has to read as one — and the raised light is
-     laid over it: white bedded into the top-left inside face, one shadow below. */
-  .lab-seg button.on{background:linear-gradient(145deg,#2b47968f,var(--phenome-blue-500));color:#fff;
-    box-shadow:0 6px 14px -8px #10214b8c, inset 1px 1px 1px #ffffff5e}
+  .lab-seg button:not(.on):hover{color:var(--ink-900);background:#ffffff33}
+  .lab-seg button.on{color:#fff;
+    background:linear-gradient(180deg,#2b4796c4,#1c3579d6);
+    box-shadow:0 1px 3px -1px #0a1e5747,inset 0 0 12px -6px #ffffff70}
+  /* the top edge only, where a clearer pane set into a foggier one catches
+     the light — the same hairline the design system's tab switcher takes */
+  .lab-seg button.on::before{content:"";position:absolute;inset:0;border-radius:inherit;
+    pointer-events:none;padding:1px;
+    background:linear-gradient(180deg,#ffffff8c,#ffffff00 45%);
+    -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+            mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+    -webkit-mask-composite:xor;mask-composite:exclude}
   .lab-brand{position:absolute;right:26px;top:24px;font-family:var(--font-sans);font-size:19px;
     font-weight:600;letter-spacing:-.01em;color:var(--ink-900)}
   .lab-brand em{font-style:normal;font-weight:300;color:var(--ink-600);margin-left:2px}
@@ -2868,42 +3434,47 @@ try {
      the rows appeared to float unattached. It carries seven rows over a live
      field, so it has to be a surface before it is a pane. */
   .lab-cats{position:absolute;right:26px;top:50%;transform:translateY(-50%);width:288px;z-index:6;
-    border-radius:22px;padding:16px 14px 14px;
-    background:linear-gradient(140deg,#ffffff94,#e9f0fa5e);border:1px solid #ffffffa6;
-    -webkit-backdrop-filter:blur(30px) saturate(150%);backdrop-filter:blur(30px) saturate(150%);
+    border-radius:24px;padding:16px 14px 14px;--gl-bezel:2px;
+    background-image:var(--gl-grain),var(--gl-tint-panel);
+    -webkit-backdrop-filter:var(--gl-blur-panel);backdrop-filter:var(--gl-blur-panel);
     box-shadow:var(--glass-panel-drop),var(--glass-lit);
     transition:opacity .38s var(--ease-frosted-out),transform .38s var(--ease-frosted-out)}
   .lab-cats.away{opacity:0;transform:translate(26px,-50%);pointer-events:none}
   .lab-cats-h{font-family:var(--font-sans);font-size:11px;font-weight:700;letter-spacing:.18em;
     text-transform:uppercase;color:var(--ink-600);text-align:center;margin-bottom:12px}
-  /* Raised rows sitting on the panel, not tinted rectangles cut out of it. */
+  /* A row is NOT a pane. It was tried as one and it was wrong twice over: a
+     surface inside a surface is two thicknesses of glass, which doubles the
+     blur and runs two rims through each other — the fault the readings card
+     was moved 45px to avoid — and once the row is nearly opaque enough to
+     survive that, the rail reads as white chips on a grey card.
+
+     So a row is a tint zone: a region of the panel where more light comes
+     through, with no rim, no drop and no blur of its own. It is the one place
+     in the system where hover is allowed to brighten a fill, and the licence
+     is precise — brightening a *pane* reads as glass turning opaque, which
+     glass cannot do, but brightening a zone inside a pane is only the pane
+     letting more light through in that one place. */
   .lab-cat{display:flex;align-items:center;gap:13px;width:100%;margin-bottom:7px;padding:13px 15px;
-    border:1px solid #ffffffc4;border-radius:14px;cursor:pointer;
-    background:linear-gradient(145deg,#ffffffc4,#eef3fb85);
-    box-shadow:var(--glass-drop),var(--glass-lit);
+    border-radius:16px;cursor:pointer;
+    background-image:none;background-color:#ffffff54;
+    -webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;
     font-family:var(--font-sans);font-size:17px;color:var(--ink-900);text-align:left;
     transition:.2s var(--ease-frosted-out)}
+  /* no rim and no sheen: it is not a surface, so it has no edge to light */
+  .lab-cat::before,.lab-cat::after{display:none}
   .lab-cat:last-child{margin-bottom:0}
   /* the row comes further off the panel and slides toward the figure it names */
-  .lab-cat:hover{background:linear-gradient(145deg,#ffffff,#f3f7fdb8);transform:translateX(-3px);
-    border-color:#fff;box-shadow:var(--glass-lift),var(--glass-lit)}
-  /* pressed, it goes the other way: the doctrine already has a word for a
-     surface moving away from you, so the row briefly becomes the well */
-  .lab-cat:active{transform:translateX(-1px);
-    background:linear-gradient(145deg,#e4eaf4a6,#f0f4fa8f);
-    box-shadow:inset 2px 2px 5px #7185bd3d, inset -2px -2px 5px #ffffffa6}
-  /* Orbs, on section 06's recipe: a radial fill lit from 34% 28%, white bedded
-     into the top-left inside edge and cool into the bottom-right. They were
-     ringed dots in the organ's own red or amber, which put a status colour on
-     something that carries no status — a rail row is a place to go, not a
-     verdict. Depth distinguishes them now, walked down the ramp, which is the
-     same move the glass section makes. The organ materials keep their
-     anatomical colour; only these markers changed. */
-  .lab-cat .ic{flex:none;width:26px;height:26px;border-radius:50%;border:0;
-    background:radial-gradient(circle at 34% 28%,#fffffff2,
-      color-mix(in srgb,var(--orb) 46%,#ffffff) 48%, var(--orb));
-    box-shadow:0 5px 11px -8px #435ba14d,
-               inset 2px 2px 5px #ffffffcc, inset -2px -2px 6px #435ba13d}
+  .lab-cat:hover{transform:translateX(-3px);background-color:#ffffff96}
+  .lab-cat:active{transform:translateX(-1px);background-color:#e5ebf78f}
+  /* Flat discs. They were ringed dots in the organ's own red or amber, which
+     put a status colour on something that carries no status — a rail row is a
+     place to go, not a verdict — and then modelled spheres, which put the
+     distinction into how domed they looked. Now they are the same mark section
+     06 uses, at the same weight as any dot on any chart in the system: one
+     flat step off the ramp and a hairline to hold it against a pale pane. The
+     organ materials keep their anatomical colour; only these markers changed. */
+  .lab-cat .ic{flex:none;width:22px;height:22px;border-radius:50%;border:0;
+    background:var(--orb);box-shadow:0 0 0 1px #2a3f6e14}
   .lab-cat .nm{flex:1}
   .lab-cat .ch{color:var(--ink-400);font-size:17px;line-height:1}
 
@@ -2923,12 +3494,13 @@ try {
     font-family:var(--font-sans);font-size:15px;color:var(--ink-900);
     transition:max-width .42s var(--ease-frosted-out),opacity .3s ease,padding .42s var(--ease-frosted-out)}
   /* The tag sits directly over the organ it names — the surface with the most
-     movement behind it anywhere on the page — so it takes the stated edge and
-     the full raised light, and its blur goes to 22px. */
+     movement behind it anywhere on the page — so it is the thickest of the
+     controls: a heavier tint, so an organ's dark red never comes through far
+     enough to touch the name. */
   .hot.named .tag{max-width:260px;opacity:1;padding:11px 20px 11px 26px;margin-left:-16px;
-    border-radius:999px;background:linear-gradient(145deg,#ffffffd6,#eaf1fa94);
-    border:1px solid #ffffffe0;box-shadow:var(--glass-drop),var(--glass-lit);
-    -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);order:2}
+    border-radius:999px;
+    background-image:var(--gl-grain),var(--gl-tint-solid);
+    box-shadow:var(--glass-drop),var(--glass-lit);order:2}
   .hot:hover .tag{box-shadow:var(--glass-lift),var(--glass-lit)}
   .hot.named .pin{order:1;z-index:1}
   .hot.gone{opacity:0;pointer-events:none}
@@ -2939,15 +3511,11 @@ try {
      glyph was doing the entire job of looking like a button. */
   .lab-back{position:absolute;left:26px;top:24px;z-index:6;width:44px;height:44px;border-radius:50%;
     display:grid;place-items:center;cursor:pointer;font-size:20px;line-height:1;color:var(--ink-900);
-    background:linear-gradient(145deg,#ffffffd6,#eaf1fa94);border:1px solid #ffffffe0;
-    box-shadow:var(--glass-drop),var(--glass-lit);
-    -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
     opacity:0;pointer-events:none;
-    transition:opacity .3s ease,box-shadow .2s var(--ease-frosted-out),background .2s var(--ease-frosted-out)}
+    transition:opacity .3s ease,box-shadow .2s var(--ease-frosted-out)}
   .lab-back.on{opacity:1;pointer-events:auto}
-  .lab-back:hover{background:linear-gradient(145deg,#ffffff,#f2f6fdb8);
-    box-shadow:var(--glass-lift),var(--glass-lit)}
-  .lab-back:active{background:linear-gradient(145deg,#e4eaf4b3,#f0f4fa9e);box-shadow:var(--glass-well)}
+  .lab-back:hover{box-shadow:var(--glass-lift),var(--glass-lit)}
+  .lab-back:active{box-shadow:var(--glass-well)}
 
   /* Bottom 80, not 34. At 34 the tab bar sat straight over the organ's name and
      its status orb — the bar's left end runs to x 293 at 1366 and the tabs reach
@@ -2968,27 +3536,22 @@ try {
      with nothing beneath it the pill's right half had no edge to find and the
      name appeared to sit on the stage rather than on a bar. */
   .lab-bar-name{flex:1;display:flex;align-items:center;gap:16px;padding:16px 30px;border-radius:999px;
-    background:linear-gradient(140deg,#ffffffd1,#eaf1fa8c);border:1px solid #ffffffe0;
-    box-shadow:var(--glass-panel-drop),var(--glass-lit);
-    -webkit-backdrop-filter:blur(30px) saturate(150%);backdrop-filter:blur(30px) saturate(150%)}
-  /* the same orb as the rail row it came from, at the same depth */
-  .lab-bar-name i{flex:none;width:26px;height:26px;border-radius:50%;
-    background:radial-gradient(circle at 34% 28%,#fffffff2,
-      color-mix(in srgb,var(--orb) 46%,#ffffff) 48%, var(--orb));
-    box-shadow:0 5px 11px -8px #435ba14d,
-               inset 2px 2px 5px #ffffffcc, inset -2px -2px 6px #435ba13d}
+    --gl-bezel:2px;
+    background-image:var(--gl-grain),var(--gl-tint-mid);
+    -webkit-backdrop-filter:var(--gl-blur-panel);backdrop-filter:var(--gl-blur-panel);
+    box-shadow:var(--glass-panel-drop),var(--glass-lit)}
+  /* the same mark as the rail row it came from, at the same step */
+  .lab-bar-name i{position:relative;z-index:1;flex:none;width:22px;height:22px;border-radius:50%;
+    background:var(--orb);box-shadow:0 0 0 1px #2a3f6e14}
+  .lab-bar-name b{position:relative;z-index:1}
   .lab-bar-name b{font-family:var(--font-sans);font-size:32px;font-weight:400;letter-spacing:-.01em;color:var(--ink-900)}
   .lab-bar-nav{display:flex;gap:10px}
   .lab-bar-nav button{width:62px;height:62px;border-radius:50%;cursor:pointer;font-size:22px;line-height:1;
-    color:var(--ink-900);background:linear-gradient(145deg,#ffffffd6,#eaf1fa94);border:1px solid #ffffffe0;
-    box-shadow:var(--glass-drop),var(--glass-lit);
-    -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
-    transition:.2s var(--ease-frosted-out)}
-  .lab-bar-nav button:hover{background:linear-gradient(145deg,#ffffff,#f2f6fdb8);
-    box-shadow:var(--glass-lift),var(--glass-lit)}
+    color:var(--ink-900);
+    transition:box-shadow .2s var(--ease-frosted-out),color .2s var(--ease-frosted-out)}
+  .lab-bar-nav button:hover{box-shadow:var(--glass-lift),var(--glass-lit)}
   /* pressing the organ you are moving to should feel like pressing something */
-  .lab-bar-nav button:active{background:linear-gradient(145deg,#e4eaf4b3,#f0f4fa9e);
-    box-shadow:var(--glass-well)}
+  .lab-bar-nav button:active{box-shadow:var(--glass-well)}
 
   /* The worst of the old recipe's failures. This card carries the only numbers
      on the page, and with no shadow and an invisible white edge the readings
@@ -3002,11 +3565,13 @@ try {
      one frosted panel over another, which doubles the blur and runs two lit
      edges through each other. 165 leaves 14px between them, the same gap the
      provenance panel keeps off the readings it must not touch. */
-  .lab-card{position:absolute;left:26px;bottom:165px;z-index:6;width:296px;padding:20px 22px;border-radius:20px;
-    background:linear-gradient(140deg,#ffffffc4,#e9f0fa7d);border:1px solid #ffffffd9;
+  .lab-card{position:absolute;left:26px;bottom:165px;z-index:6;width:296px;padding:20px 22px;border-radius:22px;
+    --gl-bezel:2px;
+    background-image:var(--gl-grain),var(--gl-tint-mid);
+    -webkit-backdrop-filter:var(--gl-blur-panel);backdrop-filter:var(--gl-blur-panel);
     box-shadow:var(--glass-panel-drop),var(--glass-lit);
-    -webkit-backdrop-filter:blur(30px) saturate(150%);backdrop-filter:blur(30px) saturate(150%);
     opacity:0;transform:translateY(14px);pointer-events:none;transition:.4s var(--ease-frosted-out)}
+  .lab-card > *{position:relative;z-index:1}
   .lab-card.on{opacity:1;transform:none}
   .lab-card h4{font-family:var(--font-sans);font-size:11px;font-weight:700;letter-spacing:.16em;
     text-transform:uppercase;color:var(--ink-400);margin-bottom:14px}
@@ -3021,13 +3586,11 @@ try {
      so it alone sat on the field rather than in front of it. */
   .lab-load{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:7;
     display:none;align-items:center;gap:10px;padding:11px 20px;border-radius:999px;
-    background:linear-gradient(145deg,#ffffffd6,#eaf1fa94);border:1px solid #ffffffe0;
-    box-shadow:var(--glass-drop),var(--glass-lit);
-    -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
     font-family:var(--font-sans);font-size:12px;
     letter-spacing:.1em;text-transform:uppercase;color:var(--ink-600)}
   .lab-load.on{display:flex}
-  .lab-load i{width:13px;height:13px;border-radius:50%;border:1.6px solid #10214b26;
+  .lab-load i{position:relative;z-index:1;
+    width:13px;height:13px;border-radius:50%;border:1.6px solid #10214b26;
     border-top-color:var(--phenome-blue-500);animation:labSpin .8s linear infinite}
   @keyframes labSpin{to{transform:rotate(360deg)}}
 

@@ -127,9 +127,13 @@
                   that varies, not the fill, which is why the diagonal
                   ramps are gone.
        grain      ground glass has tooth. A monochrome noise tiled at
-                  120px, blended soft-light so it lightens and darkens
+                  160px, blended soft-light so it lightens and darkens
                   in equal measure — the single cheapest thing that
-                  stops a translucent rectangle reading as plastic film.
+                  stops a translucent rectangle reading as plastic film,
+                  and the easiest to overdo. Two octaves, not four: the
+                  extra octaves are low-frequency, and low-frequency
+                  noise is blotches. Frosted glass has tooth you can
+                  only just see; sandpaper has texture you can read.
        rim        1px, graduated: bright on the top-left arc, gone by the
                   middle, with a faint return along the bottom edge where
                   light has crossed the thickness and come back out. It
@@ -170,7 +174,7 @@
      failure the brightness lift exists to prevent. Soft-light is applied with
      background-blend-mode, so it touches the pane's own tint and not the page
      under it — the grain belongs to the glass, not to what you see through it. */
-  --gl-grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='table' tableValues='1 1'/></feComponentTransfer></filter><rect width='120' height='120' filter='url(%23g)' opacity='.3'/></svg>");
+  --gl-grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='table' tableValues='1 1'/></feComponentTransfer></filter><rect width='160' height='160' filter='url(%23g)' opacity='.16'/></svg>");
   /* Shadows are struck off #2a3f6e — navy, not black. A black shadow
      under a blue-grey pane is the other half of the plastic look. */
   --gl-shadow:0 1px 1px -.5px #2a3f6e12,0 9px 22px -15px #2a3f6e30;
@@ -252,7 +256,7 @@
   position:relative;
   border:0;                       /* the edge is lit, never drawn */
   background-image:var(--gl-grain),var(--gl-tint);
-  background-size:120px 120px,auto;background-blend-mode:soft-light,normal;
+  background-size:160px 160px,auto;background-blend-mode:soft-light,normal;
   -webkit-backdrop-filter:var(--gl-blur);backdrop-filter:var(--gl-blur);
   box-shadow:var(--gl-shadow),var(--gl-inner);
 }
@@ -324,7 +328,7 @@
    a white return on the bottom-right and so became a moulded dish. */
 .gl-sunk{
   background-image:var(--gl-grain),var(--gl-tint-sunk);
-  background-size:120px 120px,auto;background-blend-mode:soft-light,normal;
+  background-size:160px 160px,auto;background-blend-mode:soft-light,normal;
   -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin);
   box-shadow:var(--gl-inner-sunk);
 }
@@ -339,7 +343,7 @@
    moving field rather than over paper. */
 .gl-panel{
   background-image:var(--gl-grain),var(--gl-tint-panel);
-  background-size:120px 120px,auto;background-blend-mode:soft-light,normal;
+  background-size:160px 160px,auto;background-blend-mode:soft-light,normal;
   -webkit-backdrop-filter:var(--gl-blur-panel);backdrop-filter:var(--gl-blur-panel);
   box-shadow:var(--gl-shadow-panel),var(--gl-inner);
   --gl-bezel:2px;
@@ -1719,7 +1723,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
               </div>
               <div style="margin-top:22px">
                 <span>Grain</span>
-                <p>Ground glass has tooth, so every surface tiles a monochrome noise over 120px, blended <b>soft-light</b> so it lightens and darkens in equal measure. It is the cheapest thing in the section and the one that does most: without it a translucent rectangle reads as film, however well the edges are lit. Overlay was tried first and dulled the panes to grey — a grain that only darkens is dirt on the glass.</p>
+                <p>Ground glass has tooth, so every surface tiles a monochrome noise over 160px, blended <b>soft-light</b> so it lightens and darkens in equal measure. It is the cheapest thing in the section, the one that does most, and the one easiest to overdo: without it a translucent rectangle reads as film, but a stop too far and the pane reads as sandpaper — and because the noise is neutral, an overdone grain also drags a cool pane toward warm grey. Two octaves rather than four, since the extra octaves are low-frequency and low-frequency noise is blotches. Overlay was tried before soft-light and dulled the panes to grey; a grain that only darkens is dirt on the glass.</p>
               </div>
               <div style="margin-top:22px">
                 <span>Where the light is</span>

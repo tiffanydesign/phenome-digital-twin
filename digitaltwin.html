@@ -1624,9 +1624,16 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
     </section>
 
     <!-- GLASS SURFACES -->
+    <!-- Specimen only. The prose that used to run here — an intro, a note
+         under each column, and a five-part column on the right — is gone on
+         purpose. None of the reasoning went with it: the doctrine is written
+         out in full in the CSS, in the token block and in the shared recipe
+         directly under it, which is where anyone about to change a surface is
+         actually standing. Duplicating it on the page only created a second
+         copy to keep in sync, and the two had already drifted twice.
+         This section shows the surfaces. -->
     <section class="blk" style="margin-top:80px">
       <h2 class="sec-h">06 · Glass surfaces</h2>
-      <p class="sec-intro">One sheet of frosted glass, laid flat over the page. Nothing is raised, hollow or domed: what differs between surfaces is how thick the glass is and how much light it has let through. This replaces the previous rule, which pressed every surface out of the page with a directional emboss — that fixed the missing weight and introduced a worse fault, because it sculpted. A dished track, domed pills and modelled spheres for status are soft-UI, and soft-UI reads as moulded plastic. It also made depth carry meaning, which is a channel the charts in section 05 have no way to speak.</p>
 
       <div class="sg-stage">
         <div class="sg-grid">
@@ -1643,7 +1650,6 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
               <button class="gl sg-btn pri" style="flex:1">Send</button>
               <button class="gl sg-btn" style="flex:1">Later</button>
             </div>
-            <p class="note" style="font-size:var(--text-micro)">The rim is 1px, masked to the perimeter and graduated — bright on the top-left arc, gone by the middle, with a faint return along the bottom where light has crossed the thickness. It is not a border: a border is the same weight on all four sides, and so reads as a drawn line rather than a lit edge. The primary button keeps the brand <em>behind</em> the glass at about 85%, so the backdrop still crosses it.</p>
           </div>
 
           <div class="sg-col">
@@ -1662,7 +1668,6 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
               <div class="gl gl-sunk sg-track" style="width:100%"><i></i></div>
               <div class="sg-thumb" style="position:absolute;left:66%;transform:translateX(-50%)"></div>
             </div>
-            <p class="note" style="font-size:var(--text-micro)">Sunken is not hollow. A track is the same pane, thicker: more tint, less light through it, one soft occlusion under the top lip, and no drop. What made the old well read as moulded was the white return on its bottom-right — the tell that a light was raking across a curve. There is no curve. The selected tab is the place the glass has let more light through; it is clearer, not closer, and throws 3px rather than 18.</p>
           </div>
 
           <div class="sg-col">
@@ -1679,60 +1684,34 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
               <div><i class="sg-mark s3"></i>Follow up<b>1</b></div>
               <div><i class="sg-mark s4"></i>Act now<b>0</b></div>
             </div>
-            <p class="note" style="font-size:var(--text-micro)">Flat discs on the brand ramp, at the weight of any mark in section 05 — shown twice at the two sizes they are used at, so the pair can be checked against each other here. The orb is gone: it was the one modelled object in a system whose charts are all flat, and it put a reading's severity into how domed its dot looked. Colour is the channel. Depth never was.</p>
           </div>
 
         </div>
 
-        <div class="sg-grid" style="margin-top:38px;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr))">
-          <div class="sg-col">
-            <div class="sg-lab">Panel, over the live field</div>
-            <div>
-              <div class="gl gl-panel sg-card">
-                <div class="sg-line">
-                  <h4>Kidney function</h4>
-                  <span class="sg-chip">Normal</span>
-                </div>
-                <div class="sub-lab">Enhanced filtration · mL/min/1.73m&sup2;</div>
-                <div style="display:flex;align-items:flex-end;gap:14px;margin-top:14px">
-                  <div class="sg-big num">116</div>
-                  <div style="font-size:var(--text-micro);color:var(--ink-400);line-height:1.5;padding-bottom:8px">above the<br>expected band</div>
-                </div>
-                <div style="margin-top:26px">
-                  <div class="sg-zone"><u></u><b></b></div>
-                  <div class="sg-scale"><span>Low</span><span>Mild&nbsp;·&nbsp;60</span><span>Normal&nbsp;·&nbsp;90</span></div>
-                </div>
-                <div class="sg-hair"></div>
-                <div class="sg-line">
-                  <span>Cystatin C</span>
-                  <b class="num">0.58<em>&nbsp;mg/L</em></b>
-                </div>
-              </div>
+        <!-- Not a grid any more. With the commentary column gone this row holds
+             one item, and an auto-fit track would have stretched a 420px card
+             across the full 1092px sheet — a panel demonstration whose panel is
+             the width of the page demonstrates nothing about a panel. -->
+        <div class="sg-col" style="max-width:420px;margin-top:40px">
+          <div class="sg-lab">Panel, over the live field</div>
+          <div class="gl gl-panel sg-card">
+            <div class="sg-line">
+              <h4>Kidney function</h4>
+              <span class="sg-chip">Normal</span>
             </div>
-          </div>
-
-          <div>
-            <div class="xlate" style="grid-template-columns:1fr;margin-top:0;padding-top:0;border-top:0">
-              <div>
-                <span>Why frosted glass is not a grey overlay</span>
-                <p>The backdrop filter carries a <b>brightness lift</b> as well as a blur, and that single term is the whole difference. Ground glass scatters light forward, so what is behind it comes out lighter — never darker. A pane that only blurs and tints is a mask, and it is why so much of this material on the web reads as dirty acrylic.</p>
-              </div>
-              <div style="margin-top:22px">
-                <span>What the stage is</span>
-                <p>Nothing. It is the page — section 03's background, unredrawn, showing straight through. Redrawing that wash at box scale was tried and came close, but a copy is not the original: the pools land at different sizes against a viewport-fixed wash, so the stage appeared as a faint ghost rectangle wherever the two disagreed. It is deliberately <b>not</b> a stage built for the material. An earlier pass gave this section a deeper ground and a hairline grid for the panes to blur, which made the glass far more legible and made the section a lie: a design system that flatters its components against a ground the product never uses is worse than useless. Over the real page the panes have little to blur and hold their edge on the rim and the drop instead. That is what this material looks like here. If it needs more to work with, the page is what should change.</p>
-              </div>
-              <div style="margin-top:22px">
-                <span>Grain</span>
-                <p>Ground glass has tooth, so every surface tiles a monochrome noise over 160px, blended <b>soft-light</b> so it lightens and darkens in equal measure. It is the cheapest thing in the section, the one that does most, and the one easiest to overdo: without it a translucent rectangle reads as film, but a stop too far and the pane reads as sandpaper — and because the noise is neutral, an overdone grain also drags a cool pane toward warm grey. Two octaves rather than four, since the extra octaves are low-frequency and low-frequency noise is blotches. Overlay was tried before soft-light and dulled the panes to grey; a grain that only darkens is dirt on the glass.</p>
-              </div>
-              <div style="margin-top:22px">
-                <span>Where the light is</span>
-                <p>Above and to the left, on every surface, without exception — the one clause carried over intact from the previous doctrine. It survived because the failure it prevents has not changed: a single inconsistent highlight flattens the whole set.</p>
-              </div>
-              <div style="margin-top:22px">
-                <span>Refraction</span>
-                <p>Where a nested backdrop filter is supported, the rim's 1.5px band carries a real bend and a brightness bump — the thickness of the glass, actually refracting, inside the same band the highlight occupies. Everywhere else the graduated highlight stands in for it, which is why it is graduated rather than even.</p>
-              </div>
+            <div class="sub-lab">Enhanced filtration · mL/min/1.73m&sup2;</div>
+            <div style="display:flex;align-items:flex-end;gap:14px;margin-top:14px">
+              <div class="sg-big num">116</div>
+              <div style="font-size:var(--text-micro);color:var(--ink-400);line-height:1.5;padding-bottom:8px">above the<br>expected band</div>
+            </div>
+            <div style="margin-top:26px">
+              <div class="sg-zone"><u></u><b></b></div>
+              <div class="sg-scale"><span>Low</span><span>Mild&nbsp;·&nbsp;60</span><span>Normal&nbsp;·&nbsp;90</span></div>
+            </div>
+            <div class="sg-hair"></div>
+            <div class="sg-line">
+              <span>Cystatin C</span>
+              <b class="num">0.58<em>&nbsp;mg/L</em></b>
             </div>
           </div>
         </div>

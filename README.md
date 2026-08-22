@@ -43,6 +43,12 @@ organ-body-full.html       full organ view, and the reference this page's organ
                            seating can be dialled in by hand before the numbers
                            are carried across.
 organ-body-stage1.html     an earlier organ view, kept as a record of the work
+glass-liquid-lab.html      surface bench — Apple-style Liquid Glass against
+                           section 06's doctrine, on four of the body page's
+                           real chrome components over the live 3D scene. A
+                           draggable wipe puts both treatments on the same
+                           specimen at the same screen position. Chromium only:
+                           backdrop-filter ignores SVG filters elsewhere.
 
 vendor/
   three.module.js          three.js r160 (local copy; the code falls back to
@@ -60,7 +66,7 @@ GLB/
     human_kidney.glb                 Kidneys
 ```
 
-The four lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/home-hero-lab.html` and so on.
+The five lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/home-hero-lab.html` and so on.
 
 `_local/` is an untracked directory (see `.gitignore`) holding spare models no page references, the source document for the model links, and a third-party screenshot kept only as a design reference. **It is never committed, so it is not backed up** — archive anything you need to keep.
 

@@ -1,0 +1,1859 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Liquid Glass — refraction over live anatomy</title>
+
+<style>
+
+  :root {
+    --sans: "Inter Tight", "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont,
+            "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --mono: "SF Mono", ui-monospace, "JetBrains Mono", "Roboto Mono", Menlo, Consolas, monospace;
+
+    --ink: #0a1c2e; --ink-2: #3d5570; --ink-3: #8296ad;
+    --hair: rgba(10,28,46,.10); --hair-2: rgba(10,28,46,.06);
+    --bg-a: #d6e7f8; --bg-b: #fbfdff;
+
+    --panel: rgba(255,255,255,.62); --panel-brd: rgba(255,255,255,.78);
+    --accent: #0fa3c0; --accent-dk: #06798f; --accent-sf: rgba(15,163,192,.12);
+
+    --shadow: 0 1px 2px rgba(10,28,46,.06), 0 8px 24px -8px rgba(10,28,46,.16),
+              0 32px 64px -24px rgba(10,28,46,.22);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body { font-family: var(--sans); color: var(--ink); background: var(--bg-b); -webkit-font-smoothing: antialiased; }
+
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+  /* ---------- boot ---------- */
+  #boot {
+    position: fixed; inset: 0; z-index: 90; display: grid; place-items: center;
+    background: linear-gradient(178deg, var(--bg-a), var(--bg-b));
+    transition: opacity .55s ease; text-align: center;
+  }
+  #boot.gone { opacity: 0; pointer-events: none; }
+  .bt { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+  .bs { font-family: var(--mono); font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); margin-top: 8px; }
+  .bar { width: 230px; height: 2px; border-radius: 2px; background: var(--hair); margin: 18px auto 0; overflow: hidden; }
+  /* scaleX rather than width: the bar advances once per organ load, and a
+     transform keeps it off the layout path */
+  .bar i { display: block; width: 100%; height: 100%; background: var(--accent);
+           transform: scaleX(0); transform-origin: left center;
+           transition: transform .35s cubic-bezier(.3,.9,.3,1); }
+  .err { max-width: 380px; margin: 16px auto 0; font-size: 12px; line-height: 1.55; color: #b4353f; white-space: pre-wrap; text-align: left; }
+
+  /* ---------- panel ---------- */
+  #panel {
+    position: fixed; left: 16px; top: 16px; bottom: 16px; width: 336px;
+    display: flex; flex-direction: column; border-radius: 18px;
+    background: var(--panel); border: 1px solid var(--panel-brd); box-shadow: var(--shadow);
+    backdrop-filter: blur(26px) saturate(165%); -webkit-backdrop-filter: blur(26px) saturate(165%);
+    overflow: hidden; z-index: 30;
+    transition: transform .42s cubic-bezier(.2,.85,.2,1), opacity .3s ease;
+  }
+  #panel.hidden { transform: translateX(calc(-100% - 24px)); opacity: 0; pointer-events: none; }
+
+  .p-head { padding: 15px 18px 13px; border-bottom: 1px solid var(--hair); flex: none; }
+  .p-eyebrow { font-family: var(--mono); font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent-dk); display: flex; align-items: center; gap: 7px; }
+  .p-eyebrow::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px 1px rgba(15,163,192,.7); }
+  .p-title { font-size: 17px; font-weight: 700; letter-spacing: -.015em; margin: 7px 0 1px; }
+  .p-cn { font-size: 11px; font-weight: 500; color: var(--ink-2); }
+
+  #pbody { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 2px 0 22px; }
+  #pbody::-webkit-scrollbar { width: 8px; }
+  #pbody::-webkit-scrollbar-thumb { background: rgba(10,28,46,.14); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+
+  .sec { border-bottom: 1px solid var(--hair-2); }
+  .sec-h {
+    display: flex; align-items: center; gap: 8px; padding: 12px 18px 10px; cursor: pointer;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .17em; text-transform: uppercase; color: var(--ink-2);
+    user-select: none;
+  }
+  .sec-h:hover { color: var(--accent-dk); }
+  .sec-h .caret { margin-left: auto; width: 7px; height: 7px; border-right: 1.4px solid currentColor; border-bottom: 1.4px solid currentColor; transform: rotate(45deg) translate(-2px,-2px); transition: transform .26s cubic-bezier(.2,.85,.2,1); opacity: .55; }
+  .sec.closed .caret { transform: rotate(-45deg) translate(-1px,1px); }
+  .sec-b { padding: 0 18px 14px; display: grid; gap: 10px; }
+  .sec.closed .sec-b { display: none; }
+
+  .row { display: grid; gap: 5px; }
+  .lab { display: flex; align-items: baseline; gap: 8px; font-size: 11.5px; font-weight: 500; color: var(--ink-2); }
+  .lab .v { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ink); background: rgba(10,28,46,.05); padding: 2px 6px; border-radius: 5px; }
+
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 15px; background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: rgba(10,28,46,.13); }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; margin-top: -5px;
+    background: #fff; border: 1.5px solid var(--accent); box-shadow: 0 1px 4px rgba(10,28,46,.25);
+  }
+  input[type=color] { -webkit-appearance: none; appearance: none; width: 100%; height: 25px; padding: 0; border: 1px solid var(--hair); border-radius: 7px; background: none; cursor: pointer; }
+  input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+  input[type=color]::-webkit-color-swatch { border: none; border-radius: 5px; }
+
+  .tog { display: flex; align-items: center; gap: 9px; font-size: 11.5px; font-weight: 500; color: var(--ink-2); cursor: pointer; user-select: none; }
+  .tog .sw { flex: none; width: 32px; height: 18px; border-radius: 999px; background: rgba(10,28,46,.16); position: relative; transition: background .22s ease; }
+  .tog .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(10,28,46,.3); transition: transform .22s cubic-bezier(.3,.8,.3,1); }
+  .tog.on .sw { background: var(--accent); }
+  .tog.on .sw::after { transform: translateX(14px); }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    padding: 6px 10px; border-radius: 8px; border: 1px solid var(--hair); background: rgba(255,255,255,.5);
+    font-size: 11px; font-weight: 500; color: var(--ink-2); cursor: pointer; transition: all .18s ease;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent-dk); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 2px 8px -2px rgba(15,163,192,.6); }
+
+  /* ---------- organ list ---------- */
+  .olist { display: grid; gap: 3px; }
+  .orow {
+    display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 9px;
+    cursor: pointer; transition: background .16s ease; border: 1px solid transparent;
+  }
+  .orow:hover { background: rgba(255,255,255,.55); }
+  .orow.sel { background: rgba(255,255,255,.85); border-color: var(--accent); }
+  .orow .sw2 {
+    flex: none; width: 26px; height: 15px; border-radius: 999px; background: rgba(10,28,46,.16);
+    position: relative; transition: background .2s ease;
+  }
+  .orow .sw2::after { content: ""; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(10,28,46,.3); transition: transform .22s cubic-bezier(.3,.8,.3,1); }
+  .orow.vis .sw2 { background: var(--accent); }
+  .orow.vis .sw2::after { transform: translateX(11px); }
+  .orow .swatch { flex: none; width: 9px; height: 9px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(10,28,46,.16); }
+  .orow .nm { font-size: 11.5px; font-weight: 500; color: var(--ink); }
+  .orow .cn { font-size: 10px; color: var(--ink-3); margin-left: auto; }
+  .orow.off .nm, .orow.off .cn { opacity: .42; }
+
+  .note { font-size: 10.5px; line-height: 1.5; color: var(--ink-3); }
+  .btn {
+    padding: 7px 12px; border-radius: 8px; border: 1px solid var(--hair); background: rgba(255,255,255,.6);
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-2); cursor: pointer; text-align: center; transition: all .18s ease;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent-dk); }
+
+  /* ---------- hud ---------- */
+  #hud {
+    position: fixed; right: 16px; top: 16px; z-index: 20; padding: 12px 14px; border-radius: 13px;
+    background: var(--panel); border: 1px solid var(--panel-brd); box-shadow: var(--shadow);
+    backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+    font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+    display: grid; grid-template-columns: auto auto; gap: 4px 16px; min-width: 176px;
+  }
+  #hud b { color: var(--ink); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  #hud .k { text-transform: uppercase; letter-spacing: .14em; font-size: 8.5px; color: var(--ink-3); align-self: center; }
+
+  .fab {
+    position: fixed; z-index: 40; padding: 9px 14px; border-radius: 11px; border: 1px solid var(--panel-brd);
+    background: var(--panel); box-shadow: var(--shadow); backdrop-filter: blur(20px) saturate(160%);
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-2); cursor: pointer; user-select: none; transition: all .2s ease;
+  }
+  .fab:hover { color: var(--accent-dk); border-color: var(--accent); }
+  #fab-panel { left: 16px; top: 16px; opacity: 0; pointer-events: none; }
+  #panel.hidden ~ #fab-panel { opacity: 1; pointer-events: auto; }
+  #fab-reset { right: 16px; bottom: 16px; }
+  #fab-shot { right: 128px; bottom: 16px; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 14px); z-index: 60;
+    padding: 9px 16px; border-radius: 10px; background: rgba(10,28,46,.9); color: #fff;
+    font-size: 12px; font-weight: 500; opacity: 0; pointer-events: none;
+    transition: opacity .25s ease, transform .25s cubic-bezier(.2,.85,.2,1);
+  }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 760px) {
+    #panel { left: 8px; right: 8px; width: auto; top: auto; height: 50vh; bottom: 8px; }
+    #hud { right: 8px; top: 8px; }
+  }
+
+  /* the --p filled track, taken from organ-material-lab.html rather than
+     from this file's template: organ-body-full.html paints a flat track and
+     has no fill. The panel builder below sets --p. */
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 16px; background: none; margin: 0; cursor: ew-resize; }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 99px;
+    background: linear-gradient(to right, var(--accent) var(--p, 0%), rgba(10,28,46,.13) var(--p, 0%));
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; margin-top: -5px;
+    background: #fff; border: 1px solid rgba(10,28,46,.18); box-shadow: 0 1px 3px rgba(10,28,46,.28);
+  }
+  input[type=range]::-moz-range-track { height: 4px; border-radius: 99px; background: rgba(10,28,46,.13); }
+  input[type=range]::-moz-range-progress { height: 4px; border-radius: 99px; background: var(--accent); }
+  input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: #fff; border: 1px solid rgba(10,28,46,.18); box-shadow: 0 1px 3px rgba(10,28,46,.28); }
+  input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+
+  /* ==================================================================
+     THE SPECIMENS
+
+     A hard constraint first, because it looks like a gratuitous
+     deviation from the real page and is not: backdrop-filter reads the
+     backdrop of its BACKDROP ROOT, and any ancestor carrying filter,
+     opacity below 1, mask, clip-path or mix-blend-mode becomes one. A
+     specimen inside such an ancestor refracts nothing at all and reads
+     as an empty pane.
+
+     digitaltwin.html gives .lab-card opacity:0 plus translateY(14px) and
+     fades it in, and gives .hot .tag an opacity transition. Both are
+     stripped here. Mid-transition the specimen would be its own backdrop
+     root and the glass would empty out for the length of the fade. The
+     specimens are always-on in this lab.
+     ================================================================== */
+  #stage { position: fixed; inset: 0; z-index: 6; pointer-events: none; }
+  .half { position: absolute; top: 0; bottom: 0; overflow: hidden; }
+  #half-a { left: 0; width: calc(var(--wipe) * 100%); }
+  #half-b { left: calc(var(--wipe) * 100%); right: 0; }
+  .layer { position: absolute; top: 0; height: 100%; width: 100vw; }
+  #half-a .layer { left: 0; }
+  #half-b .layer { left: calc(var(--wipe) * -100vw); }
+  #stage[data-mode="ab"] #half-b { display: none; }
+
+  #wipe { position: fixed; top: 0; bottom: 0; z-index: 8; width: 13px;
+          left: calc(var(--wipe) * 100%); transform: translateX(-6px); cursor: ew-resize; }
+  #stage[data-mode="ab"] ~ #wipe { display: none; }
+  #wipe i { position: absolute; left: 6px; top: 0; bottom: 0; width: 1px;
+            background: rgba(255,255,255,.72); box-shadow: 0 0 10px rgba(10,28,46,.35); }
+  #wipe::after { content: ""; position: absolute; left: 0; top: 50%; width: 13px; height: 34px;
+                 transform: translateY(-50%); border-radius: 7px;
+                 background: rgba(255,255,255,.82); box-shadow: 0 2px 10px rgba(10,28,46,.32); }
+  .wlab { position: fixed; top: 14px; z-index: 9; font-family: var(--mono); font-size: 8.5px;
+          letter-spacing: .2em; text-transform: uppercase; color: var(--ink-2);
+          background: rgba(255,255,255,.72); padding: 5px 9px; border-radius: 7px; }
+  #wlab-a { left: 14px; } #wlab-b { right: 14px; }
+  #stage[data-mode="ab"] ~ .wlab { display: none; }
+
+  .spec { position: absolute; pointer-events: auto; }
+
+  /* ---------- the two treatments ---------- */
+  /* Section 06 doctrine, transcribed from digitaltwin.html .lab-card. The other
+     three specimens keep their own real blur values rather than being unified —
+     the doctrine's reason for making them differ is part of what is on trial. */
+  .surf[data-treat="doctrine"] {
+    background: linear-gradient(140deg,#ffffffc4,#e9f0fa7d);
+    border: 1px solid #ffffffd9;
+    box-shadow: 0 18px 38px -22px #435ba152, inset 1px 1px 1px #ffffffb3;
+    -webkit-backdrop-filter: blur(var(--doc-blur,30px)) saturate(150%);
+            backdrop-filter: blur(var(--doc-blur,30px)) saturate(150%);
+  }
+  /* Liquid's own fill and edge are deliberately thinner than the doctrine's. A
+     refractive surface that also carries a stated 1px white edge and a bedded
+     inset highlight is just the doctrine with extra cost, and comparing that
+     against the doctrine would prove nothing. */
+  .surf[data-treat="liquid"] {
+    background: linear-gradient(140deg,
+                rgba(255,255,255,var(--lg-fill)), rgba(233,240,250,calc(var(--lg-fill) * .45)));
+    border: 1px solid rgba(255,255,255,var(--lg-edge));
+    box-shadow: 0 18px 38px -22px rgba(67,91,161,calc(var(--lg-drop) * .32));
+    -webkit-backdrop-filter: var(--lg-bd);
+            backdrop-filter: var(--lg-bd);
+  }
+
+  /* Specular rim in CSS rather than feSpecularLighting on the SVG side: same
+     read, a tenth of the code, tunable without regenerating the map. It shares
+     --lg-bezel with the generator, so the lit ring and the refracting band are
+     the same band by construction. */
+  .surf[data-treat="liquid"].rim::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    padding: var(--lg-bezel);
+    background: linear-gradient(var(--lg-rim-angle),
+      #ffffff 0%, #ffffff00 34%, #ffffff00 62%, #ffffffa8 100%);
+    opacity: var(--lg-rim-op);
+    -webkit-mask: linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+            mask: linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+  }
+
+  /* ---------- readings card ---------- */
+  /* Geometry and content are digitaltwin.html's, verbatim. Class names are
+     lab-local: the labs deliberately do not share a stylesheet with the
+     production page, and a .lab-card here would imply that they do. */
+  /* The real page puts this at left 26. Here it clears the control panel, which
+     occupies left 16 through 352 — and the move helps rather than hurts: at
+     left 26 the card sits over the empty edge of the stage with almost nothing
+     behind it to refract. Width, padding, radius and content are the real
+     page's; only x and y move, and neither is what is on trial. */
+  .sp-card { left: 380px; bottom: 120px; width: 296px; }
+  .sp-card .surf { padding: 20px 22px; border-radius: 20px; }
+  .sp-card h4 { margin: 0 0 14px; font-size: 11px; font-weight: 700; letter-spacing: .16em;
+                text-transform: uppercase; color: var(--ink-3); }
+  .sp-card .cr { display: flex; align-items: baseline; gap: 10px; padding: 9px 0;
+                 border-top: 1px solid rgba(16,33,75,.07); }
+  .sp-card .cr:first-of-type { border-top: 0; }
+  .sp-card .cr span { font-size: 15px; color: var(--ink-2); }
+  .sp-card .cr b { margin-left: auto; font-family: var(--num-face); font-size: 20px;
+                   font-weight: 400; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .sp-card p { margin: 12px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
+
+  /* ---------- bottom bar ---------- */
+  .sp-bar { left: 50%; bottom: 80px; transform: translateX(-50%);
+            width: min(780px, calc(100vw - 460px)); display: flex; align-items: center; gap: 14px; }
+  .sp-bar .surf.pill { flex: 1; display: flex; align-items: center; gap: 16px;
+                       padding: 16px 30px; border-radius: 999px; }
+  .sp-bar .orb { flex: none; width: 26px; height: 26px; border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, #fffffff2,
+                color-mix(in srgb, var(--orb) 46%, #ffffff) 48%, var(--orb));
+    box-shadow: 0 5px 11px -8px #435ba14d, inset 2px 2px 5px #ffffffcc, inset -2px -2px 6px #435ba13d; }
+  .sp-bar .nm { font-size: 32px; font-weight: 400; letter-spacing: -.01em; color: var(--ink); }
+  .sp-bar .nav { display: flex; gap: 10px; }
+  .sp-bar .nav .surf { flex: none; width: 62px; height: 62px; border-radius: 50%;
+                       display: grid; place-items: center; padding: 0;
+                       font-size: 22px; color: var(--ink); }
+
+  /* ---------- organ rail ---------- */
+  .sp-rail { right: 26px; top: 50%; transform: translateY(-50%); width: 288px; }
+  .sp-rail .surf { padding: 16px 14px 14px; border-radius: 22px; }
+  .sp-rail .rh { font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+                 color: var(--ink-2); text-align: center; margin-bottom: 12px; }
+  /* These rows are raised, not frosted, so they take no treatment. They still
+     matter: they sit ON the refracting panel, and whether a raised row still
+     reads as raised on top of a lens is a real question. */
+  .sp-rail .row2 { display: flex; align-items: center; gap: 13px; margin-bottom: 7px;
+    padding: 13px 15px; border-radius: 14px; border: 1px solid #ffffffc4;
+    background: linear-gradient(145deg,#ffffffc4,#eef3fb85);
+    box-shadow: 0 12px 26px -18px #435ba159, inset 1px 1px 1px #ffffffb3;
+    font-size: 17px; color: var(--ink); }
+  .sp-rail .row2:last-child { margin-bottom: 0; }
+  .sp-rail .row2 .orb { flex: none; width: 26px; height: 26px; border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, #fffffff2,
+                color-mix(in srgb, var(--orb) 46%, #ffffff) 48%, var(--orb));
+    box-shadow: 0 5px 11px -8px #435ba14d, inset 2px 2px 5px #ffffffcc, inset -2px -2px 6px #435ba13d; }
+  .sp-rail .row2 .ch { margin-left: auto; color: var(--ink-3); }
+
+  /* ---------- hotspot tag ---------- */
+  .sp-tag { left: 52%; top: 44%; display: flex; align-items: center; }
+  .sp-tag .pin { position: relative; flex: none; width: 34px; height: 34px; border-radius: 50%;
+    background: #ffffff2e; border: 1.5px solid #ffffffe6; display: grid; place-items: center; z-index: 1; }
+  .sp-tag .pin::before { content: ""; width: 7px; height: 7px; border-radius: 50%;
+    background: #fff; box-shadow: 0 0 10px 2px #ffffffb3; }
+  .sp-tag .surf { order: 2; margin-left: -16px; padding: 11px 20px 11px 26px;
+                  border-radius: 999px; font-size: 15px; color: var(--ink); }
+
+  /* The lab's own sans has different digit widths from the real page's
+     Helvetica Neue, so the numeral face is switchable. Judging refraction of
+     numerals in the wrong face is a confound that is easy to miss. */
+  :root { --num-face: var(--sans); --wipe: .5;
+          --lg-fill: .18; --lg-edge: .24; --lg-drop: 1; --lg-bezel: 16px;
+          --lg-rim-angle: 145deg; --lg-rim-op: .85; }
+
+  #lg-defs { position: fixed; width: 0; height: 0; overflow: hidden; }
+  #hud b.no { color: #d2453f; }
+
+</style>
+
+
+<canvas id="gl"></canvas>
+<svg id="lg-defs" aria-hidden="true"></svg>
+
+<div id="stage" data-mode="wipe">
+  <div class="half" id="half-a"><div class="layer" id="layer-a"></div></div>
+  <div class="half" id="half-b"><div class="layer" id="layer-b"></div></div>
+</div>
+<div id="wipe"><i></i></div>
+<div class="wlab" id="wlab-a">Doctrine · 06</div>
+<div class="wlab" id="wlab-b">Liquid glass</div>
+
+<div id="hud">
+  <span class="k">FPS</span><b id="hud-fps">—</b>
+  <span class="k">Points</span><b id="hud-pts">—</b>
+  <span class="k">Organs</span><b id="hud-org">—</b>
+  <span class="k">Organ tris</span><b id="hud-otris">—</b>
+  <span class="k">Max shift</span><b id="hud-shift">—</b>
+  <span class="k">Bezel</span><b id="hud-bezel">—</b>
+  <span class="k">Passes</span><b id="hud-pass">—</b>
+  <span class="k">Map</span><b id="hud-map">—</b>
+  <span class="k">url()</span><b id="hud-url">—</b>
+</div>
+
+<div id="panel">
+  <div class="p-head">
+    <div class="p-eyebrow">Spike · surface bench</div>
+    <div class="p-title">Liquid Glass</div>
+    <div class="p-cn">Refraction over live anatomy, against section 06</div>
+  </div>
+  <div id="pbody"></div>
+</div>
+
+<div class="fab" id="fab-panel">Panel</div>
+<div class="fab" id="fab-shot">PNG · canvas only</div>
+<div class="fab" id="fab-reset">Reset view</div>
+<div id="toast"></div>
+
+<div id="boot">
+  <div>
+    <div class="bt">Loading</div>
+    <div class="bs" id="boot-sub">render engine</div>
+    <div class="bar"><i id="boot-bar"></i></div>
+    <div class="err" id="boot-err" hidden></div>
+  </div>
+</div>
+
+<script type="module">
+/* ==========================================================================
+   Liquid Glass, judged against section 06.
+
+   One question, and it is not "is it pretty": does a refractive surface still
+   let a reading be read while a live anatomical model moves behind it. Four of
+   the body page's real chrome components are rebuilt here at their real sizes
+   with their real content — including "Blood pressure 118/76", because the
+   failure mode is distorted numerals, not distorted rectangles — and each can
+   be flipped between section 06's doctrine and a refractive lens.
+
+   Deliberately out of scope:
+
+     · Safari and Firefox. backdrop-filter: url(#svg) is Chromium-only; WebKit
+       bug 245510 is open and Gecko has never shipped SVG filters there. The
+       fallback would go in exactly one place, buildFilter below, returning a
+       plain blur()+saturate() when the probe fails. It is not written, because
+       a fallback that looks like the doctrine cannot tell us anything about
+       the doctrine.
+     · Navigation, flight, state. The specimens do not do anything. This is a
+       surface bench, not the page.
+
+   Two non-obvious choices, both load-bearing:
+
+   1. The displacement map is built from a rounded-rect SIGNED DISTANCE FIELD,
+      not from a radial profile. Every specimen here is a pill or a rounded
+      rectangle, and the bottom bar is 780 by 72. A radial map stretched to
+      that gives a bezel thick at the top and thin at the ends, so the bezel
+      would be reporting the specimen's aspect ratio rather than its
+      refraction. Distance-from-nearest-edge is the only field that holds one
+      bezel width the whole way round, corners included.
+
+   2. The 1D refraction profile is amplitude-normalised, which is what splits
+      the parameters into SHAPE (regenerates the map) and CHEAP (rewrites one
+      SVG attribute). Dragging displacementScale must not rebuild a PNG.
+
+   The point shell stays on by default even though it is the hostile case: a
+   displacement map bends pixels, and a Contour Fade dot field is mostly the
+   gaps between pixels. Swapping it for a solid mesh would make this spike look
+   better than the real page and answer a question the page never asks.
+   ========================================================================== */
+
+const $ = (s) => document.querySelector(s);
+const boot = $('#boot');
+const bootSub = $('#boot-sub'), bootBar = $('#boot-bar');
+
+/* ---------------------------------------------------------------- 1. loader */
+const sources = [
+  './vendor/three.module.js',
+  'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
+  'https://unpkg.com/three@0.160.0/build/three.module.js',
+];
+let THREE = null;
+for (const src of sources) {
+  try { const mod = await import(src); if (mod && mod.WebGLRenderer) { THREE = mod; break; } } catch (e) {}
+}
+if (!THREE) {
+  boot.querySelector('.bt').textContent = 'Could not load three.js';
+  boot.querySelector('.bar').remove();
+  const err = $('#boot-err'); err.hidden = false;
+  err.textContent = 'vendor/three.module.js is missing and every CDN mirror failed.';
+  throw new Error('three.js unavailable');
+}
+
+const hex2vec = (h) => {
+  const v = parseInt(h.slice(1), 16);
+  return new THREE.Vector3(((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255);
+};
+
+
+/* ------------------------------------------------------------- 2. constants */
+const BODY_H = 2.6;               // every model is normalised to this height
+
+/* Five of the seven. Stomach (29.6 MB) and intestines (14.9 MB) are dropped:
+   together they are 44 MB and neither shows the glass anything the heart does
+   not. Placement is organ-body-full.html's, verbatim — including the liver's
+   pitch and the z that moves with it. */
+const ORGANS = [
+  { id: 'heart',   file: 'realistic_human_heart.glb',       name: 'Heart',      sub: 'with great vessels',
+    hFrac: 0.069, seat: 0.715, x: 0.022,  z: 0.028, yaw: -12, ex: 0.75, ez: 0.65, color: '#c8384f' },
+  { id: 'lungs',   file: 'realistic_human_lungs.glb',       name: 'Lungs',      sub: 'with trachea',
+    hFrac: 0.185, seat: 0.748, x: 0,      z: 0.002, yaw: 0,   ex: 0,    ez: 0.35, color: '#d98fa0' },
+  { id: 'liver',   file: 'human_liver_and_gallbladder.glb', name: 'Liver + GB', sub: 'with gallbladder',
+    hFrac: 0.098, seat: 0.620, x: -0.032, z: 0.013, yaw: -90, pitch: -14, ex: -0.9, ez: 0.35, color: '#8f3b34' },
+  { id: 'kidneys', file: 'human_kidney.glb',                name: 'Kidneys',    sub: 'with ureters',
+    hFrac: 0.083, seat: 0.583, x: 0,      z: -0.032, yaw: 0,  ex: 0,    ez: -1,   color: '#a34a52' },
+  { id: 'brain',   file: 'pink_brain.glb',                  name: 'Brain',      sub: 'with brainstem',
+    hFrac: 0.058, seat: 0.948, x: 0,      z: 0.000, yaw: -90, ex: 0,    ez: 0,    color: '#e0a3b4' },
+];
+
+/* The per-organ defaults the carried-over placement and loading code expects.
+   Without this line loadOrgan sets holder.visible = undefined and every organ
+   loads invisible, which presents as "the GLBs did not load". */
+for (const o of ORGANS) { o.scale = 1; o.visible = true; if (o.pitch === undefined) o.pitch = 0; }
+
+/* The heart's real readings, from digitaltwin.html's CATS. Verbatim, because
+   the whole question is what refraction does to these three numbers. */
+const READINGS = [
+  ['Points measured', '10'],
+  ['Blood pressure', '118/76'],
+  ['Blood fats', '0.74 g/L'],
+];
+const READING_NOTE = 'Ten points around the chest, every one read against the same adult range.';
+
+/* Each specimen's real geometry. radius is the real corner radius; 999 means a
+   pill and is clamped to min(w,h)/2 by the generator, which is what the
+   browser draws anyway. doc-blur is that surface's own value on the real page,
+   kept rather than unified. */
+const SPECS = [
+  { id: 'card', cls: 'sp-card', radius: 20,  docBlur: 30 },
+  { id: 'bar',  cls: 'sp-bar',  radius: 999, docBlur: 30 },
+  { id: 'rail', cls: 'sp-rail', radius: 22,  docBlur: 30 },
+  { id: 'tag',  cls: 'sp-tag',  radius: 999, docBlur: 22 },
+];
+
+
+/* ------------------------------------------------------------- 3. app state */
+/* One plain mutable object, no reactivity, matching the other labs: controls
+   write state[key] and then call the one function that needs to run. */
+const state = {
+  /* ---- scene. These keys are read by the shader and scene sections, which
+     are carried over verbatim, so the names are theirs and not negotiable. */
+  body: 'Male',
+  count: 60000,               // 150k on the template; lower here so the panel stays live
+  dotSize: 0.0062,
+  ptFill: 0.95, ptSoft: 0.10,
+  ptColor: '#c8d9ef', ptTip: '#33518f',
+  ptLightMix: 0, ptInvert: true, ptContrast: 1.8, ptFloor: 0.045,
+  ptGlow: 1, ptAdditive: false, ptOpacity: 1,
+  backFade: 0.45,
+  showShell: true, showSkin: false,
+  organScaleAll: 0.88, explode: 0,
+  organTint: true, organUniform: '#c8384f',
+  organRough: 0.3, organEmissive: 0.1, organTransmission: 0.15,
+  autoRotate: true, exposure: 1.05,
+  selected: 'heart',
+  camZoom: 1,                 // multiplies the derived per-organ framing distance
+
+  /* ---- comparison */
+  mode: 'wipe',               // 'wipe' | 'ab'
+  treat: 'liquid',            // which treatment 'ab' shows
+  wipe: 0.5,
+  numerals: 'sans',
+
+  /* ---- liquid glass, SHAPE. Every one of these regenerates the map. */
+  bezel: 16,                  // px band the refraction lives in
+  radiusDelta: 0,             // added to each specimen's own real radius
+  curvature: 2.4,             // 1 chamfer, 2 spherical, 6 boxy
+  ior: 1.48,
+  sign: 1,                    // +1 convex, -1 concave
+  dither: true,
+
+  /* ---- liquid glass, CHEAP. These only rewrite SVG attributes or CSS vars.
+     The split is the mechanism behind "the map regenerates only when the lens
+     changes shape, never when it merely moves". */
+  displacementScale: 96,      // the shift is scale/2, so 96 -> +/-48px
+  aberration: 0,              // 0 = one pass; above 0 = three, per channel
+  blurAmount: 5,
+  saturation: 150,
+  order: 'displace',          // 'displace' then blur, or 'blur' then displace
+
+  /* ---- surface */
+  fill: 0.18, edge: 0.24, drop: 1,
+  rim: true, rimOpacity: 0.85, rimAngle: 145,
+};
+
+
+/* ------------------------------------------------------------- 4. renderer */
+const canvas = $('#gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+const PIXEL = Math.min(window.devicePixelRatio || 1, 2);
+renderer.setPixelRatio(PIXEL);
+if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = state.exposure;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(34, 1, 0.02, 200);
+let W = 1, H = 1;
+
+/* ---------------------------------------------------- 5. gradient backdrop */
+const bgSphere = new THREE.Mesh(
+  new THREE.SphereGeometry(60, 32, 24),
+  new THREE.ShaderMaterial({
+    uniforms: { uTop: { value: hex2vec('#d6e7f8') }, uBottom: { value: hex2vec('#fbfdff') }, uGlow: { value: hex2vec('#9edcff') } },
+    side: THREE.BackSide, depthWrite: false, depthTest: false,
+    vertexShader: `varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `
+      varying vec3 vP; uniform vec3 uTop, uBottom, uGlow;
+      void main() {
+        vec3 d = normalize(vP);
+        vec3 c = mix(uBottom, uTop, pow(clamp(d.y*0.5+0.5,0.0,1.0), 0.85));
+        c += uGlow * pow(max(0.0, 1.0 - length(d.xy - vec2(0.0,0.12))), 3.0) * 0.18;
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  })
+);
+bgSphere.renderOrder = -1000; bgSphere.frustumCulled = false;
+scene.add(bgSphere);
+
+/* ------------------------------------------------------------- 6. lighting */
+scene.add(new THREE.AmbientLight('#dfeaf7', 0.62));
+const keyLight = new THREE.DirectionalLight('#ffffff', 2.3); keyLight.position.set(2.4, 3.2, 2.6); scene.add(keyLight);
+const rimLight = new THREE.DirectionalLight('#bfeaff', 3.0); rimLight.position.set(-2.6, 1.4, -2.8); scene.add(rimLight);
+const fillLight = new THREE.DirectionalLight('#ffd6e0', 0.85); fillLight.position.set(-1.8, -1.2, 2.2); scene.add(fillLight);
+
+
+/* -------------------------------------------------- 7. hand-rolled GLB read */
+const COMP = {
+  5120: { A: Int8Array, s: 1, get: (d, o) => d.getInt8(o) },
+  5121: { A: Uint8Array, s: 1, get: (d, o) => d.getUint8(o) },
+  5122: { A: Int16Array, s: 2, get: (d, o) => d.getInt16(o, true) },
+  5123: { A: Uint16Array, s: 2, get: (d, o) => d.getUint16(o, true) },
+  5125: { A: Uint32Array, s: 4, get: (d, o) => d.getUint32(o, true) },
+  5126: { A: Float32Array, s: 4, get: (d, o) => d.getFloat32(o, true) },
+};
+const NUM = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT2: 4, MAT3: 9, MAT4: 16 };
+
+function parseContainer(buffer, name) {
+  const dv = new DataView(buffer);
+  if (dv.getUint32(0, true) !== 0x46546c67) throw new Error(`${name} is not a binary glTF`);
+  let off = 12, json = null, bin = null;
+  while (off + 8 <= buffer.byteLength) {
+    const len = dv.getUint32(off, true), type = dv.getUint32(off + 4, true), start = off + 8;
+    if (type === 0x4e4f534a) json = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer, start, len)));
+    else if (type === 0x004e4942) bin = new Uint8Array(buffer, start, len);
+    off = start + len;
+  }
+  if (!json) throw new Error(`${name} has no JSON chunk`);
+  return { json, bin };
+}
+
+function readTyped(json, bin, bvIndex, byteOffset, componentType, count, num) {
+  const comp = COMP[componentType];
+  const out = new comp.A(count * num);
+  if (bvIndex === undefined) return out;
+  const bv = json.bufferViews[bvIndex];
+  const base = (bv.byteOffset || 0) + byteOffset;
+  const stride = bv.byteStride || comp.s * num;
+  const dv = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  for (let i = 0; i < count; i++) {
+    const o = base + i * stride;
+    for (let j = 0; j < num; j++) out[i * num + j] = comp.get(dv, o + j * comp.s);
+  }
+  return out;
+}
+
+function readAccessor(json, bin, index) {
+  const acc = json.accessors[index];
+  const num = NUM[acc.type];
+  return { array: readTyped(json, bin, acc.bufferView, acc.byteOffset || 0, acc.componentType, acc.count, num), itemSize: num };
+}
+
+const nullMat = new THREE.MeshBasicMaterial({ visible: false });
+
+function buildGeometries(json, bin, meshIndex, cache) {
+  if (cache.has(meshIndex)) return cache.get(meshIndex);
+  const list = [];
+  for (const prim of json.meshes[meshIndex].primitives) {
+    if ((prim.mode === undefined ? 4 : prim.mode) !== 4) continue;
+    const geo = new THREE.BufferGeometry();
+    const attrs = prim.attributes || {};
+    for (const [k, v] of [['POSITION', 'position'], ['NORMAL', 'normal']]) {
+      if (attrs[k] === undefined) continue;
+      const acc = readAccessor(json, bin, attrs[k]);
+      geo.setAttribute(v, new THREE.BufferAttribute(acc.array, acc.itemSize));
+    }
+    if (!geo.getAttribute('position')) continue;
+    if (prim.indices !== undefined) {
+      const i = readAccessor(json, bin, prim.indices);
+      geo.setIndex(new THREE.BufferAttribute(i.array, 1));
+    }
+    if (!geo.getAttribute('normal')) geo.computeVertexNormals();
+    list.push(geo);
+  }
+  cache.set(meshIndex, list);
+  return list;
+}
+
+function buildNode(json, bin, index, cache, seen) {
+  if (seen.has(index)) return null;
+  seen.add(index);
+  const n = json.nodes[index];
+  const obj = new THREE.Group();
+  obj.name = n.name || `node_${index}`;
+  if (n.matrix) new THREE.Matrix4().fromArray(n.matrix).decompose(obj.position, obj.quaternion, obj.scale);
+  else {
+    if (n.translation) obj.position.fromArray(n.translation);
+    if (n.rotation) obj.quaternion.fromArray(n.rotation);
+    if (n.scale) obj.scale.fromArray(n.scale);
+  }
+  if (n.mesh !== undefined) for (const geo of buildGeometries(json, bin, n.mesh, cache)) obj.add(new THREE.Mesh(geo, nullMat));
+  if (n.children) for (const c of n.children) { const k = buildNode(json, bin, c, cache, seen); if (k) obj.add(k); }
+  seen.delete(index);
+  return obj;
+}
+
+async function loadGLB(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
+  const { json, bin } = parseContainer(await res.arrayBuffer(), url);
+  const root = new THREE.Group();
+  const cache = new Map();
+  const sceneDef = json.scenes?.[json.scene ?? 0];
+  const roots = sceneDef ? sceneDef.nodes : json.nodes.map((_, i) => i);
+  for (const i of roots) { const n = buildNode(json, bin, i, cache, new Set()); if (n) root.add(n); }
+  root.updateMatrixWorld(true);
+  return root;
+}
+
+/* Recentre on the inner node and scale on a wrapper. Doing both to one node
+   throws the model off screen: a node's own scale does not apply to its own
+   position, so the recentring offset stays at the source file's scale. */
+function fitToHeight(root, targetH, mode) {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  if (box.isEmpty()) throw new Error('model has no renderable triangles');
+  const size = box.getSize(new THREE.Vector3());
+  const centre = box.getCenter(new THREE.Vector3());
+  const k = targetH / Math.max(size.y, 1e-6);
+
+  const holder = new THREE.Group();
+  if (mode === 'floor') root.position.set(-centre.x, -box.min.y, -centre.z);
+  else root.position.copy(centre).negate();
+  holder.add(root);
+  holder.scale.setScalar(k);
+  holder.updateMatrixWorld(true);
+  holder.userData.srcH = size.y;      // keep it, so hFrac stays editable later
+  return holder;
+}
+
+function countTris(root) {
+  let t = 0;
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const g = o.geometry;
+    t += g.index ? g.index.count / 3 : g.getAttribute('position').count / 3;
+  });
+  return Math.round(t);
+}
+
+
+/* ------------------------------------- 8. area-weighted surface point sample */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function collectTriangles(root) {
+  root.updateMatrixWorld(true);
+  const pos = [], nrm = [];
+  const vA = new THREE.Vector3(), vB = new THREE.Vector3(), vC = new THREE.Vector3();
+  const nA = new THREE.Vector3(), nB = new THREE.Vector3(), nC = new THREE.Vector3();
+  const nMat = new THREE.Matrix3();
+  let tris = 0;
+
+  root.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    const g = o.geometry, p = g.getAttribute('position');
+    if (!p) return;
+    const n = g.getAttribute('normal'), idx = g.index;
+    const count = idx ? idx.count : p.count;
+    nMat.getNormalMatrix(o.matrixWorld);
+    for (let i = 0; i < count; i += 3) {
+      const a = idx ? idx.getX(i) : i, b = idx ? idx.getX(i + 1) : i + 1, c = idx ? idx.getX(i + 2) : i + 2;
+      vA.fromBufferAttribute(p, a).applyMatrix4(o.matrixWorld);
+      vB.fromBufferAttribute(p, b).applyMatrix4(o.matrixWorld);
+      vC.fromBufferAttribute(p, c).applyMatrix4(o.matrixWorld);
+      if (n) {
+        nA.fromBufferAttribute(n, a).applyMatrix3(nMat).normalize();
+        nB.fromBufferAttribute(n, b).applyMatrix3(nMat).normalize();
+        nC.fromBufferAttribute(n, c).applyMatrix3(nMat).normalize();
+      } else { nA.subVectors(vC, vB).cross(vB.clone().sub(vA)).normalize(); nB.copy(nA); nC.copy(nA); }
+      pos.push(vA.x, vA.y, vA.z, vB.x, vB.y, vB.z, vC.x, vC.y, vC.z);
+      nrm.push(nA.x, nA.y, nA.z, nB.x, nB.y, nB.z, nC.x, nC.y, nC.z);
+      tris++;
+    }
+  });
+  return { pos: new Float32Array(pos), nrm: new Float32Array(nrm), tris };
+}
+
+/* Mesh vertices clump wherever the model was tessellated finely — dense at the
+   face and hands, sparse across the back — which reads as blotchy. Weighting
+   by triangle area gives an even field regardless of tessellation. */
+function samplePoints(soup, count, seed = 7) {
+  const { pos, nrm, tris } = soup;
+  const cdf = new Float64Array(tris);
+  const ab = new THREE.Vector3(), ac = new THREE.Vector3(), cr = new THREE.Vector3();
+  let total = 0;
+  for (let t = 0; t < tris; t++) {
+    const o = t * 9;
+    ab.set(pos[o + 3] - pos[o], pos[o + 4] - pos[o + 1], pos[o + 5] - pos[o + 2]);
+    ac.set(pos[o + 6] - pos[o], pos[o + 7] - pos[o + 1], pos[o + 8] - pos[o + 2]);
+    total += cr.crossVectors(ab, ac).length() * 0.5;
+    cdf[t] = total;
+  }
+  if (total <= 0) throw new Error('degenerate mesh — zero surface area');
+
+  const rand = mulberry32(seed);
+  const outP = new Float32Array(count * 3), outN = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const target = rand() * total;
+    let lo = 0, hi = tris - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (cdf[mid] < target) lo = mid + 1; else hi = mid; }
+    const o = lo * 9;
+    let u = rand(), v = rand();
+    if (u + v > 1) { u = 1 - u; v = 1 - v; }
+    const w = 1 - u - v, k = i * 3;
+    for (let j = 0; j < 3; j++) {
+      outP[k + j] = pos[o + j] * w + pos[o + 3 + j] * u + pos[o + 6 + j] * v;
+      outN[k + j] = nrm[o + j] * w + nrm[o + 3 + j] * u + nrm[o + 6 + j] * v;
+    }
+    const len = Math.hypot(outN[k], outN[k + 1], outN[k + 2]) || 1;
+    outN[k] /= len; outN[k + 1] /= len; outN[k + 2] /= len;
+  }
+  return { position: outP, normal: outN };
+}
+
+
+/* -------------------------------------------- 9. the Contour Fade point shader */
+/* Direct port of the lab's halftone ink model, evaluated per point instead of
+   per screen cell:
+
+       tone   = mix(facing, ndl, lightMix)
+       bright = invert ? 1 - tone : tone
+       cov    = floor + (1 - floor) * bright ^ contrast
+       radius = 0.5 * fill * sqrt(cov)
+       colour = mix(colour, tip, bright)
+
+   depthWrite stays off. With it on, near dots punch holes in the depth buffer
+   and the organ behind them vanishes in a ring of dead pixels. With it off the
+   organs write depth first, near dots pass the test, far dots are rejected. */
+const U = {
+  uSize: { value: state.dotSize },
+  uViewportH: { value: 800 },
+  uLightDir: { value: new THREE.Vector3(0.5, 0.7, 0.5).normalize() },
+  uLightMix: { value: state.ptLightMix },
+  uInvert: { value: state.ptInvert ? 1 : 0 },
+  uContrast: { value: state.ptContrast },
+  uFloor: { value: state.ptFloor },
+  uFill: { value: state.ptFill },
+  uSoft: { value: state.ptSoft },
+  uColor: { value: hex2vec(state.ptColor) },
+  uTip: { value: hex2vec(state.ptTip) },
+  uGlow: { value: state.ptGlow },
+  uOpacity: { value: state.ptOpacity },
+  uBackFade: { value: state.backFade },
+};
+
+const shellMat = new THREE.ShaderMaterial({
+  uniforms: U,
+  transparent: true, depthTest: true, depthWrite: false,
+  vertexShader: `
+    uniform float uSize, uViewportH, uLightMix, uInvert, uContrast, uFloor, uFill, uBackFade;
+    uniform vec3 uLightDir;
+    varying float vBright, vAlpha;
+    void main() {
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      vec3 n = normalize(normalMatrix * normal);
+      vec3 v = normalize(-mv.xyz);
+      float signedFacing = dot(n, v);
+
+      float facing = clamp(abs(signedFacing), 0.0, 1.0);
+      float ndl = clamp(dot(n, normalize((viewMatrix * vec4(uLightDir, 0.0)).xyz)) * 0.5 + 0.5, 0.0, 1.0);
+      float tone = mix(facing, ndl, uLightMix);
+      float bright = mix(tone, 1.0 - tone, uInvert);
+      float cov = uFloor + (1.0 - uFloor) * pow(clamp(bright, 0.0, 1.0), uContrast);
+      vBright = bright;
+
+      float pxPerUnit = uViewportH * projectionMatrix[1][1] * 0.5;
+      float want = uSize * uFill * sqrt(cov) * pxPerUnit / max(-mv.z, 0.001);
+
+      /* Below one pixel the rasteriser still draws a full-strength dot, which
+         would flatten the fade into uniform speckle. Hold the size at 1 px and
+         pay the difference in alpha instead, by area. */
+      float sz = max(want, 1.0);
+      float shrink = clamp(want / sz, 0.0, 1.0);
+      vAlpha = shrink * shrink;
+
+      /* 3D-only. The ink model throws the sign away with abs(), but a screen
+         pass could never recover it at all: this is what separates the far
+         shell from the near one and stops the two piling up. */
+      float away = 1.0 - smoothstep(-0.35, 0.05, signedFacing);
+      vAlpha *= mix(1.0, 1.0 - uBackFade, away);
+
+      gl_PointSize = clamp(sz, 1.0, 64.0);
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: `
+    varying float vBright, vAlpha;
+    uniform vec3 uColor, uTip;
+    uniform float uSoft, uOpacity, uGlow;
+    void main() {
+      vec2 q = gl_PointCoord - 0.5;
+      float d = length(q);
+      float aa = fwidth(d) + 0.002;
+      float mask = 1.0 - smoothstep(0.5 - uSoft * 0.5 - aa, 0.5, d);
+      if (mask <= 0.004) discard;
+      float a = vAlpha * uOpacity * mask;
+      if (a <= 0.004) discard;
+      gl_FragColor = vec4(mix(uColor, uTip, clamp(vBright, 0.0, 1.0)) * uGlow, a);
+    }`,
+});
+
+const skinMat = new THREE.MeshPhysicalMaterial({
+  color: '#dfeaf5', roughness: 0.75, metalness: 0,
+  transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false,
+});
+
+
+/* ------------------------------------------------------------- 10. the scene */
+/* ------------------------------------------------------------ 10. the scene */
+const stage = new THREE.Group();
+scene.add(stage);
+
+const world = { soup: null, shell: null, skin: null, centreline: null };
+
+/* An A-pose figure's bounding box is 0.6 as wide as it is tall, so its centre
+   says nothing about where the trunk is: the arms dominate x, and in z the
+   chest, belly and pelvis each sit at a different depth.
+
+   A single measurement at chest height is therefore not enough — anchoring
+   every organ to one chest-level centre pushed the liver 5.7 cm out through
+   the front of the abdomen, because the abdomen's centreline is not the
+   chest's. So sample a centreline: one trunk centre per horizontal slab, and
+   seat each organ against the slab at its own height.
+
+   Per slab the midline comes from the MEDIAN x, which ignores the arms in a
+   way a mean cannot, and the depth centre is measured only from points near
+   that midline, so shoulders and hands stay out of it. */
+const SLAB = 0.011;                     // of body height, ~2 cm on an adult
+
+function buildCentreline(soup, height) {
+  const { pos } = soup;
+  const n = pos.length / 3;
+  const step = height * SLAB;
+  const slabs = Math.ceil(height / step) + 1;
+  const bucketX = Array.from({ length: slabs }, () => []);
+
+  for (let i = 0; i < n; i++) {
+    const k = Math.floor(pos[i * 3 + 1] / step);
+    if (k >= 0 && k < slabs) bucketX[k].push(pos[i * 3]);
+  }
+  const midX = bucketX.map((xs) => {
+    if (xs.length < 20) return null;
+    xs.sort((a, b) => a - b);
+    return xs[xs.length >> 1];
+  });
+
+  const near = height * 0.085;
+  const zLo = new Float64Array(slabs).fill(Infinity);
+  const zHi = new Float64Array(slabs).fill(-Infinity);
+  for (let i = 0; i < n; i++) {
+    const k = Math.floor(pos[i * 3 + 1] / step);
+    if (k < 0 || k >= slabs || midX[k] === null) continue;
+    if (Math.abs(pos[i * 3] - midX[k]) > near) continue;
+    const z = pos[i * 3 + 2];
+    if (z < zLo[k]) zLo[k] = z;
+    if (z > zHi[k]) zHi[k] = z;
+  }
+
+  const line = [];
+  for (let k = 0; k < slabs; k++) {
+    line.push(midX[k] === null || !isFinite(zLo[k])
+      ? null
+      : { x: midX[k], z: (zLo[k] + zHi[k]) / 2 });
+  }
+  return { step, line };
+}
+
+/* Nearest populated slab, so an organ never falls back to the origin just
+   because its own slab happened to be empty. */
+function centreAt(y) {
+  const cl = world.centreline;
+  if (!cl) return { x: 0, z: 0 };
+  const k = Math.max(0, Math.min(cl.line.length - 1, Math.floor(y / cl.step)));
+  for (let d = 0; d < cl.line.length; d++) {
+    if (cl.line[k - d]) return cl.line[k - d];
+    if (cl.line[k + d]) return cl.line[k + d];
+  }
+  return { x: 0, z: 0 };
+}
+
+function rebuildShell() {
+  if (world.shell) { stage.remove(world.shell); world.shell.geometry.dispose(); world.shell = null; }
+  if (!world.soup) return;
+  const { position, normal } = samplePoints(world.soup, state.count, 7);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(position, 3));
+  geo.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
+  const pts = new THREE.Points(geo, shellMat);
+  pts.frustumCulled = false;
+  pts.renderOrder = 10;                 // after the organs, so depth is laid down first
+  pts.visible = state.showShell;
+  world.shell = pts;
+  stage.add(pts);
+  $('#hud-pts').textContent = state.count.toLocaleString('en-US');
+}
+
+function placeOrgan(o) {
+  if (!o.holder) return;
+  const h = BODY_H, t = centreAt(o.seat * h);
+  /* Derive the scale from hFrac every time rather than caching it at load, so
+     the anatomical fraction stays the single source of truth and remains
+     editable. srcH is the model's own height, which is meaningless on its own
+     — these files span 0.22 to 53 units for the same class of object. */
+  o.holder.scale.setScalar((o.hFrac * h / o.srcH) * o.scale * state.organScaleAll);
+  o.holder.position.set(
+    t.x + (o.x + (o.ex || 0) * state.explode) * h,
+    o.seat * h,
+    t.z + (o.z + (o.ez || 0) * state.explode) * h
+  );
+  /* Order matters: three's default XYZ Euler applies Rx after Ry, so the pitch
+     tips the already-seated organ in body space rather than in its own frame. */
+  o.holder.rotation.set(o.pitch * Math.PI / 180, o.yaw * Math.PI / 180, 0);
+}
+function placeAll() { for (const o of ORGANS) placeOrgan(o); }
+
+function applyOrganMaterials() {
+  let tris = 0, shown = 0;
+  for (const o of ORGANS) {
+    if (!o.mat) continue;
+    const c = state.organTint ? o.color : state.organUniform;
+    o.mat.color.set(c);
+    o.mat.emissive.set(c);
+    o.mat.emissiveIntensity = state.organEmissive;
+    o.mat.roughness = state.organRough;
+    o.mat.transmission = state.organTransmission;
+    if (o.visible) { tris += o.tris; shown++; }
+  }
+  $('#hud-otris').textContent = tris.toLocaleString('en-US');
+  $('#hud-org').textContent = `${shown}/${ORGANS.length}`;
+}
+
+async function loadBody(name) {
+  const root = await loadGLB(`GLB/${name}.glb`);
+  const holder = fitToHeight(root, BODY_H, 'floor');
+  if (world.skin) stage.remove(world.skin);
+  world.soup = collectTriangles(holder);
+  world.centreline = buildCentreline(world.soup, BODY_H);
+  holder.traverse((o) => { if (o.isMesh) o.material = skinMat; });
+  holder.visible = state.showSkin;
+  world.skin = holder;
+  stage.add(holder);
+  rebuildShell();
+  placeAll();
+}
+
+async function loadOrgan(o) {
+  const root = await loadGLB(`GLB/organ/${o.file}`);
+  o.tris = countTris(root);
+  o.mat = new THREE.MeshPhysicalMaterial({
+    color: o.color, roughness: state.organRough, metalness: 0,
+    clearcoat: 0.45, clearcoatRoughness: 0.25, sheen: 0.35,
+    emissive: o.color, emissiveIntensity: state.organEmissive,
+    transmission: state.organTransmission, thickness: 0.9, ior: 1.4,
+    attenuationColor: new THREE.Color('#5e0d1c'), attenuationDistance: 0.6,
+  });
+  root.traverse((m) => { if (m.isMesh) { m.material = o.mat; m.renderOrder = 0; } });
+
+  /* Size by anatomical fraction of body height. The source numbers span
+     0.48 to 1338 units for the same class of object, so neither the file's
+     own scale nor its ratio to the body means anything. */
+  o.holder = fitToHeight(root, o.hFrac * BODY_H, 'centre');
+  o.srcH = o.holder.userData.srcH;
+  o.holder.visible = o.visible;
+  stage.add(o.holder);
+  placeOrgan(o);
+}
+
+
+/* ------------------------------------------------------- 11. orbit control */
+class Orbit {
+  constructor(cam, el) {
+    this.cam = cam; this.el = el;
+    this.target = new THREE.Vector3(0, BODY_H * 0.55, 0);
+    this.theta = 0.28; this.phi = Math.PI / 2 - 0.06; this.dist = 5.2;
+    this.drag = null; this.last = { x: 0, y: 0 };
+    el.addEventListener('pointerdown', (e) => {
+      el.setPointerCapture(e.pointerId);
+      this.drag = (e.button === 2 || e.shiftKey) ? 'pan' : 'rotate';
+      this.last = { x: e.clientX, y: e.clientY };
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!this.drag) return;
+      const dx = e.clientX - this.last.x, dy = e.clientY - this.last.y;
+      this.last = { x: e.clientX, y: e.clientY };
+      if (this.drag === 'rotate') {
+        this.theta -= dx * 0.0058;
+        this.phi = Math.min(Math.PI - 0.05, Math.max(0.05, this.phi - dy * 0.0058));
+      } else {
+        const k = this.dist * 0.0016;
+        const right = new THREE.Vector3().setFromMatrixColumn(this.cam.matrix, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(this.cam.matrix, 1);
+        this.target.addScaledVector(right, -dx * k).addScaledVector(up, dy * k);
+      }
+    });
+    const end = (e) => { this.drag = null; try { el.releasePointerCapture(e.pointerId); } catch (_) {} };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    el.addEventListener('contextmenu', (e) => e.preventDefault());
+    el.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.dist = Math.min(22, Math.max(0.35, this.dist * Math.exp(e.deltaY * 0.0011)));
+    }, { passive: false });
+  }
+  update(dt) {
+    if (state.autoRotate && !this.drag) this.theta += dt * 0.2;
+    const sp = Math.sin(this.phi);
+    this.cam.position.set(
+      this.target.x + this.dist * sp * Math.sin(this.theta),
+      this.target.y + this.dist * Math.cos(this.phi),
+      this.target.z + this.dist * sp * Math.cos(this.theta)
+    );
+    this.cam.lookAt(this.target);
+  }
+  reset() { this.target.set(0, BODY_H * 0.55, 0); this.theta = 0.28; this.phi = Math.PI / 2 - 0.06; this.dist = 5.2; }
+  focus(seat, dist) { this.target.set(0, seat * BODY_H, 0); this.theta = 0.3; this.phi = Math.PI / 2; this.dist = dist; }
+}
+const orbit = new Orbit(camera, canvas);
+
+
+/* ---------------------------------------------------- 11b. shell plumbing */
+function syncShell() {
+  U.uSize.value = state.dotSize;
+  U.uLightMix.value = state.ptLightMix;
+  U.uInvert.value = state.ptInvert ? 1 : 0;
+  U.uContrast.value = state.ptContrast;
+  U.uFloor.value = state.ptFloor;
+  U.uFill.value = state.ptFill;
+  U.uSoft.value = state.ptSoft;
+  U.uColor.value.copy(hex2vec(state.ptColor));
+  U.uTip.value.copy(hex2vec(state.ptTip));
+  U.uGlow.value = state.ptGlow;
+  U.uOpacity.value = state.ptOpacity;
+  U.uBackFade.value = state.backFade;
+  shellMat.blending = state.ptAdditive ? THREE.AdditiveBlending : THREE.NormalBlending;
+  shellMat.needsUpdate = true;
+}
+
+const pbody = $('#pbody');
+let resampleTimer = null;
+
+function sel() { return ORGANS.find((o) => o.id === state.selected) || ORGANS[0]; }
+
+function apply(key) {
+  switch (key) {
+    case 'count':
+      clearTimeout(resampleTimer);
+      resampleTimer = setTimeout(() => rebuildShell(), 200);
+      break;
+    case 'body': loadBody(state.body).catch(fail); break;
+    case 'showShell': if (world.shell) world.shell.visible = state.showShell; break;
+    case 'showSkin': if (world.skin) world.skin.visible = state.showSkin; break;
+    case 'exposure': renderer.toneMappingExposure = state.exposure; break;
+    case 'organTint': case 'organUniform': case 'organRough':
+    case 'organEmissive': case 'organTransmission':
+      applyOrganMaterials(); break;
+    default: syncShell();
+  }
+}
+
+/* -------------------------------------------------- 11c. panel builders */
+function slider(parent, label, get, set, min, max, step, fmt) {
+  const row = document.createElement('div');
+  row.className = 'row';
+  const f = fmt || ((v) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2)));
+  row.innerHTML = `<div class="lab"><span>${label}</span><span class="v"></span></div>`;
+  const inp = document.createElement('input');
+  inp.type = 'range'; inp.min = min; inp.max = max; inp.step = step; inp.value = get();
+  const out = row.querySelector('.v');
+  out.textContent = f(get());
+  inp.addEventListener('input', () => { set(parseFloat(inp.value)); out.textContent = f(get()); });
+  row.appendChild(inp);
+  parent.appendChild(row);
+}
+
+function toggle(parent, label, get, set) {
+  const t = document.createElement('div');
+  t.className = 'tog' + (get() ? ' on' : '');
+  t.innerHTML = `<span class="sw"></span><span>${label}</span>`;
+  t.addEventListener('click', () => { set(!get()); t.classList.toggle('on', get()); });
+  parent.appendChild(t);
+}
+
+function colour(parent, label, get, set) {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `<div class="lab"><span>${label}</span></div>`;
+  const inp = document.createElement('input');
+  inp.type = 'color'; inp.value = get();
+  inp.addEventListener('input', () => set(inp.value));
+  row.appendChild(inp);
+  parent.appendChild(row);
+}
+
+function section(title, open) {
+  const el = document.createElement('div');
+  el.className = 'sec' + (open ? '' : ' closed');
+  const head = document.createElement('div');
+  head.className = 'sec-h';
+  head.innerHTML = `<span>${title}</span><span class="caret"></span>`;
+  head.addEventListener('click', () => el.classList.toggle('closed'));
+  el.appendChild(head);
+  const body = document.createElement('div');
+  body.className = 'sec-b';
+  el.appendChild(body);
+  pbody.appendChild(el);
+  return body;
+}
+
+function chipRow(parent, label, opts, isOn, onPick) {
+  const row = document.createElement('div');
+  row.className = 'row';
+  if (label) row.innerHTML = `<div class="lab"><span>${label}</span></div>`;
+  const wrap = document.createElement('div');
+  wrap.className = 'chips';
+  for (const o of opts) {
+    const c = document.createElement('div');
+    c.className = 'chip' + (isOn(o) ? ' on' : '');
+    c.textContent = o.label;
+    c.addEventListener('click', () => onPick(o));
+    wrap.appendChild(c);
+  }
+  row.appendChild(wrap);
+  parent.appendChild(row);
+}
+
+
+/* ------------------------------------------- 12. displacement map generator */
+
+/* Chromium-only, and the probe below is grammar support rather than a promise:
+   Gecko and WebKit may well parse url() in backdrop-filter and then render
+   nothing. The HUD reports it, because "why does this look like a plain blur"
+   should take one glance and not an hour. */
+const HAS_SVG_BACKDROP = CSS.supports('backdrop-filter', 'url(#lg-probe)')
+                      || CSS.supports('-webkit-backdrop-filter', 'url(#lg-probe)');
+
+let mapMs = 0, lastMapDims = '—';
+
+/* The 1D profile: how far a ray landing at depth u into the bezel comes out
+   sideways. Computed once into a table, then normalised to [0,1] so that
+   amplitude lives entirely in the SVG scale attribute.
+
+   u runs 0 at the rim to 1 at the inner edge of the bezel.
+   P(u) is the surface height, so P(0)=0, P(1)=1, and P'(1)=0 — the glass meets
+   its own flat interior tangentially, which is why the interior does not
+   shear. At u=0 the wall is near-vertical, hence the clamp: without it the
+   grazing ray sends tan() to infinity and the rim becomes a one-pixel scream. */
+function refractionProfile(curve, ior) {
+  const N = 512, P = new Float32Array(N), mag = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    const u = i / (N - 1);
+    P[i] = Math.pow(1 - Math.pow(1 - u, curve), 1 / curve);
+  }
+  const SLOPE_MAX = Math.tan(1.45);          // ~83 degrees
+  for (let i = 0; i < N; i++) {
+    const a = P[Math.max(0, i - 1)], b = P[Math.min(N - 1, i + 1)];
+    let s = (b - a) * (N - 1) / 2;
+    if (!isFinite(s) || s > SLOPE_MAX) s = SLOPE_MAX;
+    if (s < 0) s = 0;
+    const t1 = Math.atan(s);
+    const t2 = Math.asin(Math.min(1, Math.sin(t1) / ior));
+    mag[i] = Math.tan(t1 - t2);
+  }
+  let peak = 0;
+  for (let i = 0; i < N; i++) if (mag[i] > peak) peak = mag[i];
+  if (peak > 0) for (let i = 0; i < N; i++) mag[i] /= peak;
+  return mag;
+}
+
+/* Build a two-channel refraction field for a w x h rounded rect.
+   R carries the x shift, G the y shift, 128 is neutral, and A must be 255. */
+function buildDisplacementMap(w, h, radius, bezel, curve, ior, sign, dither) {
+  const t0 = performance.now();
+  w = Math.max(2, Math.round(w)); h = Math.max(2, Math.round(h));
+  const r = Math.min(radius, w / 2, h / 2);
+  const b = Math.max(1, Math.min(bezel, w / 2, h / 2));
+  const mag = refractionProfile(curve, ior);
+  const hw = w / 2, hh = h / 2;
+  const buf = new Uint8ClampedArray(w * h * 4);
+
+  /* The full field, not a mirrored quadrant. Four-fold symmetry would save
+     about a millisecond on the largest specimen here and carries an odd-width
+     centre-column edge case; at 121k pixels the saving is not worth the bug
+     surface. */
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const px = x + 0.5, py = y + 0.5;
+
+      /* signed distance to a rounded rect, negative inside */
+      const qx = Math.abs(px - hw) - (hw - r);
+      const qy = Math.abs(py - hh) - (hh - r);
+      const ax = Math.max(qx, 0), ay = Math.max(qy, 0);
+      const d = Math.min(Math.max(qx, qy), 0) + Math.hypot(ax, ay) - r;
+      const e = -d;                                  // depth inside from the edge
+
+      let vx = 0, vy = 0;
+      if (e > 0 && e < b) {
+        const m = sign * mag[Math.min(511, (e / b * 511) | 0)];
+        /* outward normal = gradient of the same distance field */
+        let gx, gy;
+        if (ax > 0 || ay > 0) { const Lp = Math.hypot(ax, ay) || 1; gx = ax / Lp; gy = ay / Lp; }
+        else if (qx > qy)     { gx = 1; gy = 0; }
+        else                  { gx = 0; gy = 1; }
+        gx *= (px < hw ? -1 : 1);
+        gy *= (py < hh ? -1 : 1);
+        vx = gx * m; vy = gy * m;
+      }
+
+      const i = (y * w + x) * 4;
+      /* Ordered half-LSB dither. 8-bit channels quantise the shift into steps
+         of scale/255 px, and without this a wide displacement over a narrow
+         bezel stair-steps into visible contour rings. */
+      const dth = dither ? (((x ^ y) & 1) ? 0.5 : -0.5) : 0;
+      buf[i]     = 128 + 127 * Math.max(-1, Math.min(1, vx)) + dth;
+      buf[i + 1] = 128 + 127 * Math.max(-1, Math.min(1, vy)) + dth;
+      buf[i + 2] = 128;
+      /* Not cosmetic: Chromium premultiplies filter inputs, so any alpha below
+         255 scales R and G down and injects a shift toward the top-left. */
+      buf[i + 3] = 255;
+    }
+  }
+
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  cv.getContext('2d').putImageData(new ImageData(buf, w, h), 0, 0);
+  mapMs = performance.now() - t0;
+  lastMapDims = w + 'x' + h;
+  /* PNG, not JPEG: a lossy codec would smear the field into noise. */
+  return cv.toDataURL('image/png');
+}
+
+/* Cache on the SHAPE key only. The omission of displacementScale, aberration,
+   blur and saturation from this key IS the no-regenerate-on-move guarantee. */
+const mapCache = new Map();
+function makeMap(w, h, radius) {
+  const key = [Math.round(w), Math.round(h), radius, state.bezel, state.curvature,
+               state.ior, state.sign, state.dither ? 1 : 0].join('|');
+  let uri = mapCache.get(key);
+  if (!uri) {
+    uri = buildDisplacementMap(w, h, radius, state.bezel, state.curvature,
+                               state.ior, state.sign, state.dither);
+    if (mapCache.size > 40) mapCache.delete(mapCache.keys().next().value);
+    mapCache.set(key, uri);
+  }
+  return uri;
+}
+
+/* ---------------------------------------------------------- 13. svg filter */
+const defs = $('#lg-defs');
+
+function radiusFor(spec) { return Math.max(0, spec.radius + state.radiusDelta); }
+
+function filterMarkup(spec, w, h) {
+  const uri = makeMap(w, h, radiusFor(spec));
+  const s = state.displacementScale, a = state.aberration;
+  /* The region is padded by half the amplitude plus a couple of pixels, so a
+     full-amplitude shift still samples inside it. Off the edge Chromium
+     returns transparent black and the rim fringes. The map is placed at the
+     ELEMENT's box inside that region, not at the region's origin — feImage
+     does not auto-size, and a map stretched over the padded region would put
+     its bezel outside the visible glass. */
+  const pad = Math.ceil(Math.abs(s) / 2) + 2;
+  const head =
+    '<filter id="lg-' + spec.id + '"' +
+    ' filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"' +
+    ' x="' + (-pad) + '" y="' + (-pad) + '"' +
+    ' width="' + (w + pad * 2) + '" height="' + (h + pad * 2) + '"' +
+    /* Mandatory. The SVG default is linearRGB, which linearises the map's 128
+       grey to about 55 — a constant shift of 0.28 * scale px across the whole
+       element, interior included. The symptom is a panel that looks offset
+       from its own border while its text swims. */
+    ' color-interpolation-filters="sRGB">';
+  const map =
+    '<feImage href="' + uri + '" preserveAspectRatio="none"' +
+    ' x="0" y="0" width="' + w + '" height="' + h + '" result="map"/>';
+
+  let body;
+  if (a > 0) {
+    /* Three passes, one per channel, recombined with screen. Physically red
+       bends least; the fringe that reads as Apple puts red widest, so that is
+       the default. Only valid because every layer keeps A=1 — which is what
+       the region padding protects. */
+    const mk = (res, sc) =>
+      '<feDisplacementMap in="SourceGraphic" in2="map" scale="' + sc +
+      '" xChannelSelector="R" yChannelSelector="G" result="' + res + '"/>';
+    const cm = (inp, res, row) =>
+      '<feColorMatrix in="' + inp + '" type="matrix" result="' + res + '" values="' + row + '"/>';
+    body =
+      mk('dR', s * (1 + a)) + mk('dG', s) + mk('dB', s * (1 - a)) +
+      cm('dR', 'cR', '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0') +
+      cm('dG', 'cG', '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0') +
+      cm('dB', 'cB', '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0') +
+      '<feBlend in="cR" in2="cG" mode="screen" result="rg"/>' +
+      '<feBlend in="rg" in2="cB" mode="screen" result="rgb"/>' +
+      '<feGaussianBlur in="rgb" stdDeviation="0.35"/>';
+  } else {
+    body =
+      '<feDisplacementMap in="SourceGraphic" in2="map" scale="' + s +
+      '" xChannelSelector="R" yChannelSelector="G" result="lens"/>' +
+      /* not a design blur — this one smears the 8-bit stair-steps */
+      '<feGaussianBlur in="lens" stdDeviation="0.35"/>';
+  }
+  return head + map + body + '</filter>';
+}
+
+/* CHEAP path: rewrite the scale attributes in place. Keeps a slider drag at
+   frame rate instead of rebuilding four PNGs per pointer event. */
+function pokeScale() {
+  const s = state.displacementScale, a = state.aberration;
+  const ks = a > 0 ? [1 + a, 1, 1 - a] : [1];
+  for (const spec of SPECS) {
+    const f = document.getElementById('lg-' + spec.id);
+    if (!f) continue;
+    const nodes = f.querySelectorAll('feDisplacementMap');
+    if (nodes.length !== ks.length) { rebuildFilters(); return; }
+    nodes.forEach((n, i) => n.setAttribute('scale', s * ks[i]));
+  }
+}
+
+function cssFor(id) {
+  const b = 'blur(' + state.blurAmount + 'px) saturate(' + state.saturation + '%)';
+  const u = HAS_SVG_BACKDROP ? 'url(#lg-' + id + ')' : '';
+  /* blur-then-displace refracts already-mushed pixels and looks expensively
+     soft; displace-then-blur refracts the sharp organ and then hides the
+     banding. Only the second is honest about what refraction costs detail. */
+  return (state.order === 'displace' ? u + ' ' + b : b + ' ' + u).trim();
+}
+
+/* One filter per specimen, sized from the live element. Rebuilt from a
+   ResizeObserver because three of the four are content-sized. */
+function rebuildFilters() {
+  let out = '';
+  for (const spec of SPECS) {
+    const el = surfaces[spec.id];
+    if (!el) continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) continue;
+    out += filterMarkup(spec, rect.width, rect.height);
+  }
+  defs.innerHTML = out;
+  applyTreatments();
+  syncHud();
+}
+
+let filterTimer = null;
+function rebuildFiltersSoon() {
+  clearTimeout(filterTimer);
+  filterTimer = setTimeout(rebuildFilters, 60);
+}
+
+
+/* ------------------------------------------------------------ 14. specimens */
+/* Two identical layers. In wipe mode the left one is forced to the doctrine
+   and the right one to liquid, both at the same page coordinates, so the same
+   numeral run is split mid-digit by the divider. That is the only view in
+   which the two treatments sit over identical pixels. */
+const surfaces = {};       // id -> the layer-A surface, used for measuring
+
+function orbOf(id) {
+  const o = ORGANS.find((x) => x.id === id);
+  return o ? o.color : '#6b8cbe';
+}
+
+function buildSpecimens(layer, isMeasured) {
+  for (const spec of SPECS) {
+    const el = document.createElement('div');
+    el.className = 'spec ' + spec.cls;
+    el.dataset.spec = spec.id;
+
+    if (spec.id === 'card') {
+      const rows = READINGS.map((r) =>
+        '<div class="cr"><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('');
+      el.innerHTML = '<div class="surf"><h4>Heart</h4>' + rows +
+                     '<p>' + READING_NOTE + '</p></div>';
+    } else if (spec.id === 'bar') {
+      el.innerHTML =
+        '<div class="surf pill"><i class="orb" style="--orb:' + orbOf('heart') + '"></i>' +
+        '<span class="nm">Heart</span></div>' +
+        '<div class="nav"><div class="surf">‹</div><div class="surf">›</div></div>';
+    } else if (spec.id === 'rail') {
+      const rows = ORGANS.map((o) =>
+        '<div class="row2"><i class="orb" style="--orb:' + o.color + '"></i>' +
+        '<span>' + o.name + '</span><span class="ch">›</span></div>').join('');
+      el.innerHTML = '<div class="surf"><div class="rh">Explore organs</div>' + rows + '</div>';
+    } else {
+      el.innerHTML = '<div class="pin"></div><div class="surf">Heart</div>';
+    }
+
+    layer.appendChild(el);
+    if (isMeasured) surfaces[spec.id] = el.querySelector('.surf');
+  }
+}
+
+/* Which treatment each layer wears, and the per-element CSS var that carries
+   that specimen's own filter id. */
+function applyTreatments() {
+  const layers = [
+    { el: $('#layer-a'), treat: state.mode === 'ab' ? state.treat : 'doctrine' },
+    { el: $('#layer-b'), treat: 'liquid' },
+  ];
+  for (const L of layers) {
+    if (!L.el) continue;
+    for (const spec of SPECS) {
+      const host = L.el.querySelector('[data-spec="' + spec.id + '"]');
+      if (!host) continue;
+      for (const surf of host.querySelectorAll('.surf')) {
+        surf.dataset.treat = L.treat;
+        surf.style.setProperty('--doc-blur', spec.docBlur + 'px');
+        surf.style.setProperty('--lg-bd', cssFor(spec.id));
+        surf.classList.toggle('rim', L.treat === 'liquid' && state.rim);
+      }
+    }
+  }
+  const root = document.documentElement.style;
+  root.setProperty('--wipe', state.mode === 'ab' ? 1 : state.wipe);
+  root.setProperty('--lg-fill', state.fill);
+  root.setProperty('--lg-edge', state.edge);
+  root.setProperty('--lg-drop', state.drop);
+  root.setProperty('--lg-bezel', state.bezel + 'px');
+  root.setProperty('--lg-rim-op', state.rimOpacity);
+  root.setProperty('--lg-rim-angle', state.rimAngle + 'deg');
+  root.setProperty('--num-face',
+    state.numerals === 'helv' ? '"Helvetica Neue", Helvetica, Arial, sans-serif'
+    : state.numerals === 'serif' ? 'Georgia, "Times New Roman", serif'
+    : 'var(--sans)');
+  $('#stage').dataset.mode = state.mode;
+}
+
+function syncHud() {
+  $('#hud-shift').textContent = (state.displacementScale / 2).toFixed(0) + ' px';
+  $('#hud-bezel').textContent = state.bezel + ' px';
+  $('#hud-pass').textContent = state.aberration > 0 ? '3' : '1';
+  $('#hud-map').textContent = lastMapDims + ' · ' + mapMs.toFixed(1) + 'ms';
+  const u = $('#hud-url');
+  u.textContent = HAS_SVG_BACKDROP ? 'yes' : 'NO';
+  u.classList.toggle('no', !HAS_SVG_BACKDROP);
+}
+
+/* the draggable divider */
+function initWipe() {
+  const w = $('#wipe');
+  let dragging = false;
+  const set = (clientX) => {
+    state.wipe = Math.max(0, Math.min(1, clientX / window.innerWidth));
+    applyTreatments();
+  };
+  w.addEventListener('pointerdown', (e) => { dragging = true; w.setPointerCapture(e.pointerId); });
+  w.addEventListener('pointermove', (e) => { if (dragging) set(e.clientX); });
+  w.addEventListener('pointerup', () => { dragging = false; rebuildPanel(); });
+}
+
+
+/* --------------------------------------------------------- 15. panel content */
+function rebuildPanel() {
+  const keep = pbody.scrollTop;
+  pbody.innerHTML = '';
+
+  /* ---- comparison ---- */
+  let s = section('Comparison', true);
+  chipRow(s, 'Mode', [{ id: 'wipe', label: 'Wipe' }, { id: 'ab', label: 'A / B' }],
+    (o) => state.mode === o.id, (o) => { state.mode = o.id; applyTreatments(); rebuildPanel(); });
+  if (state.mode === 'ab') {
+    chipRow(s, 'Treatment',
+      [{ id: 'doctrine', label: 'Doctrine 06' }, { id: 'liquid', label: 'Liquid Glass' }],
+      (o) => state.treat === o.id, (o) => { state.treat = o.id; applyTreatments(); rebuildPanel(); });
+  } else {
+    slider(s, 'Divider', () => state.wipe, (v) => { state.wipe = v; applyTreatments(); },
+      0, 1, 0.005, (v) => (v * 100).toFixed(0) + '%');
+  }
+  chipRow(s, 'Numerals', [{ id: 'sans', label: 'Inter Tight' },
+                          { id: 'helv', label: 'Helvetica Neue' },
+                          { id: 'serif', label: 'Serif' }],
+    (o) => state.numerals === o.id, (o) => { state.numerals = o.id; applyTreatments(); rebuildPanel(); });
+  note(s, 'The wipe puts both treatments on the SAME specimen at the same screen ' +
+          'position. It is the only view in which the two are over identical pixels.');
+  note(s, 'Expect the numerals NOT to distort. backdrop-filter only ever touches ' +
+          'what is behind the surface, never the surface’s own content — so the ' +
+          'digits stay crisp under any displacement, and what refraction actually ' +
+          'costs is the evenness of the ground they are read against. Warped digits ' +
+          'would need filter on the element itself, which is not what this is and ' +
+          'not what Apple does either.');
+  note(s, 'The real page sets its readings in Helvetica Neue with tabular figures. ' +
+          'This lab is Inter Tight, whose digits are a different width — judge the ' +
+          'numerals in the right face or the finding is about the font.');
+
+  /* ---- lens shape ---- */
+  s = section('Lens shape · regenerates the map', true);
+  slider(s, 'Bezel width', () => state.bezel, (v) => { state.bezel = v; rebuildFiltersSoon(); },
+    4, 48, 1, (v) => v.toFixed(0) + ' px');
+  slider(s, 'Corner radius offset', () => state.radiusDelta,
+    (v) => { state.radiusDelta = v; rebuildFiltersSoon(); }, -12, 24, 1,
+    (v) => (v > 0 ? '+' : '') + v.toFixed(0) + ' px');
+  slider(s, 'Curvature (1 chamfer · 2 spherical · 6 boxy)', () => state.curvature,
+    (v) => { state.curvature = v; rebuildFiltersSoon(); }, 1, 6, 0.1);
+  slider(s, 'Index of refraction', () => state.ior,
+    (v) => { state.ior = v; rebuildFiltersSoon(); }, 1.05, 2.2, 0.01);
+  chipRow(s, 'Direction', [{ v: 1, label: 'Convex (magnify)' }, { v: -1, label: 'Concave (shrink)' }],
+    (o) => state.sign === o.v, (o) => { state.sign = o.v; rebuildFiltersSoon(); rebuildPanel(); });
+  toggle(s, 'Dither the map', () => state.dither, (v) => { state.dither = v; rebuildFiltersSoon(); });
+  note(s, 'Eight-bit channels quantise the shift into steps of scale/255 px. Without ' +
+          'dither a large displacement over a narrow bezel stair-steps into contour rings.');
+  note(s, 'Everything in this section rebuilds the map. Everything in the next one is ' +
+          'an SVG attribute and is free.');
+
+  /* ---- refraction ---- */
+  s = section('Refraction', true);
+  slider(s, 'Displacement scale', () => state.displacementScale,
+    (v) => { state.displacementScale = v; pokeScale(); syncHud(); }, -240, 240, 1,
+    (v) => (v / 2).toFixed(0) + ' px max');
+  slider(s, 'Chromatic aberration', () => state.aberration,
+    (v) => { state.aberration = v; pokeScale(); syncHud(); }, 0, 0.25, 0.005);
+  slider(s, 'Blur', () => state.blurAmount, (v) => { state.blurAmount = v; applyTreatments(); },
+    0, 40, 0.5, (v) => v.toFixed(1) + ' px');
+  slider(s, 'Saturation', () => state.saturation, (v) => { state.saturation = v; applyTreatments(); },
+    100, 220, 1, (v) => v.toFixed(0) + '%');
+  chipRow(s, 'Filter order', [{ id: 'displace', label: 'Displace, then blur' },
+                              { id: 'blur', label: 'Blur, then displace' }],
+    (o) => state.order === o.id, (o) => { state.order = o.id; applyTreatments(); rebuildPanel(); });
+  note(s, 'The shift is scale/2, not scale — feDisplacementMap computes it as ' +
+          'scale x (channel - 0.5). The readout shows the real maximum.');
+
+  /* ---- surface ---- */
+  s = section('Surface', false);
+  slider(s, 'Fill alpha', () => state.fill, (v) => { state.fill = v; applyTreatments(); }, 0, 0.8, 0.01);
+  slider(s, 'Edge alpha', () => state.edge, (v) => { state.edge = v; applyTreatments(); }, 0, 0.9, 0.01);
+  slider(s, 'Drop shadow', () => state.drop, (v) => { state.drop = v; applyTreatments(); }, 0, 1.4, 0.01);
+  toggle(s, 'Specular rim', () => state.rim, (v) => { state.rim = v; applyTreatments(); });
+  slider(s, 'Rim opacity', () => state.rimOpacity, (v) => { state.rimOpacity = v; applyTreatments(); }, 0, 1, 0.01);
+  slider(s, 'Rim angle', () => state.rimAngle, (v) => { state.rimAngle = v; applyTreatments(); },
+    0, 360, 1, (v) => v.toFixed(0) + '°');
+  note(s, 'How much white a refractive surface still needs behind clinical numerals ' +
+          'is the second question on this page.');
+
+  /* ---- backdrop ---- */
+  s = section('Backdrop · the live scene', true);
+  chipRow(s, 'Organ', ORGANS.map((o) => ({ id: o.id, label: o.name })),
+    (o) => state.selected === o.id,
+    (o) => { state.selected = o.id; focusOrgan(o.id); rebuildPanel(); });
+  slider(s, 'Camera distance', () => state.camZoom,
+    (v) => { state.camZoom = v; focusOrgan(state.selected); }, 0.4, 3, 0.01,
+    (v) => v.toFixed(2) + 'x');
+  chipRow(s, 'Framing', [{ label: 'On the organ', fn: () => focusOrgan(state.selected) },
+                         { label: 'Whole body', fn: () => orbit.reset() }],
+    () => false, (o) => o.fn());
+  toggle(s, 'Auto-rotate', () => state.autoRotate, (v) => { state.autoRotate = v; });
+  note(s, 'Motion is where refraction fails. Leave this on while reading the card.');
+  toggle(s, 'Show point shell', () => state.showShell,
+    (v) => { state.showShell = v; if (world.shell) world.shell.visible = v; });
+  toggle(s, 'Show reference skin', () => state.showSkin,
+    (v) => { state.showSkin = v; if (world.skin) world.skin.visible = v; });
+  note(s, 'The point shell is the hostile case and the real one: a dot field is mostly ' +
+          'the gaps between dots, and a displacement map has little to bend. Turning it ' +
+          'off and showing solid skin makes the glass look better than the page does.');
+  note(s, 'Measured on this bench: over the point shell the lens reads as blotchy noise ' +
+          'rather than as glass, because there are no continuous gradients to bend. Swap ' +
+          'to the solid skin and the same lens at the same settings reads as glass ' +
+          'immediately. That difference, not beauty, is the decision.');
+  slider(s, 'Point count', () => state.count, (v) => { state.count = v; apply('count'); },
+    20000, 160000, 10000, (v) => (v / 1000).toFixed(0) + 'k');
+  slider(s, 'Exposure', () => state.exposure, (v) => { state.exposure = v; apply('exposure'); }, 0.4, 2, 0.01);
+
+  /* ---- carry across ---- */
+  s = section('Carry it across', false);
+  const btn = document.createElement('div');
+  btn.className = 'btn';
+  btn.textContent = 'Copy glass spec JSON';
+  btn.addEventListener('click', copySpec);
+  s.appendChild(btn);
+  const btn2 = document.createElement('div');
+  btn2.className = 'btn';
+  btn2.textContent = 'Copy map data URI · card';
+  btn2.addEventListener('click', () => {
+    const el = surfaces.card; const r = el.getBoundingClientRect();
+    const uri = makeMap(r.width, r.height, radiusFor(SPECS[0]));
+    navigator.clipboard.writeText(uri).then(() => toast('Map data URI copied'))
+      .catch(() => { console.log(uri); toast('Written to the console'); });
+  });
+  s.appendChild(btn2);
+  note(s, 'Chromium only: backdrop-filter ignores SVG filters in Safari and Firefox ' +
+          '(WebKit 245510 open, Gecko unshipped).');
+  note(s, 'The PNG fab captures the WebGL buffer only. The glass is DOM and is not in ' +
+          'that buffer, and no in-page rasteriser can read backdrop-filter — use the OS ' +
+          'screenshot, or DevTools ⋮ Capture screenshot.');
+  note(s, 'The map is generated per specimen size, so a surface that resizes in the real ' +
+          'page needs the generator shipped, not a static asset.');
+
+  pbody.scrollTop = keep;
+  syncHud();
+}
+
+function note(parent, text) {
+  const n = document.createElement('div');
+  n.className = 'note';
+  n.textContent = text;
+  parent.appendChild(n);
+}
+
+function copySpec() {
+  const data = {
+    treatment: 'liquid',
+    shape: { bezel: state.bezel, radiusDelta: state.radiusDelta, curvature: state.curvature,
+             ior: state.ior, sign: state.sign, dither: state.dither },
+    refraction: { displacementScale: state.displacementScale,
+                  maxShiftPx: state.displacementScale / 2,
+                  aberration: state.aberration, blur: state.blurAmount,
+                  saturation: state.saturation, order: state.order },
+    surface: { fill: state.fill, edge: state.edge, drop: state.drop,
+               rim: state.rim, rimOpacity: state.rimOpacity, rimAngle: state.rimAngle },
+    specimens: SPECS.map((sp) => {
+      const el = surfaces[sp.id], r = el ? el.getBoundingClientRect() : { width: 0, height: 0 };
+      return { id: sp.id, w: Math.round(r.width), h: Math.round(r.height),
+               radius: radiusFor(sp), css: 'backdrop-filter: ' + cssFor(sp.id) + ';' };
+    }),
+    /* the href is stubbed on purpose: four base64 PNGs would push this past
+       200 KB and past what pasting into an editor is pleasant for */
+    filterMarkup: (defs.innerHTML.match(/<filter id="lg-card"[\s\S]*?<\/filter>/) || [''])[0]
+      .replace(/href="data:[^"]*"/, 'href="MAP_DATA_URI"'),
+    note: 'Chromium only. The map is procedural — regenerate with ' +
+          'buildDisplacementMap(w,h,radius,bezel,curvature,ior,sign,dither), or take the ' +
+          'data URI from the second button.',
+  };
+  const text = JSON.stringify(data, null, 2);
+  navigator.clipboard.writeText(text).then(() => toast('Glass spec JSON copied'))
+    .catch(() => { console.log(text); toast('Written to the console'); });
+}
+
+
+/* ------------------------------------------------------------- 13. chrome */
+const panel = $('#panel');
+$('#fab-panel').addEventListener('click', () => panel.classList.remove('hidden'));
+$('#fab-reset').addEventListener('click', () => orbit.reset());
+$('#fab-shot').addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const a = document.createElement('a');
+  a.download = `glass-lab-canvas-${Date.now()}.png`;
+  a.href = renderer.domElement.toDataURL('image/png');
+  a.click();
+  toast('Canvas only — the glass is DOM, use the OS screenshot');
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'p' || e.key === 'P') panel.classList.toggle('hidden');
+  if (e.key === ' ') { e.preventDefault(); state.autoRotate = !state.autoRotate; }
+});
+
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 2200);
+}
+
+function fail(err) {
+  console.error(err);
+  boot.classList.remove('gone');
+  boot.querySelector('.bt').textContent = 'Load failed';
+  bootSub.textContent = 'asset error';
+  boot.querySelector('.bar')?.remove();
+  const e = $('#boot-err');
+  e.hidden = false;
+  e.textContent = `${err.message}\n\nfile:// cannot fetch local GLB. Serve the folder over HTTP:\n  python -m http.server 8777`;
+}
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  renderer.setSize(W, H, false);
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+  U.uViewportH.value = H * PIXEL;
+}
+window.addEventListener('resize', resize);
+resize();
+
+let last = performance.now(), acc = 0, frames = 0;
+function loop() {
+  const now = performance.now();
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  acc += dt; frames++;
+  if (acc >= 0.5) { $('#hud-fps').textContent = Math.round(frames / acc); acc = 0; frames = 0; }
+  orbit.update(dt);
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+
+
+/* --------------------------------------------------------- 16. scene wiring */
+/* One organ at a time: the bench wants a dense, identifiable thing behind the
+   glass, not a full abdomen. loadOrgan stores its group on o.holder — o.node
+   does not exist — and applyOrganMaterials is what refreshes the HUD counts. */
+function focusOrgan(id) {
+  const o = ORGANS.find((x) => x.id === id);
+  if (!o) return;
+  for (const x of ORGANS) {
+    x.visible = (x.id === id);
+    if (x.holder) x.holder.visible = x.visible;
+  }
+  applyOrganMaterials();
+  /* orbit.focus takes a SEAT FRACTION and a distance, not a world point. The
+     distance is derived from the organ's own height rather than carried as a
+     constant, so it stays right if a placement fraction ever changes. */
+  const d = Math.max(0.55, o.hFrac * BODY_H * 3.4) * state.camZoom;
+  orbit.focus(o.seat, d);
+}
+
+/* ----------------------------------------------------------------- 17. go */
+try {
+  bootSub.textContent = 'body';
+  await loadBody(state.body);
+  const steps = ORGANS.length + 1;
+  bootBar.style.transform = 'scaleX(' + (1 / steps) + ')';
+  for (let i = 0; i < ORGANS.length; i++) {
+    const o = ORGANS[i];
+    bootSub.textContent = o.name.toLowerCase() + ' — ' + (i + 1) + '/' + ORGANS.length;
+    await loadOrgan(o);
+    bootBar.style.transform = 'scaleX(' + ((i + 2) / steps) + ')';
+  }
+
+  syncShell();
+  applyOrganMaterials();
+
+  buildSpecimens($('#layer-a'), true);
+  buildSpecimens($('#layer-b'), false);
+  initWipe();
+  /* Park the divider through the middle of the readings card rather than at
+     50%. At 50% on a 1440 window the card sits entirely on one side of it and
+     the comparison the page exists for never happens. */
+  {
+    const r = surfaces.card.getBoundingClientRect();
+    if (r.width > 2) state.wipe = (r.left + r.width / 2) / window.innerWidth;
+  }
+  applyTreatments();
+
+  /* three of the four specimens are content-sized, so the filters cannot be
+     built from constants — they are measured, and re-measured on any reflow */
+  const ro = new ResizeObserver(rebuildFiltersSoon);
+  for (const id in surfaces) ro.observe(surfaces[id]);
+  rebuildFilters();
+
+  focusOrgan(state.selected);
+  rebuildPanel();
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'h' || e.key === 'H') $('#stage').classList.toggle('gone');
+    if (e.key === 'r' || e.key === 'R') orbit.reset();
+    if (e.key === 's' || e.key === 'S') {
+      if (state.mode === 'ab') state.treat = state.treat === 'liquid' ? 'doctrine' : 'liquid';
+      else state.wipe = state.wipe > 0.75 ? 0 : state.wipe < 0.25 ? 0.5 : 1;
+      applyTreatments(); rebuildPanel();
+    }
+  });
+  window.addEventListener('resize', rebuildFiltersSoon);
+
+  boot.classList.add('gone');
+  window.__ready = true;
+  window.__dbg = { state, ORGANS, SPECS, orbit, world, mapCache, surfaces,
+                   buildDisplacementMap, makeMap, filterMarkup, rebuildFilters,
+                   rebuildPanel, applyTreatments, cssFor, HAS_SVG_BACKDROP };
+  requestAnimationFrame(loop);
+} catch (err) {
+  fail(err);
+}
+</script>

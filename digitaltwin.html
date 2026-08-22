@@ -3701,14 +3701,29 @@ const CATS = [
     note:'How much air leaves in the first second, beside what is typical for your age, height and build.' },
   /* The stomach. Its GLB was already in the repo and already credited, but no
      category loaded it, so the one organ the figure lab shows and this page did
-     not. Placement is the lab's, verbatim: hFrac 0.098, seat 0.596, x +0.032 to
-     the subject's left of the axis, z -0.010 back. dist matches the liver's 0.78
-     because their hFrac is identical, so the same framing suits both.
+     not. x +0.032 to the subject's left of the axis and z -0.010 back are the
+     lab's. dist matches the liver's 0.78 because their hFrac is identical, so
+     the same framing suits both.
+
+     seat raised from the lab's 0.596. That number put the mesh at 0.553 to
+     0.639 of body height, which is half the organ below the subcostal plane —
+     a stomach sitting at the waist rather than under the left ribs, and the
+     first thing anyone who knows the anatomy says about it. Three landmarks in
+     this mesh were measured against the figure and all three agreed on the
+     same lift: the pylorus, where the model crosses back over the midline,
+     belongs on the transpyloric plane at L1; the fundus belongs against the
+     underside of the left diaphragm; the duodenal loop belongs no lower than
+     L3. 0.628 puts the pylorus at 0.627 and the fundus apex at 0.671, which
+     clears the lung mesh's floor over the left lung — 0.670 to 0.678 there —
+     by 0.012 and leaves the flank 0.016 of room. The duodenum still ends a
+     little low at 0.585: this GLB carries a longer duodenum than a stomach's
+     own proportions would give it, so the two ends cannot both be exact, and
+     the pylorus is the landmark the eye and the textbook both read.
 
      It sits before Intestines: stomach then intestines is the order the tract
      runs in, and the rail had no digestive sequence before this. */
   { id:'stom',   name:'Stomach',        file:'realistic_stomach.glb',
-    hFrac:0.098, seat:0.596, x:0.032,  z:-0.010, yaw:0,   dist:0.78,
+    hFrac:0.098, seat:0.628, x:0.032,  z:-0.010, yaw:0,   dist:0.78,
     credit:{ work:'Realistic Stomach', author:'Brain Diagno' },
     rows:[['Emptying time','3 h 10 m'],['Acid balance','Normal'],['Bacteria test','Clear']],
     note:'A breath test times how fast it empties and the scan looks at the wall. Neither says much without the other.' },
@@ -4201,9 +4216,18 @@ const OVERVIEW = { pos:new THREE.Vector3(0, 1.34, 5.4), tgt:new THREE.Vector3(0,
    over y 1.61 to 1.65, worst 0.0079 at 1.63 — the ribcage there sits at 0.198
    off axis and the liver reached 0.206. +0.0069 of BODY_H is 0.018, which puts
    the outer edge at 0.192: inside, snug against the ribs where a liver sits,
-   and nowhere near far enough to carry it over the midline. */
+   and nowhere near far enough to carry it over the midline.
+
+   Female stom: the stomach was inside on both meshes at the old seat, and the
+   raise to 0.628 is what strands it — the female waist narrows going up, from
+   0.203 off axis at 0.62 of body height to 0.180 at 0.66, so lifting the
+   greater curvature into that band puts it 0.0081 outside at 0.651. The male
+   flank is 0.206 at the same height and needs nothing. -0.006 of BODY_H is
+   0.016 medially, which leaves the outer edge 0.0075 inside the wall — the
+   same margin the liver above got, and small enough that the organ stays in
+   the left hypochondrium rather than drifting toward the midline. */
 const SEX_ADJ = {
-  Female: { detox: { x: 0.0069 } },
+  Female: { detox: { x: 0.0069 }, stom: { x: -0.006 } },
 };
 const NO_ADJ = { x: 0, z: 0 };
 /* The sex is named rather than read off the module's own `sex`, because an organ

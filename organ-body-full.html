@@ -310,8 +310,14 @@ const ORGANS = [
      back, and at -0.004 that corner left the body through the spine. */
   { id: 'liver',   file: 'human_liver_and_gallbladder.glb',  name: 'Liver + GB',  sub: 'with gallbladder',
     hFrac: 0.098, seat: 0.620, x: -0.032, z: 0.013, yaw: -90, pitch: -14, ex: -0.9, ez: 0.35, color: '#8f3b34' },
+  /* seat raised from 0.596. At 0.596 the mesh ran 0.553 to 0.639 of body
+     height — half the organ below the subcostal plane, a stomach at the waist
+     rather than under the left ribs. 0.628 seats the pylorus on the
+     transpyloric plane at L1 and tucks the fundus under the left diaphragm,
+     0.012 clear of the lung mesh's floor. digitaltwin.html carries the same
+     number, and a Female medial nudge this page has no mechanism for. */
   { id: 'stomach', file: 'realistic_stomach.glb',            name: 'Stomach',     sub: 'with duodenum',
-    hFrac: 0.098, seat: 0.596, x: 0.032,  z: -0.010, yaw: 0,  ex: 0.9,  ez: 0.3,  color: '#cf7a80' },
+    hFrac: 0.098, seat: 0.628, x: 0.032,  z: -0.010, yaw: 0,  ex: 0.9,  ez: 0.3,  color: '#cf7a80' },
   { id: 'kidneys', file: 'human_kidney.glb',                 name: 'Kidneys',     sub: 'with ureters',
     hFrac: 0.083, seat: 0.583, x: 0,      z: -0.032, yaw: 0,  ex: 0,    ez: -1,   color: '#a34a52' },
   { id: 'gut',     file: 'small_and_large_intestine.glb',    name: 'Intestines',  sub: 'small and large',

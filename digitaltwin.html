@@ -2845,15 +2845,12 @@ function beatPath(x0,w){
    the beats land at a different offset in every pane, which is what a real
    strip does; matched to the pane it reads as wallpaper.
 
-   Colour is three gradients and no fourth, all off the brand ramp:
-
-     trace   deep navy at the left, easing to the ramp's own blue at the right.
-             A stroke that is one flat ink across 560px reads as a rule; this
-             reads as a signal travelling.
-     span    the measured interval, cyan at the top falling to navy at the
-             floor, so the band has a light source rather than an opacity.
-     wash    one very low cyan breath from the leading edge, the same move the
-             page ground makes, so the plot sits in the page's light. */
+   Two flat colours and nothing else. A gradient on a clinical trace implies
+   something about the signal that is not in the data — that it changes as it
+   travels, or that one end of the strip matters more than the other — and a
+   reading is not the place to spend that. The ink is --ink-600 the whole way
+   across, and the measured interval is one flat wash at the alpha section 03
+   already uses for the cyan it bleeds across the page's own seam. */
 function waveformHTML(o,uid){
   var W=560,H=134,n=o.panes.length,pw=W/n;
   var PER=132, k=PER/BEAT.end, nb=Math.ceil(W/PER)+1, i,j,p,a,b,h='';
@@ -2868,24 +2865,12 @@ function waveformHTML(o,uid){
   var span=function(p,x0){ return [x0+p.from*k, x0+p.to*k]; };
 
   h='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="'+o.aria+'">'+
-    '<defs>'+
-      '<linearGradient id="'+g+'-t" x1="0" y1="0" x2="1" y2="0">'+
-        '<stop offset="0" stop-color="#0a1e57"/><stop offset=".55" stop-color="#203a85"/>'+
-        '<stop offset="1" stop-color="#2e74b2"/></linearGradient>'+
-      '<linearGradient id="'+g+'-f" x1="0" y1="0" x2="0" y2="1">'+
-        '<stop offset="0" stop-color="#30b0cd" stop-opacity=".15"/>'+
-        '<stop offset=".55" stop-color="#2394cc" stop-opacity=".07"/>'+
-        '<stop offset="1" stop-color="#203a85" stop-opacity=".025"/></linearGradient>'+
-      '<linearGradient id="'+g+'-w" x1="0" y1="0" x2="1" y2="0">'+
-        '<stop offset="0" stop-color="#30b0cd" stop-opacity=".055"/>'+
-        '<stop offset=".62" stop-color="#30b0cd" stop-opacity="0"/></linearGradient>'+
-      '<clipPath id="'+g+'-c"><rect x="0" y="16" width="'+W+'" height="112"/></clipPath>'+
-    '</defs>'+
-    '<rect x="0" y="16" width="'+W+'" height="112" fill="url(#'+g+'-w)"/>';
+    '<defs><clipPath id="'+g+'-c"><rect x="0" y="16" width="'+W+'" height="112"/>'+
+    '</clipPath></defs>';
 
   for(i=0;i<n;i++){
     p=o.panes[i]; a=span(p,beatFor(i)); b=a[1]; a=a[0];
-    h+='<rect x="'+a.toFixed(2)+'" y="20" width="'+(b-a).toFixed(2)+'" height="84" fill="url(#'+g+'-f)"/>';
+    h+='<rect x="'+a.toFixed(2)+'" y="20" width="'+(b-a).toFixed(2)+'" height="84" fill="#30b0cd26"/>';
     if(i) h+='<line x1="'+(i*pw)+'" y1="16" x2="'+(i*pw)+'" y2="128" stroke="var(--divider)"/>';
   }
 
@@ -2905,7 +2890,7 @@ function waveformHTML(o,uid){
   /* one selector for every beat in the train, rather than the same four
      attributes repeated across five paths */
   return h.replace('<g clip-path',
-    '<g fill="none" stroke="url(#'+g+'-t)" stroke-width="1.3" stroke-linecap="round" '+
+    '<g fill="none" stroke="var(--ink-600)" stroke-width="1.3" stroke-linecap="round" '+
     'stroke-linejoin="round" clip-path')+'</svg>';
 }
 
@@ -4577,12 +4562,34 @@ const hex2vec = (h) => {
   const v = parseInt(h.slice(1), 16);
   return new THREE.Vector3(((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255);
 };
+/* Two of these no longer read off the lab, and STERILE is deliberately left
+   alone rather than edited: it is the material bench's table, it is what
+   envTexture builds the environment from, and the moment this page rewrites it
+   the two stop being comparable. The departure is here, on the sky, where it
+   belongs — this page's room, not the bench's specimen.
+
+   What was wrong. The lab's sky mixes toward bgBottom at and below the horizon,
+   and bgBottom is #fbfdff — all but white. On a bench holding one specimen under
+   inspection that is correct; on a page where the figure is drawn in translucent
+   dots it blew the left half out to paper and left the right half blue, so the
+   backdrop read as two different rooms lit by two different lamps. The glow lobe
+   made it worse rather than causing it: glowDir points left and back, so at 0.5
+   it was piling a second light onto the side that was already the brightest.
+
+   bgBottom goes to a pale blue one step off the page's own --stage-field-1, and
+   the glow comes down to a sixth of what it was. Measured rather than guessed:
+   at 0.5 the left of the frame sampled #ecfcff against #e1eefb on the right, a
+   twelve-point difference in luminance and a shift of hue with it, cyan against
+   blue. At 0.08 the two sides land within a couple of points of each other and
+   of the heart page's own field. The lobe is still there and still slides across
+   the sky as the figure turns, which is the whole reason it is a world-space
+   glow and not a CSS wash — it is just no longer lighting one half of a room. */
 const bgUniforms = {
   cTop:      { value: hex2vec(STERILE.bgTop) },
-  cBottom:   { value: hex2vec(STERILE.bgBottom) },
+  cBottom:   { value: hex2vec('#eef4fb') },
   cGlow:     { value: hex2vec('#9edcff') },
   glowDir:   { value: new THREE.Vector3(-0.55, 0.24, -0.8).normalize() },
-  glowAmt:   { value: 0.5 },
+  glowAmt:   { value: 0.08 },
   gridAlpha: { value: 0 },
 };
 const bgSphere = new THREE.Mesh(
@@ -5342,7 +5349,8 @@ addEventListener('viewchange', (e) => {
   <!-- The information half, on a viewport layer rather than inside the stage.
        The stage still owns where the seam falls; this only takes that number
        and runs from it to the edge of the window. -->
-  <div id="heartBleed"></div>
+  <div id="heartOrganBg"></div>
+  <div id="heartInfoBg"></div>
 
   <button class="lab-back on" id="heartBack" type="button" aria-label="Back to the body page">&#8249;</button>
 
@@ -5361,6 +5369,7 @@ addEventListener('viewchange', (e) => {
       <div id="heartSeam"></div>
 
       <div id="heartField">
+        <div id="heartGlow"></div>
         <canvas id="heartGL"></canvas>
 
         <!-- Pattern 02 · the leaders and the conduction arrows. One SVG over
@@ -5370,28 +5379,28 @@ addEventListener('viewchange', (e) => {
              back to the point the number was taken from. -->
         <svg id="heartLeads" viewBox="0 0 708 1024" aria-hidden="true">
           <g fill="none" stroke="#203a8573" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="96,256 236,256 306,302"/>
-            <polyline points="676,362 512,362 424,404"/>
-            <polyline points="78,474 208,474 268,452"/>
-            <polyline points="678,576 508,576 418,556"/>
+            <polyline points="100,294 234,294 312,334"/>
+            <polyline points="632,400 498,400 412,433"/>
+            <polyline points="82,512 216,512 280,479"/>
+            <polyline points="636,612 498,612 406,580"/>
             <!-- conduction spreading down through the ventricles -->
-            <path d="M300 636 Q 330 682 364 670"/>
-            <path d="M456 636 Q 426 682 392 670"/>
-            <path d="M364 670 l-10 -5 M364 670 l-5 -10"/>
-            <path d="M392 670 l10 -5 M392 670 l5 -10"/>
+            <path d="M302 660 Q 332 702 362 690"/>
+            <path d="M438 660 Q 410 702 382 690"/>
+            <path d="M362 690 l-10 -5 M362 690 l-5 -10"/>
+            <path d="M382 690 l10 -5 M382 690 l5 -10"/>
           </g>
           <g fill="#203a85" fill-opacity=".62">
-            <circle cx="306" cy="302" r="4"/>
-            <circle cx="424" cy="404" r="4"/>
-            <circle cx="268" cy="452" r="4"/>
-            <circle cx="418" cy="556" r="4"/>
+            <circle cx="312" cy="334" r="4"/>
+            <circle cx="412" cy="433" r="4"/>
+            <circle cx="280" cy="479" r="4"/>
+            <circle cx="406" cy="580" r="4"/>
           </g>
         </svg>
 
-        <div class="pin" style="left:96px;top:190px">Atrial<b class="num">118<em>ms</em></b></div>
-        <div class="pin" style="left:556px;top:296px">Conduction<b class="num">160<em>ms</em></b></div>
-        <div class="pin" style="left:78px;top:408px">Reset<b class="num">417<em>ms</em></b></div>
-        <div class="pin" style="left:558px;top:510px">Ventricular<b class="num">100<em>ms</em></b></div>
+        <div class="pin" style="left:100px;top:228px">Atrial<b class="num">118<em>ms</em></b></div>
+        <div class="pin" style="left:536px;top:334px">Conduction<b class="num">160<em>ms</em></b></div>
+        <div class="pin" style="left:82px;top:446px">Reset<b class="num">417<em>ms</em></b></div>
+        <div class="pin" style="left:540px;top:546px">Ventricular<b class="num">100<em>ms</em></b></div>
 
         <div class="lab-load" id="heartLoad"><i></i><span>Loading</span></div>
       </div>
@@ -5422,44 +5431,50 @@ addEventListener('viewchange', (e) => {
   #heartSeam{position:absolute;left:708px;top:0;bottom:0;width:1px;
     background:linear-gradient(to bottom,transparent,var(--divider) 13%,var(--divider) 87%,transparent)}
 
-  /* The information half. Section 03 draws this as plain white carrying a
-     trace of the organ side's glow across the seam, and that is the recipe
-     here — resolved at page scale rather than swatch scale. The swatch's own
-     CSS says its layers run "smaller and a little stronger" because it is a
-     small box; across 658x1024 they run larger and a little weaker, which is
-     the same compensation read the other way.
+  /* The two halves, and both of them flat.
 
-     One change to the recipe, and it is the change that keeps the panes on
-     this half visible at all. The base is --surface-page, not --surface-card.
-     A pane is 42% white over a drop; on #fff it has nothing to lift off and
-     the whole half goes to one flat sheet with three invisible boxes on it.
-     --surface-page is the token whose entire job is being the ground a card
-     sits on, so this is the system's own answer rather than a new tint.
+     The page ground this view used to stand on is five radial layers deep,
+     and on a composition this quiet every one of them was working against
+     the reading: the top-left lobe put a near-white patch behind the organ's
+     shoulder, the field's own ramp put another under the rail, and a figure
+     drawn in translucent dots has to compete with all of it. A wash that is
+     right for a page carrying one 80px numeral is not automatically right
+     for a page carrying a measured object.
 
-     Three lobes and a field, every one of them already on the page: cyan
-     bleeding in from the seam at 58% height, the ground's own navy answering
-     it from the far corner, a breath of the same cyan at the top right where
-     <body> puts one, and a 168deg ramp holding the 150deg field's direction
-     without repeating its weight. Nothing here is a hue the ramp does not
-     already contain.
+     So: one flat colour each, one step apart on the ramp the ground is
+     already built from. --stage-field-2 holds the organ, --stage-field-1
+     holds the readings — the lighter of the pair, because the panes have to
+     lift off it and the text has to sit on it, and it is still a blue rather
+     than the white it was. Two surfaces in one room, told apart by one step
+     and a hairline, not by a change of material.
 
-     It is fixed to the viewport and not absolute in the stage. The stage is
-     1366 wide and the window usually is not, and a white half that stops 37px
-     short of the frame reads as a mistake rather than as a device — the other
-     two views both fill the window. --seam-x is where the stage's own 708
-     lands after scaling, set by fitHeart, so the composition still owns the
-     division and only the paint runs past the edge. */
-  #heartBleed{position:fixed;left:var(--seam-x,52%);top:0;right:0;bottom:0;z-index:0;
-    background:
-      radial-gradient(780px 640px at -7% 58%,#30b0cd17,transparent 68%),
-      radial-gradient(640px 540px at 114% 110%,#203a850d,transparent 62%),
-      radial-gradient(520px 380px at 98% -14%,#30b0cd10,transparent 64%),
-      linear-gradient(168deg,#fbfcfe 0%,var(--surface-page) 58%,#edf1f8 100%)}
+     Both are fixed to the viewport rather than absolute in the stage. The
+     stage is 1366 wide and the window usually is not, and a half that stops
+     37px short of the frame reads as a mistake rather than as a device —
+     the other two views both fill the window. --seam-x is where the stage's
+     own 708 lands after scaling, set by fitHeart, so the composition still
+     owns the division and only the paint runs past the edge. */
+  #heartOrganBg{position:fixed;left:0;top:0;width:var(--seam-x,48%);bottom:0;z-index:0;
+    background:var(--stage-field-2)}
+  #heartInfoBg{position:fixed;left:var(--seam-x,48%);top:0;right:0;bottom:0;z-index:0;
+    background:var(--stage-field-1)}
 
   #heartField{position:absolute;left:0;top:0;width:708px;height:1024px}
   /* Fixed at stage size. The stage's own transform is what makes it responsive,
      exactly as it is for the home page's figure. */
-  #heartGL{position:absolute;left:96px;top:186px;width:520px;height:600px;display:block}
+  /* Centred in the left half on both axes: 134+440/2 = 354 against the half's
+     own 354, and 222+580/2 = 512 against 1024's 512. */
+  #heartGL{position:absolute;left:134px;top:222px;width:440px;height:580px;display:block}
+  /* The organ's own light. Section 03's page background is now flat on both
+     halves, which is what stops the field competing with the figure — and a
+     flat field gives a translucent dot cloud nothing to sit against. One soft
+     white bloom behind the organ, and only behind the organ, does what the
+     old multi-lobe wash was being asked to do and could not: it lights the
+     thing being read rather than the room it is in. */
+  #heartGlow{position:absolute;left:74px;top:172px;width:560px;height:680px;
+    pointer-events:none;
+    background:radial-gradient(ellipse 52% 50% at 50% 49%,
+      #ffffffb8 0%,#ffffff91 32%,#ffffff45 56%,#ffffff14 74%,#ffffff00 86%)}
   #heartLeads{position:absolute;left:0;top:0;width:708px;height:1024px;pointer-events:none}
   #heartField .pin{z-index:2}
   /* The one token swap this page makes. At the specimen's 24px these four
@@ -5473,7 +5488,11 @@ addEventListener('viewchange', (e) => {
      belongs to the viewport's furniture, the way it does on the body page */
   #heartBack{position:fixed}
 
-  #heartRail{position:absolute;left:764px;top:104px;width:554px}
+  /* Centred in the right half the same way: 777+520/2 = 1037 against the
+     half's own 1037, and translateY off the middle rather than a top that
+     has to be re-guessed every time the content grows a row. The 69px it
+     leaves at the seam is the same 69 it leaves at the frame. */
+  #heartRail{position:absolute;left:777px;top:50%;transform:translateY(-50%);width:520px}
   .heart-title{font-family:var(--font-serif-medium);font-size:var(--text-title-lg);
     font-weight:var(--w-serif-title);letter-spacing:-.015em;line-height:1.04;color:var(--ink-900)}
   .heart-sub{display:flex;align-items:center;gap:11px;margin-top:13px;
@@ -5541,7 +5560,7 @@ const HEART = {
      barely half the frame. 1.02 lets the stubs run to the very top edge, which
      is where the reference composition puts them, and aim seats the muscle
      rather than the box: 0.44 of the box height, not its centre. */
-  fill: 0.90,
+  fill: 0.84,
   aim: 0.46,
 };
 
@@ -5551,7 +5570,7 @@ const HEART = {
 const SCREEN_ORGAN = { pitch:3, angle:0, fill:0.95, soft:0.1, contrast:1.8, floor:0.045,
                        invert:1, glow:1, colour:'#9fb9e6', tip:'#203a85' };
 
-const CW = 520, CH = 600;                 // stage pixels; the stage scales them
+const CW = 440, CH = 580;                 // stage pixels; the stage scales them
 const canvas = document.getElementById('heartGL');
 /* Floored at 1 as well as capped at 2. The dot grid is measured in device
    pixels and clamped to a two-pixel minimum, so on a display reporting less

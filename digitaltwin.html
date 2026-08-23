@@ -370,6 +370,16 @@
      sheen gone, structure in the GROUND is the only thing a pane has left to
      be seen against. The old near-flat ramp gave glass nothing to show. */
   --stage-field-1:#eef3f9; --stage-field-2:#e5edf7; --stage-field-3:#dce7f4;
+  /* The view switcher's one size, and everything about the bar is a multiple
+     of it. Fluid because the bar is the only piece of furniture that lives in
+     the window rather than on the stage: the stage grows with the display and
+     the bar was staying at its drawn 13px, so on a wide monitor a 700px-wide
+     composition was being navigated by something the size of a caption.
+
+     The floor is --text-micro, so at the design's own 1366 the bar is a rung
+     up from where it was and no more; the ceiling stops it turning into a
+     toolbar on a 27-inch display. 0.95vw puts 1920 at 18 and 2560 at the cap. */
+  --seg-size:clamp(14px,0.95vw,20px);
   /* The two corner lobes are #c4daf7 top-left and #d2e2f8 bottom-right, and
      they are NOT tokens. Three surfaces paint them — .stage-wash, <body> and
      section 03's own swatch — at three different alphas and three different
@@ -700,8 +710,16 @@ body{
    the page rather than trying to out-white it. It needs neither the
    extra tint nor the drop, and now carries neither.
    ============================================================ */
+/* The two are one component and now they are one component with a dial on it:
+   every measurement below is a multiple of --seg, and at --seg 13 the whole
+   recipe resolves to the numbers it has always had — 5 of padding, 3 of gap,
+   8 and 20 on the button. The sex switch keeps that 13 because it sits on the
+   body page's own chrome at a fixed size; the view switcher takes the fluid
+   one. Same recipe, one parameter. */
 .toggle,.lab-seg{
-  position:relative;display:flex;gap:3px;padding:5px;border-radius:999px;
+  --seg:13px;
+  position:relative;display:flex;gap:calc(var(--seg)*.23);padding:calc(var(--seg)*.38);
+  border-radius:999px;
   border:0;background-image:none;background-color:var(--gl-tint-sunk);
   box-shadow:none}
 /* ink-600, not ink-400: on the trough ink-400 measures about 2.9:1, under
@@ -709,8 +727,8 @@ body{
    floor, not furniture. */
 .toggle button,.lab-seg button{
   position:relative;border:0;background:none;cursor:pointer;
-  padding:8px 20px;border-radius:999px;
-  font-family:var(--font-sans);font-size:13px;font-weight:var(--w-module);
+  padding:calc(var(--seg)*.62) calc(var(--seg)*1.54);border-radius:999px;
+  font-family:var(--font-sans);font-size:var(--seg);font-weight:var(--w-module);
   letter-spacing:var(--tracking-overline);color:var(--ink-600);
   transition:color .22s var(--ease-frosted-out),
              background-color .22s var(--ease-frosted-out)}
@@ -741,8 +759,27 @@ body{
    live WebGL figure on the body page. It therefore keeps a thin backdrop
    blur that the sex switch has no use for. Without it, body copy scrolls
    legibly through the trough and the bar reads as a hole in the page. */
-.toggle{position:fixed;left:24px;bottom:24px;z-index:50;
+/* Anchored to the stage's corner, not the window's.
+
+   This is what made the scaled-up page read as odd rather than as large. The
+   stage keeps a 4:3 composition and a window is usually 16:9, so filling the
+   height correctly leaves a band of ground down each side — and the bar was
+   parked out in that band, a quarter of the screen away from the thing it
+   navigates, while the ⓘ sat under it doing the same. Two objects in the
+   matting and a picture in the middle: the eye reads that as a page that has
+   failed to lay out, not as a framed composition.
+
+   --stage-x and --stage-b are the gaps fitStage measures between the window
+   and the stage, so the furniture lands on the stage's own bottom-left corner
+   wherever that falls. The two full-bleed views have no stage to sit on and
+   the data-stage gate leaves them at the window's corner, which is where
+   their own chrome already is. */
+.toggle{position:fixed;left:calc(var(--seg)*1.85);bottom:calc(var(--seg)*1.85);z-index:50;
+  --seg:var(--seg-size);
   -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin)}
+:root[data-stage="on"] .toggle{
+  left:calc(var(--stage-x,0px) + var(--seg)*1.85);
+  bottom:calc(var(--stage-b,0px) + var(--seg)*1.85)}
 
 /* ------------------------------------------------------------------
    The tab bar as a refractive lens — DORMANT. Read this before putting
@@ -1155,6 +1192,12 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    through Visceral fat / Bone T-score: a credit may cover the page's own
    furniture, never its readings. */
 .prov.on-stage{position:fixed;left:24px;right:auto;bottom:74px;z-index:58;display:block}
+/* rides the same corner, and clears the bar by measuring it rather than by
+   remembering how tall it used to be: the bar is --seg * 3.2 plus its own
+   1.85 offset, so 5.2 puts the mark one comfortable step above it */
+:root[data-stage="on"] .prov.on-stage{
+  left:calc(var(--stage-x,0px) + var(--seg-size)*1.85);
+  bottom:calc(var(--stage-b,0px) + var(--seg-size)*5.2)}
 .prov.on-stage .prov-panel{left:0;right:auto;width:340px;max-width:calc(100vw - 48px)}
 
 /* Hover is the convenience, never the record. On paper the panel stops
@@ -2493,6 +2536,12 @@ function fitStage(wrapId, stageId){
   var s=Math.min(window.innerWidth/W, window.innerHeight/H);
   stage.style.transform='scale('+s+')';
   wrap.style.width=(W*s)+'px'; wrap.style.height=(H*s)+'px';
+  /* where the stage sits in the window, for the furniture that has to find
+     its corner. The wrap is centred horizontally by auto margins and starts
+     at the top, so the whole vertical remainder is underneath it. */
+  var root=document.documentElement;
+  root.style.setProperty('--stage-x', Math.max(0,Math.round((window.innerWidth-W*s)/2))+'px');
+  root.style.setProperty('--stage-b', Math.max(0,Math.round(window.innerHeight-H*s))+'px');
   if(Math.abs(s-stageScale) > 0.001){
     stageScale = s;
     window.__stageScale = s;
@@ -3243,6 +3292,9 @@ function show(which){
     document.getElementById(TABS[k]).setAttribute('aria-pressed', String(k===which));
   }
   document.body.style.overflowY = (which==='spec') ? 'auto' : 'hidden';
+  /* the two figure pages are a stage inside a window; the body page and the
+     spec sheet fill the window, so their furniture stays on the window */
+  document.documentElement.dataset.stage = (which==='scan'||which==='heart') ? 'on' : 'off';
   if(which==='scan'){ fit(); playReveal(); }
   else { if(which==='heart') fitHeart(); window.scrollTo(0,0); }
   /* the second experience is heavy, so it only wakes up when it is on screen */
@@ -3271,6 +3323,10 @@ else lateBuild();
 fit(); renderFigure(document.getElementById('bodyCanvas'),W,H,{cx:683,ty:50,hw:244,fh:980},5.4,1);
 buildPinned();
 document.body.style.overflowY='hidden';
+/* show() sets this on every switch, but the first view is on from the markup
+   and never goes through it, so the furniture would spend the first paint at
+   the window's corner instead of the stage's. */
+document.documentElement.dataset.stage='on';
 if(document.fonts && document.fonts.ready){ document.fonts.ready.then(function(){}); }
 playReveal();
 })();
@@ -3304,6 +3360,10 @@ playReveal();
     box-shadow:0 8px 22px -12px #0d1f3055;opacity:0;pointer-events:none;transition:opacity .22s ease;
   }
   #rigOpen.show{opacity:1;pointer-events:auto}
+  /* the same corner rule as the tab bar, on the other side: the rig belongs
+     to the figure, so it rides the stage's right edge and not the window's */
+  :root[data-stage="on"] #rig,
+  :root[data-stage="on"] #rigOpen{right:calc(var(--stage-x,0px) + 18px)}
   #rig header{display:flex;align-items:center;gap:8px;padding:13px 15px 11px;border-bottom:1px solid #0d1f3014}
   #rig header b{font-size:12px;font-weight:600;letter-spacing:.06em}
   #rig header i{font-style:normal;font-size:10.5px;color:var(--ink-400)}
@@ -5530,7 +5590,7 @@ addEventListener('viewchange', (e) => {
 
   /* fixed, not absolute: the stage is scaled and letterboxed, and this button
      belongs to the viewport's furniture, the way it does on the body page */
-  #heartBack{position:fixed}
+  #heartBack{position:fixed;left:calc(var(--stage-x,0px) + 26px)}
 
   /* Centred in the right half the same way: 777+520/2 = 1037 against the
      half's own 1037, and translateY off the middle rather than a top that

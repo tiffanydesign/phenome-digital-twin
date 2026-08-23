@@ -4771,7 +4771,11 @@ const hex2vec = (h) => {
    from vanishing entirely. Nothing shows through from the far side — the tone
    pass is depth-tested, so only the nearest surface contributes. */
 const SCREEN = {
-  body:  { pitch: 3, angle: 0, fill: 0.95, soft: 0.1, contrast: 1.8, floor: 0.045,
+  /* pitch 2 and floor 0.25 are the whole figure's screen, and only the whole
+     figure's: a finer grid and a much higher base coverage, so the body reads
+     as a solid presence rather than a sketch when nothing is open on top of
+     it. Both were 3 and 0.045. */
+  body:  { pitch: 2, angle: 0, fill: 0.95, soft: 0.1, contrast: 1.8, floor: 0.25,
            invert: 1, glow: 1, colour: '#c8d9ef', tip: '#33518f' },
   /* the highlighted organ takes the same screen, one step deeper in the ramp so
      it separates from the body it sits inside */
@@ -4783,6 +4787,17 @@ const SCREEN = {
 const CLOSEUP = {
   contrastGain: 4.2,   // 1.8 -> 6.0: empties the middle, contour untouched
   inkDrop: 0.30,       // 1 -> 0.70 overall, so the silhouette still reads
+  /* The pitch the body goes back to once an organ is open, and it is 3 because
+     3 is what the body behind an open organ has always been.
+
+     It has to be stated here rather than left alone. floor and contrast are
+     already interpolated by glass, so raising the resting floor to 0.25 cannot
+     reach the open state — (1 - glass) drives it to 0 either way. pitch had no
+     such term: applyScreen read it straight off the preset, so it was one
+     number shared by both states, and dropping the resting value to 2 would
+     have taken the open state with it. Now it eases across like the other two,
+     and the open state lands exactly where it did before. */
+  pitchOpen: 3,
 };
 
 const matTone = new THREE.ShaderMaterial({
@@ -4876,9 +4891,9 @@ function sizeToneRT(w, h) {
 /* pitch and the rest come straight off SCREEN; opacity, floor and contrast are
    the values the state machine drives, so they are passed per pass rather than
    stored. floor and contrast default to the preset's own. */
-function applyScreen(p, opacity, floor, contrast) {
+function applyScreen(p, opacity, floor, contrast, pitch) {
   const u = matHalftone.uniforms;
-  u.uPitch.value = Math.max(p.pitch * DPR, 2);
+  u.uPitch.value = Math.max((pitch === undefined ? p.pitch : pitch) * DPR, 2);
   u.uAngle.value = p.angle * Math.PI / 180;
   u.uFill.value = p.fill; u.uSoft.value = p.soft;
   u.uContrast.value = contrast === undefined ? p.contrast : contrast;
@@ -5324,6 +5339,7 @@ function frame(now) {
   const bodyInk = 1 - glass * CLOSEUP.inkDrop;
   const bodyFloor = SCREEN.body.floor * (1 - glass);
   const bodyContrast = SCREEN.body.contrast + glass * CLOSEUP.contrastGain;
+  const bodyPitch = SCREEN.body.pitch + glass * (CLOSEUP.pitchOpen - SCREEN.body.pitch);
 
   const rec = bodies[sex];
   if (rec) {
@@ -5366,7 +5382,7 @@ function frame(now) {
     renderer.setRenderTarget(null);
     holder.visible = false;
     matHalftone.uniforms.uTone.value = toneRT.texture;
-    applyScreen(SCREEN.body, bodyInk, bodyFloor, bodyContrast);
+    applyScreen(SCREEN.body, bodyInk, bodyFloor, bodyContrast, bodyPitch);
     renderer.render(quadScene, quadCam);
   }
 

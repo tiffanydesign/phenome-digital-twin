@@ -381,9 +381,9 @@
      toolbar on a 27-inch display. 0.95vw puts 1920 at 18 and 2560 at the cap. */
   --seg-size:clamp(14px,0.95vw,20px);
   /* The two corner lobes are #c4daf7 top-left and #d2e2f8 bottom-right, and
-     they are NOT tokens. Three surfaces paint them — .stage-wash, <body> and
-     section 03's own swatch — at three different alphas and three different
-     radii, because each is a different size of frame. A token that has to be
+     they are NOT tokens. Two surfaces paint them — <body> and section 03's own
+     swatch — at two different alphas and two different radii, because each is
+     a different size of frame. A token that has to be
      re-alpha'd at every use is not saving anyone anything; the hue is stated
      at each site with this note as the reference. */
 }
@@ -403,13 +403,12 @@
    never close into a visible circle. The old --stage-top/--stage-bottom pair
    is kept for #labWrap's own background-color fallback, which paints before
    this element exists. */
-.stage-wash{
-  background:
-    radial-gradient(56% 44% at 50% 38%, #9edcff30 0%, transparent 72%),
-    radial-gradient(720px 720px at -160px -160px, #c4daf799 0%, #c4daf700 68%),
-    radial-gradient(660px 660px at calc(100% + 160px) calc(100% + 190px), #d2e2f880 0%, #d2e2f800 70%),
-    linear-gradient(150deg, var(--stage-field-1) 0%, var(--stage-field-2) 46%, var(--stage-field-3) 100%);
-}
+/* .stage-wash lived here and had exactly one user, #labBg, which stood behind
+   the body page's sky and was therefore never once visible. Both are gone: the
+   page stands on <body> now. It was a near-copy of that ground anyway — the
+   same 150deg field and the same two corner lobes at heavier alphas, plus a
+   centred cyan bloom the ground does not have. That bloom is the one idea in
+   it worth keeping and #labGlow keeps it, in white, behind the figure. */
 
 /* ============================================================
    THE GLASS RECIPE · one place, every surface
@@ -3977,7 +3976,7 @@ try {
      ============================================================ -->
 <div class="view" id="viewLab">
   <div id="labWrap">
-    <div id="labBg" class="stage-wash"></div>
+    <div id="labGlow"></div>
     <canvas id="labGL"></canvas>
     <div id="labHot"></div>
 
@@ -4023,7 +4022,17 @@ try {
 
 <style>
   /* ---------- stage ---------- */
-  #labWrap{position:fixed;inset:0;overflow:hidden;background:var(--stage-field-3)}
+  /* No background of its own: <body>'s wash is the ground here now, the same
+     as on the other three views. */
+  #labWrap{position:fixed;inset:0;overflow:hidden}
+  /* The figure's light. Percentages rather than the pixel box the other two
+     blooms use, because this stage is the window and not a 1366 frame — and
+     centred, which holds for both states: the overview stands the body in the
+     middle, and every organ the camera flies to arrives there too. Same five
+     stops as the others, so the falloff has no edge of its own. */
+  #labGlow{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse 21% 43% at 50% 48%,
+      #ffffffb8 0%,#ffffff91 32%,#ffffff45 56%,#ffffff14 74%,#ffffff00 86%)}
   #labGL{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;
     cursor:var(--cursor-grab),grab}
   #labGL.drag{cursor:var(--cursor-grabbing),grabbing}
@@ -4043,12 +4052,6 @@ try {
   #labWrap .lab-bar-nav button,
   #labWrap .hot,
   #labWrap .prov-btn{cursor:var(--cursor-pointer),pointer}
-
-  /* The same .stage-wash the home page stands on, so the two figures read as
-     one room. The drifting white specks that used to float over it are gone:
-     they were the only moving thing on a page whose whole subject is meant to
-     be still, and they read as dust on the lens. */
-  #labBg{position:absolute;inset:0;pointer-events:none}
 
   /* ---------- shared glass · section 06's doctrine ----------
      This page had its own emboss recipe written out in five variables, from
@@ -4645,87 +4648,36 @@ function envTexture() {
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromEquirectangular(envTexture()).texture;
 
-/* The backdrop, which the last pass left out. Sterile Blue is more than the
-   equirect the pearl reflects: the lab paints a sky sphere behind the subject,
-   and that is where the light actually moves. A CSS gradient cannot do it —
-   the glow is a directional lobe in world space, so it slides across the sky as
-   the figure turns, and the lower half is pulled down toward the floor tone.
-   Flat CSS gave a fixed wash and no such shift.
+/* THE SKY SPHERE IS GONE, and it is worth saying what it was before saying why.
 
-   Ported verbatim from the lab, shader included: the ramp is pow(h, 0.9) rather
-   than linear, the lower half mixes toward cBottom*0.94 under smoothstep, the
-   glow is dot(d, glowDir) to the fifth at half strength, and a per-pixel dither
-   of 1/255 kills the banding a gradient this shallow would otherwise show.
+   It was the lab's own backdrop ported verbatim, shader included: a 600-radius
+   BackSide sphere with a pow(h, 0.9) ramp, the lower half mixed toward
+   cBottom*0.94 under a smoothstep, a directional glow lobe at dot(d, glowDir)
+   to the fifth, and a per-pixel dither of 1/255 against banding. Its argument
+   was good: the lobe lives in world space, so it slid across the sky as the
+   figure turned, and a CSS wash cannot do that.
 
-   Sterile Blue is bgMode 'solid', so gridAlpha stays 0 — the grid belongs to the
-   lab's 'grid' modes and this preset does not use it. */
+   What it also did was paint an opaque frame edge to edge, which meant this
+   page could not stand on the ground the other three stand on. Two passes were
+   spent tuning it toward that ground — the horizon off #fbfdff, the lobe from
+   0.5 down to 0.08 — and each one was a step toward looking like the page
+   background rather than being it. The heart page had already shown the other
+   answer works: the halftone pass is transparent and discards empty cells, so
+   with nothing behind it the dots composite straight onto <body>'s wash.
+
+   So all four views now stand on one ground in fact, which is what the ground's
+   own comment has been reaching for since it was written. What is lost is the
+   sliding lobe. What replaces it is #labGlow, a bloom behind the figure — the
+   same one the home page and the heart page carry, and the thing every one of
+   those sky revisions was actually trying to buy.
+
+   Recover the shader with git show if the room is ever wanted back. STERILE and
+   envTexture stay: they are the lab's table and the environment is still built
+   from them. */
 const hex2vec = (h) => {
   const v = parseInt(h.slice(1), 16);
   return new THREE.Vector3(((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255);
 };
-/* Two of these no longer read off the lab, and STERILE is deliberately left
-   alone rather than edited: it is the material bench's table, it is what
-   envTexture builds the environment from, and the moment this page rewrites it
-   the two stop being comparable. The departure is here, on the sky, where it
-   belongs — this page's room, not the bench's specimen.
-
-   What was wrong. The lab's sky mixes toward bgBottom at and below the horizon,
-   and bgBottom is #fbfdff — all but white. On a bench holding one specimen under
-   inspection that is correct; on a page where the figure is drawn in translucent
-   dots it blew the left half out to paper and left the right half blue, so the
-   backdrop read as two different rooms lit by two different lamps. The glow lobe
-   made it worse rather than causing it: glowDir points left and back, so at 0.5
-   it was piling a second light onto the side that was already the brightest.
-
-   bgBottom goes to a pale blue one step off the page's own --stage-field-1, and
-   the glow comes down to a sixth of what it was. Measured rather than guessed:
-   at 0.5 the left of the frame sampled #ecfcff against #e1eefb on the right, a
-   twelve-point difference in luminance and a shift of hue with it, cyan against
-   blue. At 0.08 the two sides land within a couple of points of each other and
-   of the heart page's own field. The lobe is still there and still slides across
-   the sky as the figure turns, which is the whole reason it is a world-space
-   glow and not a CSS wash — it is just no longer lighting one half of a room. */
-const bgUniforms = {
-  cTop:      { value: hex2vec(STERILE.bgTop) },
-  cBottom:   { value: hex2vec('#eef4fb') },
-  cGlow:     { value: hex2vec('#9edcff') },
-  glowDir:   { value: new THREE.Vector3(-0.55, 0.24, -0.8).normalize() },
-  glowAmt:   { value: 0.08 },
-  gridAlpha: { value: 0 },
-};
-const bgSphere = new THREE.Mesh(
-  new THREE.SphereGeometry(600, 48, 32),
-  new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, uniforms: bgUniforms,
-    vertexShader: `
-      varying vec3 vW;
-      void main() {
-        vW = (modelMatrix * vec4(position, 1.0)).xyz;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }`,
-    fragmentShader: `
-      varying vec3 vW;
-      uniform vec3 cTop, cBottom, cGlow, glowDir;
-      uniform float glowAmt, gridAlpha;
-      float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-      void main() {
-        vec3 d = normalize(vW);
-        float h = clamp(d.y * 0.5 + 0.5, 0.0, 1.0);
-        vec3 c = mix(cBottom, cTop, pow(h, 0.9));
-        /* cBottom * 0.94, exactly as the lab writes it. A first pass substituted
-           the preset's floor tone here, which is not what the lab mixes toward,
-           and it made the lower sky read colder than Sterile Blue does.
-           No backticks in here: this shader lives in a template literal. */
-        c = mix(c, cBottom * 0.94, smoothstep(0.42, 0.0, h) * 0.5);
-        c += cGlow * pow(max(dot(d, normalize(glowDir)), 0.0), 5.0) * glowAmt * 0.5;
-        c += (hash(gl_FragCoord.xy) - 0.5) / 255.0;
-        gl_FragColor = vec4(c, 1.0);
-      }`,
-  })
-);
-bgSphere.renderOrder = -1;
-bgSphere.frustumCulled = false;
-scene.add(bgSphere);
 
 /* ------------------------------------------------- the screen, Contour Fade */
 /* This page renders through the lab's screen-space halftone now, not through a
@@ -5318,9 +5270,9 @@ function frame(now) {
   /* Three passes over one frame. autoClear is off for the whole sequence so the
      halftone quads can composite onto what is already there instead of wiping it.
 
-     1  the sky alone, straight to the screen
-     2  the body alone into the tone buffer, then its dots over the sky
-     3  each revealed organ the same way, with its own palette and its own
+     1  the body alone into the tone buffer, then its dots onto the cleared
+        frame, which is transparent, so they land on the page's own ground
+     2  each revealed organ the same way, with its own palette and its own
         reveal opacity, drawn after the body so it reads as the thing in focus
 
      Each tone pass hides everything it is not measuring; without that the sky
@@ -5331,12 +5283,6 @@ function frame(now) {
 
   renderer.setRenderTarget(null);
   renderer.clear(true, true, true);
-
-  bgSphere.visible = true;
-  if (holder) holder.visible = false;
-  organList.forEach((k) => { rec.organs[k].holder.visible = false; });
-  renderer.render(scene, camera);
-  bgSphere.visible = false;
 
   if (holder && bodyInk > 0.004) {
     holder.visible = true;
@@ -5367,7 +5313,6 @@ function frame(now) {
   /* hand the scene back the way the rest of the frame expects to find it */
   if (holder) holder.visible = true;
   organList.forEach((k, i) => { rec.organs[k].holder.visible = wasVisible[i]; });
-  bgSphere.visible = true;
 
   /* hotspots ride the projection of their own anchor */
   for (const c of CATS) {

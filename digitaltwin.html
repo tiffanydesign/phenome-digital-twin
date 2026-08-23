@@ -412,7 +412,7 @@
    further down instead, which is written once for the two of them. */
 .gl,
 .icon-btn,.prov-btn,
-.lab-cats,.lab-cat,.lab-back,.lab-bar-name,.lab-bar-nav button,
+.lab-cats,.lab-cat,.lab-back,.lab-bar-name,.lab-bar-nav,
 .lab-card,.lab-load,.hot.named .tag{
   position:relative;
   border:0;                       /* nothing draws an edge here any more */
@@ -3847,7 +3847,10 @@ try {
      the rows appeared to float unattached. It carries seven rows over a live
      field, so it has to be a surface before it is a pane. */
   .lab-cats{position:absolute;right:26px;top:50%;transform:translateY(-50%);width:288px;z-index:6;
-    border-radius:24px;padding:16px 14px 14px;
+    /* 12px sides, not 14: the rows' own padding is 12 and the hairlines are
+       inset to match it, so the panel's edge and the division inside it now
+       share one measure instead of disagreeing by two pixels. */
+    border-radius:24px;padding:14px 12px 12px;
     background-color:var(--gl-tint-live);
     -webkit-backdrop-filter:var(--gl-blur-panel);backdrop-filter:var(--gl-blur-panel);
     box-shadow:var(--glass-panel-drop),var(--glass-lit);
@@ -3860,40 +3863,76 @@ try {
      the rows it heads instead of floating above their middle. */
   .lab-cats-h{font-family:var(--font-sans);font-size:12px;font-weight:var(--w-module);
     letter-spacing:var(--tracking-overline);
-    color:var(--ink-600);padding-left:15px;margin-bottom:12px}
-  /* A row is NOT a pane. It was tried as one and it was wrong twice over: a
-     surface inside a surface is two thicknesses of glass, which doubles the
-     blur and runs two rims through each other — the fault the readings card
-     was moved 45px to avoid — and once the row is nearly opaque enough to
-     survive that, the rail reads as white chips on a grey card.
+    color:var(--ink-600);padding-left:12px;margin-bottom:10px}
+  /* ---------- the rows · section 06's panel grammar ----------
+     A row is NOT a pane, and the reason has changed since that was first
+     written. The old argument was that a surface inside a surface is two
+     thicknesses of glass — double blur, two rims running through each other.
+     Under the plain doctrine there are no rims and the rows carry no blur, so
+     that objection is dead. The one that survived it is the one that matters:
+     the rows were 33% white chips on a 59% card, and a chip that is LIGHTER
+     than the panel holding it makes the panel read as the gap between chips
+     rather than as a surface with rows on it.
 
-     So a row is a tint zone: a region of the panel where more light comes
-     through, with no rim, no drop and no blur of its own. It is the one place
-     in the system where hover is allowed to brighten a fill, and the licence
-     is precise — brightening a *pane* reads as glass turning opaque, which
-     glass cannot do, but brightening a zone inside a pane is only the pane
-     letting more light through in that one place. */
-  .lab-cat{display:flex;align-items:center;gap:13px;width:100%;margin-bottom:7px;padding:13px 15px;
-    border-radius:16px;cursor:pointer;
-    background-image:none;background-color:#ffffff54;
+     Section 06 already had the right vocabulary for this and it was not the
+     list item — a .sg-item is a free-standing pane on the page, and seven of
+     those over a live figure is seven boundaries held by nothing but a drop.
+     It is .sg-card: a panel whose rows are separated by .sg-hair, a hairline
+     that fades out at both ends, with no per-row surface at all. Take the
+     fills away and the panel becomes the surface again, which is what it was
+     always meant to be.
+
+     So: no fill at rest, a graduated hairline between rows, and hover as a
+     tint zone. That last one is the doctrine's one licence to brighten a
+     fill, and it is precise — brightening a *pane* reads as glass turning
+     opaque, which glass cannot do, but brightening a zone inside a pane is
+     only the pane letting more light through in that one place. It is also
+     now the only thing marking a row, which is why it is stronger than it
+     was. */
+  .lab-cat{display:flex;align-items:center;gap:14px;width:100%;padding:13px 12px;
+    border-radius:14px;cursor:pointer;
+    background-image:none;background-color:transparent;
     -webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;
     font-family:var(--font-sans);font-size:17px;color:var(--ink-900);text-align:left;
-    transition:.2s var(--ease-frosted-out)}
-  .lab-cat:last-child{margin-bottom:0}
+    transition:background-color .2s var(--ease-frosted-out),
+               transform .2s var(--ease-frosted-out)}
+  /* .sg-hair, at row scale. It fades at both ends so it reads as a division
+     inside one surface rather than as a line drawn across it — the same reason
+     the doctrine will not let a pane have a border. The first row goes without,
+     because the panel's own top padding already separates it from the header. */
+  .lab-cat + .lab-cat{position:relative}
+  .lab-cat + .lab-cat::after{content:"";position:absolute;left:12px;right:12px;top:-1px;height:1px;
+    background:linear-gradient(90deg,transparent,#2a3f6e26,transparent)}
   /* the row comes further off the panel and slides toward the figure it names */
-  .lab-cat:hover{transform:translateX(-3px);background-color:#ffffff96}
-  .lab-cat:active{transform:translateX(-1px);background-color:#e5ebf78f}
-  /* Flat discs. They were ringed dots in the organ's own red or amber, which
-     put a status colour on something that carries no status — a rail row is a
-     place to go, not a verdict — and then modelled spheres, which put the
-     distinction into how domed they looked. Now they are the same mark section
-     06 uses, at the same weight as any dot on any chart in the system: one
-     flat step off the ramp and a hairline to hold it against a pale pane. The
-     organ materials keep their anatomical colour; only these markers changed. */
+  .lab-cat:hover{transform:translateX(-3px);background-color:#ffffff7a}
+  .lab-cat:active{transform:translateX(-1px);background-color:#dee6f38f}
+  /* the hairline is the row's own edge, so it goes when the row is lit */
+  .lab-cat:hover::after,.lab-cat:hover + .lab-cat::after{opacity:0}
+  /* Flat discs, and the mark weight section 06 settled on: 22px is the size a
+     .sg-mark takes in a row, not the 50px a .sg-disc takes when it carries a
+     glyph — these carry none, so there is nothing to make room for.
+
+     They keep their 8% navy hairline where section 06's 40px discs dropped
+     theirs, and it is the same exception .sg-ramp states: a small disc has too
+     little area to hold a tint against a pale pane. Seven steps of the ramp at
+     22px is exactly that case.
+
+     The colours come from ORB_RAMP in script and are deliberately left there.
+     They walk the ramp by position in the list, so depth reads as where you
+     are rather than as how bad it is — a rail row is a place to go, not a
+     verdict. */
   .lab-cat .ic{flex:none;width:22px;height:22px;border-radius:50%;border:0;
     background:var(--orb);box-shadow:0 0 0 1px #2a3f6e14}
   .lab-cat .nm{flex:1}
-  .lab-cat .ch{color:var(--ink-400);font-size:17px;line-height:1}
+  /* The chevron is the row's only affordance, exactly as .sg-item defines it:
+     ink-400, and nothing else — no border, no shadow, no fill. It is a text
+     glyph rather than .sg-item's SVG because script writes this markup, so it
+     is matched on weight instead: 18px to sit at the 18px SVG's cap height,
+     and it slides with the row rather than staying put, so the arrow leads
+     where the row is going. */
+  .lab-cat .ch{flex:none;color:var(--ink-400);font-size:18px;line-height:1;
+    transition:transform .2s var(--ease-frosted-out),color .2s var(--ease-frosted-out)}
+  .lab-cat:hover .ch{color:var(--ink-600);transform:translateX(3px)}
 
   /* ---------- hotspots ---------- */
   #labHot{position:absolute;inset:0;z-index:5;pointer-events:none}
@@ -3963,8 +4002,15 @@ try {
      the tabs stand 46px tall on a 24px offset, so their top edge is 70 from the
      bottom, and 80 leaves the bar's underside 10px clear of it — the ring's own
      clearance. */
+  /* align-items:stretch, not center, and it is the difference between the bar
+     being one object and being two that happen to be adjacent. The name pill's
+     height comes from a 34px display face on line-height:normal, so it is
+     whatever Contralto's own ascent and descent make it — 73px here, and a
+     different number on any machine that falls back. Centred, the nav pill kept
+     its own 66px and the two halves sat at different heights; stretched, it
+     takes the name's height by construction and cannot drift from it. */
   .lab-bar{position:absolute;left:50%;bottom:80px;transform:translate(-50%,26px);z-index:6;
-    display:flex;align-items:center;gap:14px;width:min(780px,calc(100% - 460px));
+    display:flex;align-items:stretch;gap:14px;width:min(780px,calc(100% - 460px));
     opacity:0;pointer-events:none;transition:opacity .34s ease,transform .34s var(--ease-frosted-out)}
   .lab-bar.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
   /* The widest surface on the page, and the one the missing shadow cost most:
@@ -3978,20 +4024,60 @@ try {
   .lab-bar-name i{position:relative;z-index:1;flex:none;width:22px;height:22px;border-radius:50%;
     background:var(--orb);box-shadow:0 0 0 1px #2a3f6e14}
   .lab-bar-name b{position:relative;z-index:1}
-  .lab-bar-name b{font-family:var(--font-sans);font-size:32px;font-weight:400;letter-spacing:-.01em;color:var(--ink-900)}
-  .lab-bar-nav{display:flex;gap:10px}
-  /* Same tier as the name pill beside it, and this one is not a judgement call.
-     The pill and these two buttons are one bar: they sit on the same baseline,
-     14px apart, and a reader takes them as one object. Leaving the buttons at
-     the pane's 42% next to a 59% pill did not read as a hierarchy, it read as
-     the buttons having failed to load. */
-  .lab-bar-nav button{width:62px;height:62px;border-radius:50%;cursor:pointer;font-size:22px;line-height:1;
-    color:var(--ink-900);
+  /* The organ name is a TITLE, so it takes the display face and the optical cut
+     drawn for its size. 34px lands in Contralto Small's 33–34px range; the old
+     32px Helvetica was neither the right family for a title nor a size any cut
+     was drawn for. Section 06's card heading makes the same move one step
+     down, at 24px Xsmall. */
+  .lab-bar-name b{font-family:var(--font-serif-small);font-size:34px;
+    font-weight:var(--w-serif-title);letter-spacing:-.005em;color:var(--ink-900)}
+
+  /* ---------- prev / next · section 06's segmented discs ----------
+     They were two free-floating 62px circles, which made the bar three objects
+     when it is two: a name, and a way to move off it. Section 06 has exactly
+     one component for a pair of adjacent round controls — .sg-discs, "flat
+     blue discs on a flat glass pill" — so the pill moves onto .lab-bar-nav and
+     comes off the buttons, and the buttons become discs inside it.
+
+     The pill takes --gl-tint-live like the name beside it, because the two
+     halves of one bar cannot sit on different tiers; that was the last thing
+     fixed here and the reasoning holds. The discs take the palest step of the
+     ramp — both of them, the same step. A ramp across prev and next would say
+     one direction is further along than the other, and neither is.
+
+     66px tall, matched to the name pill: 46px disc on 10px padding. The discs
+     are 46px because that is what .sg-discs draws, and the 62px circles were
+     sized when they were the only surface there. */
+  .lab-bar-nav{display:flex;align-items:center;gap:10px;padding:0 14px;
+    border-radius:999px;
     background-color:var(--gl-tint-live);
-    transition:box-shadow .2s var(--ease-frosted-out),color .2s var(--ease-frosted-out)}
-  .lab-bar-nav button:hover{box-shadow:var(--glass-lift),var(--glass-lit)}
-  /* pressing the organ you are moving to should feel like pressing something */
-  .lab-bar-nav button:active{box-shadow:var(--glass-well)}
+    -webkit-backdrop-filter:var(--gl-blur-panel);backdrop-filter:var(--gl-blur-panel);
+    box-shadow:var(--glass-panel-drop),var(--glass-lit)}
+  .lab-bar-nav button{position:relative;z-index:1;
+    width:46px;height:46px;border:0;border-radius:50%;cursor:pointer;
+    display:grid;place-items:center;font-family:inherit;font-size:20px;line-height:1;
+    /* #2c3f6e, and never white — the one rule that runs through every disc in
+       06b. A glyph whose colour depends on how deep its disc sits is a second
+       channel nobody reads. */
+    /* Step 2 at rest, not step 1. On section 06's 42% pane a step-1 disc has
+       enough to separate from; on this pill's 59% it measured about 1.13:1 and
+       read as a smudge behind the glyph. These are BUTTONS — the disc is the
+       affordance, not decoration, so it starts one step further along.
+
+       Rest 2, hover 3, and there it stops: step 4 gives the #2c3f6e glyph
+       2.4:1, and the ramp ceiling for a disc carrying a glyph is s3. Press is
+       told by the drop going, not by a fourth step. */
+    color:#2c3f6e;background-color:var(--gl-mark-2);
+    transition:background-color .2s var(--ease-frosted-out),
+               box-shadow .2s var(--ease-frosted-out)}
+  /* one step along the ramp, and the disc lifts off the pill it sits in — the
+     same 3px drop every selected thing in the system takes */
+  .lab-bar-nav button:hover{background-color:var(--gl-mark-3);
+    box-shadow:0 3px 9px -6px #3c5a964d}
+  /* pressing the organ you are moving to should feel like pressing something:
+     the disc settles back onto the pill, which is the only press vocabulary
+     the plain doctrine has left */
+  .lab-bar-nav button:active{background-color:var(--gl-mark-3);box-shadow:none}
 
   /* The worst of the old recipe's failures. This card carries the only numbers
      on the page, and with no shadow and an invisible white edge the readings
@@ -4048,8 +4134,18 @@ try {
        the old 20 the tabs covered the name outright, since the bar runs the full
        width at this size and cannot simply be pushed out of their column. */
     .lab-bar{width:calc(100% - 28px)}
-    .lab-bar-name b{font-size:22px}
-    .lab-bar-nav button{width:50px;height:50px}
+    /* The CUT changes with the size, which is the one mistake the four-cut
+       setup exists to prevent: 22px is Contralto Xsmall's range, not Small's.
+       Dropping the size without dropping the cut would render a face drawn for
+       34px at 22 — tighter spacing and thinner strokes than the size wants. */
+    .lab-bar-name{padding:12px 22px}
+    .lab-bar-name b{font-family:var(--font-serif-xsmall);font-size:23px}
+    /* 38px on 8px padding is 54px, matched to the name pill at this size the
+       same way 46-on-10 matches it at full width */
+    /* only the horizontal inset and the disc size change; the height still
+       comes from the name pill via align-items:stretch */
+    .lab-bar-nav{padding:0 12px;gap:8px}
+    .lab-bar-nav button{width:38px;height:38px;font-size:17px}
     .lab-card{display:none}
   }
 </style>

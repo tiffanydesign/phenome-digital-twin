@@ -950,6 +950,19 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .pill.mon{background:#b27f001f;color:var(--status-warning-ink)}
 .pill.alert{background:#ff3c1a1a;color:var(--status-danger-ink)}
 .pill-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:20px 26px;align-items:start}
+/* ladder demo: one pill per row in a single aligned column, at demo scale,
+   so the four states read top to bottom as one ladder. Action sits below the
+   divider, outlined in the brand blue: off the status ramp entirely, so it
+   can't be read as a fifth severity. */
+.pill-lad{display:grid;gap:14px}
+.pill-lad-row{display:grid;grid-template-columns:145px 1fr;gap:22px;align-items:center}
+.pill-lad-row p{font-size:var(--text-micro);line-height:1.55;color:var(--ink-400)}
+.pill-lad .pill,.pill-lad .tag{justify-self:start;font-size:13.5px;letter-spacing:.05em;
+  padding:5px 11px;border-radius:6px}
+.pill-lad .tag{gap:7px;padding-left:10px;color:var(--phenome-blue-500);border-color:#203a8566}
+.pill-lad .tag::before{color:var(--phenome-blue-400)}
+.pill-lad-act{margin-top:4px;padding-top:18px;border-top:1px solid var(--divider)}
+@media (max-width:720px){.pill-lad-row{grid-template-columns:1fr;gap:8px}}
 .tag{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 8px;border-radius:5px;
   border:1px solid var(--border-strong);color:var(--ink-600);
   font-size:10px;font-weight:700;letter-spacing:.05em}
@@ -1842,13 +1855,13 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
     <section class="pat">
       <div class="pat-head"><div class="pat-n">06</div><h3>Status pill</h3></div>
-      <p class="pat-why">Four states share one ladder, least to most severe. Tint at 12% of the status hue, text at the <code>-ink</code> variant, so the pill states the interpretation before the number does. Action is not a fifth state on that ladder, it's a suggested next step, so it gets its own neutral shape and sits underneath the reading, never inside the row.</p>
       <div class="card">
-        <div class="pill-row">
-          <div><span class="pill ok">Normal</span><p style="margin-top:9px;font-size:var(--text-micro);color:var(--ink-400)">Inside range. No action.</p></div>
-          <div><span class="pill note">Noteworthy</span><p style="margin-top:9px;font-size:var(--text-micro);color:var(--ink-400)">Just outside range. Worth a note, not a recheck.</p></div>
-          <div><span class="pill mon">Monitor</span><p style="margin-top:9px;font-size:var(--text-micro);color:var(--ink-400)">Borderline. Recheck next scan.</p></div>
-          <div><span class="pill alert">Alert</span><p style="margin-top:9px;font-size:var(--text-micro);color:var(--ink-400)">High signal. Clinician review.</p></div>
+        <div class="pill-lad">
+          <div class="pill-lad-row"><span class="pill ok">Normal</span><p>Inside range. No action.</p></div>
+          <div class="pill-lad-row"><span class="pill note">Noteworthy</span><p>Just outside range. Worth a note, not a recheck.</p></div>
+          <div class="pill-lad-row"><span class="pill mon">Monitor</span><p>Borderline. Recheck next scan.</p></div>
+          <div class="pill-lad-row"><span class="pill alert">Alert</span><p>High signal. Clinician review.</p></div>
+          <div class="pill-lad-row pill-lad-act"><span class="tag">Action</span><p>Recommended next step. Never a status.</p></div>
         </div>
 
         <div style="margin-top:28px;padding-top:24px;border-top:1px solid var(--divider)">
@@ -1858,11 +1871,6 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
             <span class="pill alert">Alert</span>
           </div>
           <div class="tag" style="margin-top:11px">Recheck on a fasting sample</div>
-          <p style="margin-top:12px;font-size:var(--text-micro);line-height:1.6;color:var(--ink-400);max-width:520px">Action reuses the same 12%-tint logic in reverse, an outline instead of a fill, ink-600 instead of a status hue, so it can never be mistaken for a fifth severity colour.</p>
-        </div>
-
-        <div class="xlate" style="grid-template-columns:1fr;margin-top:20px">
-          <div><span>Wording</span><p>Each state keeps one word across the whole product. <span style="white-space:nowrap"><b>Monitor</b> in the pill, <b>Monitor</b> in the filter, <b>Monitor</b> in the export.</span> Action follows the same rule, but stays a recommendation, never a status.</p></div>
         </div>
       </div>
     </section>

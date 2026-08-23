@@ -2542,7 +2542,33 @@ function fitStage(wrapId, stageId){
   }
 }
 function fit(){ fitStage('scanWrap','stage'); }
-function fitHeart(){ fitStage('heartWrap','heartStage'); }
+/* The stage is 1366x1024 whatever it is shown on, so the composition inside it
+   is identical on a tablet and in a browser — and that is exactly why the two
+   do not look the same. On a 4:3 tablet the stage reaches both edges of the
+   screen and each half's content, centred in its half, is centred in what the
+   eye takes to be the frame. In a 16:9 window the stage fills the height and
+   leaves a band of ground down each side — 227 stage units at 2560x1440 — and
+   the eye counts that band as part of the picture. The content has not moved;
+   the frame around it got wider, so it reads as bunched toward the middle.
+
+   A fixed nudge outward would fix the browser and break the tablet. So the
+   nudge is the band: measure how much ground is showing, in stage units, and
+   push each half out by half of it, which is the offset that puts each half's
+   content back in the middle of the region the eye actually sees. At 4:3 the
+   band is zero and nothing moves.
+
+   Capped at 54 because the stage does not grow with the window: the wrap clips
+   at 1366 and the left readout already starts at 82. Half the band wants 113 at
+   2560, which would run the organ's leaders off the frame. 54 leaves 28 inside
+   the left edge and 21 inside the right, and past that the ground carries on
+   anyway, so the halves read as open even where the stage has run out. */
+function fitHeart(){
+  fitStage('heartWrap','heartStage');
+  var view=document.getElementById('viewHeart'); if(!view) return;
+  var s=Math.min(window.innerWidth/W, window.innerHeight/H);
+  var band=Math.max(0,(window.innerWidth/s - W)/2);
+  view.style.setProperty('--spread', Math.round(Math.min(band/2, 54))+'px');
+}
 
 /* ────────────────────────── SPEC VIEW ────────────────────────── */
 /* listed strictly largest to smallest; every row is drawn at its true size */
@@ -5491,7 +5517,10 @@ addEventListener('viewchange', (e) => {
      What the flat fields were really compensating for was the absence of a
      light on the subject, and that is #heartGlow's job, not the field's. */
 
-  #heartField{position:absolute;left:0;top:0;width:708px;height:1024px}
+  /* --spread is fitHeart's measurement of the ground showing beside the stage.
+     Zero at 4:3, so a tablet gets the composition exactly as drawn. */
+  #heartField{position:absolute;left:0;top:0;width:708px;height:1024px;
+    transform:translateX(calc(var(--spread,0px) * -1))}
   /* Fixed at stage size. The stage's own transform is what makes it responsive,
      exactly as it is for the home page's figure. */
   /* Centred in the left half on both axes: 134+440/2 = 354 against the half's
@@ -5528,7 +5557,8 @@ addEventListener('viewchange', (e) => {
      and translateY off the middle rather than a top that has to be re-guessed
      every time the content grows a row. The organ opposite it is centred the
      same way, 134+440/2 = 354 against 354. */
-  #heartRail{position:absolute;left:777px;top:50%;transform:translateY(-50%);width:520px}
+  #heartRail{position:absolute;left:777px;top:50%;width:520px;
+    transform:translate(var(--spread,0px),-50%)}
   .heart-title{font-family:var(--font-serif-medium);font-size:var(--text-title-lg);
     font-weight:var(--w-serif-title);letter-spacing:-.015em;line-height:1.04;color:var(--ink-900)}
   .heart-sub{display:flex;align-items:center;gap:11px;margin-top:13px;

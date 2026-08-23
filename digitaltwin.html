@@ -513,6 +513,11 @@ body{
 #scanWrap{position:relative;margin:0 auto;overflow:hidden}
 #stage{position:absolute;top:0;left:0;width:1366px;height:1024px;transform-origin:top left}
 
+/* centred on the figure's own cx of 683, which renderFigure is called with */
+#homeGlow{position:absolute;left:403px;top:118px;width:560px;height:800px;z-index:1;
+  pointer-events:none;
+  background:radial-gradient(ellipse 50% 48% at 50% 50%,
+    #ffffffb8 0%,#ffffff91 32%,#ffffff45 56%,#ffffff14 74%,#ffffff00 86%)}
 #figure{position:absolute;inset:0;z-index:2;
   --rv:0%;
   -webkit-mask-image:linear-gradient(to bottom,#000 calc(var(--rv) - 9%),rgba(0,0,0,0) calc(var(--rv) + 1%));
@@ -541,9 +546,6 @@ body{
 /* not a surface at all — the glyph alone, so it has to leave the material.
    The two ::before/::after resets that used to be needed here went with the
    rim and the sheen; there is nothing left to switch off. */
-#btnAudio{right:24px;top:24px;background-color:transparent;box-shadow:none;
-  -webkit-backdrop-filter:none;backdrop-filter:none}
-
 /* --- patient identity --- */
 .identity{position:absolute;left:40px;top:60px}
 .identity h1{font-size:var(--text-name);font-weight:var(--w-serif-title);line-height:1;
@@ -1595,17 +1597,17 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   <div id="scanWrap">
     <div id="stage">
 
+      <!-- The figure's own light, behind it at z-index 1 where #figure is 2.
+           The ground is a wash with structure in it and the figure is drawn in
+           translucent dots; without something bright directly behind it the
+           silhouette has to hold itself against whichever lobe it happens to
+           be standing on. Same bloom the heart carries, same five stops, so
+           its falloff has no edge of its own. -->
+      <div id="homeGlow"></div>
       <div id="figure"><canvas id="bodyCanvas" width="1366" height="1024"></canvas></div>
       <div id="scanline"></div>
 
       <div class="hud">
-        <button class="icon-btn" id="btnAudio" aria-label="Play audio summary">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2.5 6.2h2.3L8 3.4v9.2L4.8 9.8H2.5z" fill="currentColor" stroke="none"/>
-            <path d="M10.4 5.9a3 3 0 010 4.2M12.4 4.2a5.5 5.5 0 010 7.6"/>
-          </svg>
-        </button>
-
         <div class="identity stagger" style="animation-delay:.35s">
           <h1 class="num">Derya Toprak</h1>
           <p>41 years</p>
@@ -2478,17 +2480,7 @@ function fitStage(wrapId, stageId){
   wrap.style.width=(W*s)+'px'; wrap.style.height=(H*s)+'px';
 }
 function fit(){ fitStage('scanWrap','stage'); }
-/* Also publishes where the stage's seam lands in the window, which is what
-   lets the information half reach the frame instead of stopping at the
-   stage's edge. Read after fitStage, because it is fitStage that sets the
-   wrap's width and therefore where auto margins centre it. */
-function fitHeart(){
-  fitStage('heartWrap','heartStage');
-  var wrap=document.getElementById('heartWrap'), view=document.getElementById('viewHeart');
-  if(!wrap||!view) return;
-  var s=Math.min(window.innerWidth/W, window.innerHeight/H, 1);
-  view.style.setProperty('--seam-x', Math.round(wrap.offsetLeft + 708*s)+'px');
-}
+function fitHeart(){ fitStage('heartWrap','heartStage'); }
 
 /* ────────────────────────── SPEC VIEW ────────────────────────── */
 /* listed strictly largest to smallest; every row is drawn at its true size */
@@ -2880,7 +2872,7 @@ function waveformHTML(o,uid){
 
   for(i=0;i<n;i++){
     p=o.panes[i]; a=span(p,beatFor(i)); b=a[1]; a=a[0];
-    h+='<rect x="'+a.toFixed(2)+'" y="20" width="'+(b-a).toFixed(2)+'" height="84" fill="#30b0cd26"/>';
+    h+='<rect x="'+a.toFixed(2)+'" y="20" width="'+(b-a).toFixed(2)+'" height="84" fill="#30b0cd1c"/>';
     if(i) h+='<line x1="'+(i*pw)+'" y1="16" x2="'+(i*pw)+'" y2="128" stroke="var(--divider)"/>';
   }
 
@@ -3744,6 +3736,12 @@ const rigOpen = document.createElement('button');
 rigOpen.id = 'rigOpen';
 rigOpen.textContent = 'Figure rig';
 document.body.appendChild(rigOpen);
+/* Collapsed on arrival. The rig is a calibration tool for whoever is tuning
+   the figure, not part of the composition, and it was covering the top-right
+   quarter of a page whose whole subject is one standing body. The handle
+   stays where it always was. */
+rig.classList.add('away');
+rigOpen.classList.add('show');
 $('#rigHide').addEventListener('click', () => { rig.classList.add('away'); rigOpen.classList.add('show'); });
 rigOpen.addEventListener('click', () => { rig.classList.remove('away'); rigOpen.classList.remove('show'); });
 
@@ -5363,8 +5361,6 @@ addEventListener('viewchange', (e) => {
   <!-- The information half, on a viewport layer rather than inside the stage.
        The stage still owns where the seam falls; this only takes that number
        and runs from it to the edge of the window. -->
-  <div id="heartOrganBg"></div>
-  <div id="heartInfoBg"></div>
 
   <button class="lab-back on" id="heartBack" type="button" aria-label="Back to the body page">&#8249;</button>
 
@@ -5393,28 +5389,28 @@ addEventListener('viewchange', (e) => {
              back to the point the number was taken from. -->
         <svg id="heartLeads" viewBox="0 0 708 1024" aria-hidden="true">
           <g fill="none" stroke="#203a8573" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="70,294 204,294 282,334"/>
-            <polyline points="602,400 468,400 382,433"/>
-            <polyline points="52,512 186,512 250,479"/>
-            <polyline points="606,612 468,612 376,580"/>
+            <polyline points="100,294 234,294 312,334"/>
+            <polyline points="632,400 498,400 412,433"/>
+            <polyline points="82,512 216,512 280,479"/>
+            <polyline points="636,612 498,612 406,580"/>
             <!-- conduction spreading down through the ventricles -->
-            <path d="M272 660 Q 302 702 332 690"/>
-            <path d="M408 660 Q 380 702 352 690"/>
-            <path d="M332 690 l-10 -5 M332 690 l-5 -10"/>
-            <path d="M352 690 l10 -5 M352 690 l5 -10"/>
+            <path d="M302 660 Q 332 702 362 690"/>
+            <path d="M438 660 Q 410 702 382 690"/>
+            <path d="M362 690 l-10 -5 M362 690 l-5 -10"/>
+            <path d="M382 690 l10 -5 M382 690 l5 -10"/>
           </g>
           <g fill="#203a85" fill-opacity=".62">
-            <circle cx="282" cy="334" r="4"/>
-            <circle cx="382" cy="433" r="4"/>
-            <circle cx="250" cy="479" r="4"/>
-            <circle cx="376" cy="580" r="4"/>
+            <circle cx="312" cy="334" r="4"/>
+            <circle cx="412" cy="433" r="4"/>
+            <circle cx="280" cy="479" r="4"/>
+            <circle cx="406" cy="580" r="4"/>
           </g>
         </svg>
 
-        <div class="pin" style="left:70px;top:228px">Atrial<b class="num">118<em>ms</em></b></div>
-        <div class="pin" style="left:506px;top:334px">Conduction<b class="num">160<em>ms</em></b></div>
-        <div class="pin" style="left:52px;top:446px">Reset<b class="num">417<em>ms</em></b></div>
-        <div class="pin" style="left:510px;top:546px">Ventricular<b class="num">100<em>ms</em></b></div>
+        <div class="pin" style="left:100px;top:228px">Atrial<b class="num">118<em>ms</em></b></div>
+        <div class="pin" style="left:536px;top:334px">Conduction<b class="num">160<em>ms</em></b></div>
+        <div class="pin" style="left:82px;top:446px">Reset<b class="num">417<em>ms</em></b></div>
+        <div class="pin" style="left:540px;top:546px">Ventricular<b class="num">100<em>ms</em></b></div>
 
         <div class="lab-load" id="heartLoad"><i></i><span>Loading</span></div>
       </div>
@@ -5450,67 +5446,30 @@ addEventListener('viewchange', (e) => {
   #heartSeam{position:absolute;left:708px;top:0;bottom:0;width:1px;
     background:linear-gradient(to bottom,transparent,var(--divider) 13%,var(--divider) 87%,transparent)}
 
-  /* The two halves, and both of them flat.
-
-     The page ground this view used to stand on is five radial layers deep,
-     and on a composition this quiet every one of them was working against
-     the reading: the top-left lobe put a near-white patch behind the organ's
-     shoulder, the field's own ramp put another under the rail, and a figure
-     drawn in translucent dots has to compete with all of it. A wash that is
-     right for a page carrying one 80px numeral is not automatically right
-     for a page carrying a measured object.
-
-     So: one flat colour each, one step apart on the ramp the ground is
-     already built from. --stage-field-2 holds the organ, --stage-field-1
-     holds the readings — the lighter of the pair, because the panes have to
-     lift off it and the text has to sit on it, and it is still a blue rather
-     than the white it was. Two surfaces in one room, told apart by one step
-     and a hairline, not by a change of material.
-
-     Both are fixed to the viewport rather than absolute in the stage. The
-     stage is 1366 wide and the window usually is not, and a half that stops
-     37px short of the frame reads as a mistake rather than as a device —
-     the other two views both fill the window. --seam-x is where the stage's
-     own 708 lands after scaling, set by fitHeart, so the composition still
-     owns the division and only the paint runs past the edge. */
-  #heartOrganBg{position:fixed;left:0;top:0;width:var(--seam-x,48%);bottom:0;z-index:0;
-    background:var(--stage-field-2)}
-  /* This half is flat no longer, and the reason is measurable rather than a
-     change of mind. A pane is three properties: a fill, a blur and a drop.
-     Over a flat colour the blur is inert — blurring one colour returns that
-     colour — so a flat field silently deletes a third of the material and
-     leaves the fill to carry the boundary alone. On #eef3f9 a 42% white fill
-     resolves to #f5f7fc: seven values of separation, which is nothing. That
-     is why the cards read as rectangles and not as glass, and it is why
-     section 06's own specimens read correctly — they stand on the page's
-     ground, with the sheet's type running behind them for the blur to bend.
-
-     So the field gets structure back, but not the structure that was wrong
-     before. What was wrong before was white: near-white lobes that put bright
-     patches behind the reading and competed with it. There is no white here.
-     One 154deg ramp between two tones of the ground's own field, running
-     DOWN into the darker of them rather than up into paper, and one very low
-     navy lobe at the top corner. The half now leaves the seam at exactly the
-     tone the organ half holds and deepens as it goes, which gives the panes
-     something to sit on and the blur something to do. */
-  #heartInfoBg{position:fixed;left:var(--seam-x,48%);top:0;right:0;bottom:0;z-index:0;
-    background:
-      radial-gradient(760px 640px at 92% 4%,#203a8512,transparent 64%),
-      linear-gradient(154deg,var(--stage-field-2) 0%,var(--stage-field-3) 100%)}
+  /* No field layers of its own any more: this view stands on <body>'s ground,
+     the same five-layer wash the home page stands on. Two passes were spent
+     replacing it — first with flat colour, which deleted the blur, then with
+     a ramp to give the blur something to bend — and the page had the answer
+     the whole time. The wash has structure by construction, so the material
+     works; it runs to every edge of the window, so nothing stops short of the
+     frame; and the two figure pages stand on one ground in fact rather than
+     by intention, which is what the ground's own comment was reaching for.
+     What the flat fields were really compensating for was the absence of a
+     light on the subject, and that is #heartGlow's job, not the field's. */
 
   #heartField{position:absolute;left:0;top:0;width:708px;height:1024px}
   /* Fixed at stage size. The stage's own transform is what makes it responsive,
      exactly as it is for the home page's figure. */
   /* Centred in the left half on both axes: 134+440/2 = 354 against the half's
      own 354, and 222+580/2 = 512 against 1024's 512. */
-  #heartGL{position:absolute;left:104px;top:222px;width:440px;height:580px;display:block}
+  #heartGL{position:absolute;left:134px;top:222px;width:440px;height:580px;display:block}
   /* The organ's own light. Section 03's page background is now flat on both
      halves, which is what stops the field competing with the figure — and a
      flat field gives a translucent dot cloud nothing to sit against. One soft
      white bloom behind the organ, and only behind the organ, does what the
      old multi-lobe wash was being asked to do and could not: it lights the
      thing being read rather than the room it is in. */
-  #heartGlow{position:absolute;left:44px;top:172px;width:560px;height:680px;
+  #heartGlow{position:absolute;left:74px;top:172px;width:560px;height:680px;
     pointer-events:none;
     background:radial-gradient(ellipse 52% 50% at 50% 49%,
       #ffffffb8 0%,#ffffff91 32%,#ffffff45 56%,#ffffff14 74%,#ffffff00 86%)}
@@ -5531,13 +5490,11 @@ addEventListener('viewchange', (e) => {
      half's own 1037, and translateY off the middle rather than a top that
      has to be re-guessed every time the content grows a row. The 69px it
      leaves at the seam is the same 69 it leaves at the frame. */
-  /* 807, not the 777 that centred it. The two halves were each holding their
-     content in the middle of themselves and spending the page's outer margins
-     on nothing — 82 clear at the left frame and 69 at the right, with the two
-     compositions leaning in toward a seam that did not need them. Both move
-     30 outward: the organ into the left margin, the rail into the right, and
-     the gutter at the seam grows by 60 without either side losing width. */
-  #heartRail{position:absolute;left:807px;top:50%;transform:translateY(-50%);width:520px}
+  /* Centred in the right half: 777+520/2 = 1037 against the half's own 1037,
+     and translateY off the middle rather than a top that has to be re-guessed
+     every time the content grows a row. The organ opposite it is centred the
+     same way, 134+440/2 = 354 against 354. */
+  #heartRail{position:absolute;left:777px;top:50%;transform:translateY(-50%);width:520px}
   .heart-title{font-family:var(--font-serif-medium);font-size:var(--text-title-lg);
     font-weight:var(--w-serif-title);letter-spacing:-.015em;line-height:1.04;color:var(--ink-900)}
   .heart-sub{display:flex;align-items:center;gap:11px;margin-top:13px;
@@ -5580,13 +5537,22 @@ addEventListener('viewchange', (e) => {
   .heart-pane h4{font-family:var(--font-sans);font-size:var(--text-micro);font-weight:var(--w-module);
     letter-spacing:var(--tracking-overline);color:var(--ink-600);margin-bottom:15px}
 
-  /* The rail was being read at two rungs below the organ half. The pins over
-     there are an 18px label over a 33px numeral; over here the same readings
-     were arriving as a 14px scale under a 24px bubble, with a 10px pill beside
-     a 18px name — three different answers to how big a reading is, on one
-     screen, for the same four numbers. The rule now is one line: nothing on
-     this half is set below --text-micro, and a measured value is --kpi-value-lg
-     wherever it appears, so 160 on the track is the 160 on the organ. */
+  /* Four rungs on this page and no fifth, which is the whole of the type
+     brief. It had five — 44, 33, 18, 16, 14 — and the 16 was the one doing no
+     work anybody could name: the scale ticks were a rung of their own for no
+     reason except that they had been raised out of 14 and stopped there. Five
+     sizes on one screen is what reads as complicated, not any one of them
+     being wrong.
+
+       44   the page title, once
+       33   a measured value, wherever it appears — so the 160 on the track is
+            the same size as the 160 on the organ, and the eye pairs them
+       18   names, units and the sub-line: everything that says what a value is
+       14   meta — card eyebrows, scale ticks, zone names, strip labels, the
+            status pill
+
+     Both halves are set from that one list, so the organ's pins and the
+     rail's tracks are literally the same two sizes. */
   /* line-height 1 as well as the size. At normal the 33px bubble stands 40 tall
      and the track-wrap has to reserve 60 above a 3px rule for it; at 1 it needs
      53, and the column gets 18px of its height back across three tracks. */
@@ -5594,15 +5560,12 @@ addEventListener('viewchange', (e) => {
   #heartRail .track .bub em{font-size:var(--text-label)}
   /* 46 was headroom for a 24px bubble sitting 20 clear of the track. */
   #heartRail .track-wrap{padding-top:56px}
-  #heartRail .tscale{height:42px}
-  #heartRail .tscale b,#heartRail .tscale i{font-size:var(--text-data)}
-  #heartRail .tscale i{top:22px}
-  /* The pill is 10px in the system because it is drawn beside 14px table text
-     in section 05's ladder. Beside an 18px track name it is a footnote on a
-     reading rather than the reading's own status, so it takes the same rung
-     as the name it qualifies. Padding and radius follow the size up. */
-  #heartRail .pill{font-size:var(--text-label);padding:4px 12px;border-radius:7px;
-    letter-spacing:.02em}
+  /* The system's 10px is right beside section 05's 14px table text and wrong
+     beside an 18px track name, but 18 was wrong the other way: a status is a
+     qualifier on a reading and it should never be set as large as the thing
+     it qualifies. It takes the meta rung, one step under the name. */
+  #heartRail .pill{font-size:var(--text-micro);padding:3px 10px;border-radius:6px;
+    letter-spacing:.03em}
   .heart-trk + .heart-trk{margin-top:16px;padding-top:16px;border-top:1px solid var(--divider)}
 </style>
 

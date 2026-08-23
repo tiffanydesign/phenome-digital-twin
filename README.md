@@ -36,7 +36,6 @@ digitaltwin.html           design system + the home and body pages
 
 organ-material-lab.html    material bench — drop in any .glb to swap the specimen;
                            the source of truth for material values
-home-hero-lab.html         hero preset sheet: male/female x full/upper body
 organ-body-full.html       full organ view, and the reference this page's organ
                            placement was measured against. Its panel exposes
                            every placement value including pitch, so a model's
@@ -65,9 +64,19 @@ GLB/
     human_kidney.glb                 Kidneys
 ```
 
-The four lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/home-hero-lab.html` and so on.
+The three lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/organ-material-lab.html` and so on.
 
-`organ-body-stage1.html` was a fifth, described here as "an earlier organ view, kept as a record of the work". It was superseded by `organ-body-full.html`, no page linked it, and git history is a better record of the work than a 48 KB file at the repo root. Recover it with `git show <rev>:organ-body-stage1.html` if it is ever wanted.
+Two others were removed, and git history is a better record of the work than an idle file at the repo root. Recover either with `git show <rev>:<file>`.
+
+  organ-body-stage1.html   an earlier organ view. Described here as "kept as a
+                           record of the work", superseded by
+                           organ-body-full.html, and linked by no page.
+  home-hero-lab.html       the hero preset sheet, male/female x full/upper body.
+                           Its presets had already been carried across into the
+                           home page, and no comment in digitaltwin.html cited
+                           it as the authority for a value — which is what
+                           separates it from the two material and placement
+                           benches that stay.
 
 `_local/` is an untracked directory (see `.gitignore`) holding spare models no page references, the source document for the model links, and a third-party screenshot kept only as a design reference. **It is never committed, so it is not backed up** — archive anything you need to keep.
 

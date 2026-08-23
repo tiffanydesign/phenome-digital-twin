@@ -42,7 +42,6 @@ organ-body-full.html       full organ view, and the reference this page's organ
                            every placement value including pitch, so a model's
                            seating can be dialled in by hand before the numbers
                            are carried across.
-organ-body-stage1.html     an earlier organ view, kept as a record of the work
 glass-liquid-lab.html      surface bench — Apple-style Liquid Glass against
                            section 06's doctrine, on four of the body page's
                            real chrome components over the live 3D scene. A
@@ -66,7 +65,9 @@ GLB/
     human_kidney.glb                 Kidneys
 ```
 
-The five lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/home-hero-lab.html` and so on.
+The four lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/home-hero-lab.html` and so on.
+
+`organ-body-stage1.html` was a fifth, described here as "an earlier organ view, kept as a record of the work". It was superseded by `organ-body-full.html`, no page linked it, and git history is a better record of the work than a 48 KB file at the repo root. Recover it with `git show <rev>:organ-body-stage1.html` if it is ever wanted.
 
 `_local/` is an untracked directory (see `.gitignore`) holding spare models no page references, the source document for the model links, and a third-party screenshot kept only as a design reference. **It is never committed, so it is not backed up** — archive anything you need to keep.
 

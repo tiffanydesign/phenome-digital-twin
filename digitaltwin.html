@@ -2469,15 +2469,35 @@ function playReveal(){
   requestAnimationFrame(step);
 }
 
-/* Two views are now drawn at a true 1366x1024 and scaled down to whatever
-   the window gives them, so the scaling is one function taking the pair
-   rather than two copies free to drift apart. */
+/* Two views are drawn at a true 1366x1024 and scaled to whatever the window
+   gives them, so the scaling is one function taking the pair rather than two
+   copies free to drift apart.
+
+   It used to end in Math.min(..., 1), which meant the stage never grew past
+   its native size. On anything bigger than 1366x1024 that left the whole
+   composition sitting in the middle of the window at its drawn size with the
+   ground around it — 71% of the width at 1920, 53% at 2560 — and it read as
+   a page that had failed to load rather than as a device mock, because two
+   of the four tabs beside it do fill the window.
+
+   The cap is gone. What it was really protecting was sharpness: a WebGL
+   canvas with a fixed buffer, blown up by CSS, goes soft, and on these two
+   pages the fineness of the dot grid IS the design. So the scale is published
+   instead, and each figure re-renders its buffer at it. Nothing else on the
+   stage needs telling: type, rules and geometry are all in stage units and
+   the transform carries them. */
+var stageScale = 1;
 function fitStage(wrapId, stageId){
   var wrap=document.getElementById(wrapId), stage=document.getElementById(stageId);
   if(!wrap||!stage) return;
-  var s=Math.min(window.innerWidth/W, window.innerHeight/H, 1);
+  var s=Math.min(window.innerWidth/W, window.innerHeight/H);
   stage.style.transform='scale('+s+')';
   wrap.style.width=(W*s)+'px'; wrap.style.height=(H*s)+'px';
+  if(Math.abs(s-stageScale) > 0.001){
+    stageScale = s;
+    window.__stageScale = s;
+    window.dispatchEvent(new CustomEvent('stagescale',{detail:s}));
+  }
 }
 function fit(){ fitStage('scanWrap','stage'); }
 function fitHeart(){ fitStage('heartWrap','heartStage'); }
@@ -3394,7 +3414,17 @@ gl.id = 'bodyGL';
 figure.insertBefore(gl, canvas2d);
 
 const renderer = new THREE.WebGLRenderer({ canvas: gl, antialias: true, alpha: true, preserveDrawingBuffer: true });
-const DPR = Math.min(window.devicePixelRatio || 1, 2);
+/* The buffer is sized for the pixels this canvas actually occupies, which is
+   its 1366 stage width times whatever the stage is scaled to times the
+   display's own ratio. Capped at 2 for the same reason it always was — the
+   halftone is two full-frame passes and the cost is quadratic — and floored
+   at 1 so a display reporting less than one cannot coarsen a dot grid that
+   is measured in device pixels. */
+function stageDPR(){
+  var s = window.__stageScale || 1;
+  return Math.max(1, Math.min((window.devicePixelRatio || 1) * s, 2));
+}
+let DPR = stageDPR();
 renderer.setPixelRatio(DPR);
 renderer.setSize(STAGE_W, STAGE_H, false);
 if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -3522,13 +3552,29 @@ const quadScene = new THREE.Scene();
 const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), matHalftone));
 
-const RTW = Math.round(STAGE_W * DPR), RTH = Math.round(STAGE_H * DPR);
-const toneRT = new THREE.WebGLRenderTarget(RTW, RTH, {
-  minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
-  wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
-  depthBuffer: true, stencilBuffer: false,
+let toneRT = null;
+function sizeToneRT(){
+  const w = Math.round(STAGE_W * DPR), h = Math.round(STAGE_H * DPR);
+  if (toneRT) toneRT.dispose();
+  toneRT = new THREE.WebGLRenderTarget(w, h, {
+    minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+    wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
+    depthBuffer: true, stencilBuffer: false,
+  });
+  matHalftone.uniforms.uRes.value.set(w, h);
+}
+sizeToneRT();
+/* The pitch is in device pixels, so it comes out of DPR with everything else
+   and the dot grid keeps the same size on the stage at any scale. */
+addEventListener('stagescale', () => {
+  const next = stageDPR();
+  if (Math.abs(next - DPR) < 0.01) return;
+  DPR = next;
+  renderer.setPixelRatio(DPR);
+  renderer.setSize(STAGE_W, STAGE_H, false);
+  sizeToneRT();
+  draw();
 });
-matHalftone.uniforms.uRes.value.set(RTW, RTH);
 
 /* --------------------------------------------------------- GLB (hand-rolled) */
 const COMP = {
@@ -5637,16 +5683,21 @@ const SCREEN_ORGAN = { pitch:3, angle:0, fill:0.95, soft:0.1, contrast:1.8, floo
 
 const CW = 440, CH = 580;                 // stage pixels; the stage scales them
 const canvas = document.getElementById('heartGL');
-/* Floored at 1 as well as capped at 2. The dot grid is measured in device
-   pixels and clamped to a two-pixel minimum, so on a display reporting less
-   than 1 — a zoomed-out window, a scaled desktop — the pitch would land
-   coarser than the design's three and the field would read as a different
-   screen. Rendering above the device ratio costs a fraction of one frame
-   here, because this page draws two passes and then stops. */
+/* Sized for the pixels this canvas actually occupies: its stage width times
+   the stage's scale times the display's ratio. Floored at 1 as well as capped
+   at 2 — the dot grid is measured in device pixels against a two-pixel
+   minimum, so a display reporting less than one would land the pitch coarser
+   than the design's three and read as a different screen. Re-rendering when
+   the scale changes costs a fraction of one frame here, because this page
+   draws two passes and then stops. */
 const load = document.getElementById('heartLoad');
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
-const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+function stageDPR(){
+  const s = window.__stageScale || 1;
+  return Math.max(1, Math.min((window.devicePixelRatio || 1) * s, 2));
+}
+let DPR = stageDPR();
 renderer.setPixelRatio(DPR);
 if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
 /* The body page renders through ACES at Sterile Blue's own exposure. Leaving
@@ -5746,13 +5797,27 @@ const quadScene = new THREE.Scene();
 const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), matHalftone));
 
-const RTW = Math.max(2, Math.round(CW * DPR)), RTH = Math.max(2, Math.round(CH * DPR));
-const toneRT = new THREE.WebGLRenderTarget(RTW, RTH, {
-  minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
-  wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
-  depthBuffer: true, stencilBuffer: false,
+let toneRT = null;
+function sizeToneRT(){
+  const w = Math.max(2, Math.round(CW * DPR)), h = Math.max(2, Math.round(CH * DPR));
+  if (toneRT) toneRT.dispose();
+  toneRT = new THREE.WebGLRenderTarget(w, h, {
+    minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+    wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
+    depthBuffer: true, stencilBuffer: false,
+  });
+  matHalftone.uniforms.uRes.value.set(w, h);
+}
+sizeToneRT();
+addEventListener('stagescale', () => {
+  const next = stageDPR();
+  if (Math.abs(next - DPR) < 0.01) return;
+  DPR = next;
+  renderer.setPixelRatio(DPR);
+  renderer.setSize(CW, CH, false);
+  sizeToneRT();
+  render();
 });
-matHalftone.uniforms.uRes.value.set(RTW, RTH);
 
 /* SCREEN.organ verbatim, and nothing added to it. The body page's close-up
    gains belong to the BODY's screen — the thing in focus is meant to look the

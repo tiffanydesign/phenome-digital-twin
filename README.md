@@ -1,6 +1,6 @@
 # Phenome · Digital Twin
 
-A single-file design study for a health-scan portal. `digitaltwin.html` carries the design system and two interactive WebGL pages side by side: a screen-space halftone figure for the home page, and a stepped organ view for the body page.
+A single-file design study for a health-scan portal. `digitaltwin.html` carries the design system and three interactive WebGL pages side by side: a screen-space halftone figure for the home page, a stepped organ view for the body page, and a single-organ report for the heart rhythm page.
 
 **Live: https://tiffanydesign.github.io/phenome-digital-twin/**
 
@@ -8,12 +8,13 @@ A single-file design study for a health-scan portal. `digitaltwin.html` carries 
 - 3D: three.js r160 with a minimal GLB reader of its own, so no GLTFLoader
 - The figure is a static composition — no rotation, no orbit, key light behind the subject, no cast shadow
 
-## The three pages
+## The four pages
 
 | Tab | What it is |
 | :--- | :--- |
 | **Home page** | The scan summary. A halftone figure whose legs dissolve into the page rather than stopping at the frame. |
 | **Body page** | Pick an organ, the camera flies to it, the body turns to glass around it. |
+| **Heart rhythm** | One organ close-up beside one data rail. The composition the design system was drawn from, put back together out of its own parts: split canvas, pinned readouts on hairline leaders, a waveform strip and three zoned range tracks, all on glass over the page's own ground. |
 | **Design system** | Tokens, type scale, colour, chart types, eleven report patterns, glass surfaces. |
 
 ## Running it locally

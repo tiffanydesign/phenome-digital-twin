@@ -2155,6 +2155,9 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 <div class="toggle" role="group" aria-label="Switch view">
   <button id="tabScan" aria-pressed="true">Home page</button>
   <button id="tabLab" aria-pressed="false">Body page</button>
+  <!-- Third, not last: it is a detail of the body page, and the design
+       system is a document that belongs at the end of the set. -->
+  <button id="tabHeart" aria-pressed="false">Heart rhythm</button>
   <button id="tabSpec" aria-pressed="false">Design system</button>
 </div>
 
@@ -2458,12 +2461,18 @@ function playReveal(){
   requestAnimationFrame(step);
 }
 
-function fit(){
-  var wrap=document.getElementById('scanWrap'), stage=document.getElementById('stage');
+/* Two views are now drawn at a true 1366x1024 and scaled down to whatever
+   the window gives them, so the scaling is one function taking the pair
+   rather than two copies free to drift apart. */
+function fitStage(wrapId, stageId){
+  var wrap=document.getElementById(wrapId), stage=document.getElementById(stageId);
+  if(!wrap||!stage) return;
   var s=Math.min(window.innerWidth/W, window.innerHeight/H, 1);
   stage.style.transform='scale('+s+')';
   wrap.style.width=(W*s)+'px'; wrap.style.height=(H*s)+'px';
 }
+function fit(){ fitStage('scanWrap','stage'); }
+function fitHeart(){ fitStage('heartWrap','heartStage'); }
 
 /* ────────────────────────── SPEC VIEW ────────────────────────── */
 /* listed strictly largest to smallest; every row is drawn at its true size */
@@ -2733,6 +2742,13 @@ function buildCharts(){
       return l;
     })()]);
 
+  /* The thirteenth type, and the only one on this grid that is also a
+     working part of a page: the heart rhythm view calls the same
+     waveformHTML with the same ECG data. Written once, shown twice. */
+  C.push(['Waveform strip','Use when the reading is an interval rather than a level, so the plot has to show where on a repeating signal the duration was taken.',
+    waveformHTML(ECG),
+    '<i style="background:#203a851f"></i>Measured interval']);
+
   var html='',i;
   for(i=0;i<C.length;i++){
     html+='<div class="card chart"><h4>'+C[i][0]+'</h4><p class="use">'+C[i][1]+'</p>'+
@@ -2780,6 +2796,90 @@ function trackHTML(c){
          (c.status?' <span class="pill '+c.status[0]+'">'+c.status[1]+'</span>':'')+'</div>':'')+
          '<div class="track-wrap"><div class="track">'+h+'</div><div class="tscale">'+sc+'</div></div>';
 }
+/* ── 13 · waveform strip ──────────────────────────────────────
+   The one chart type this system did not have. Every other plot in section 04
+   answers "how much" or "how it changed"; none of them can show WHERE on a
+   repeating signal a duration was taken, which is the only question a rhythm
+   reading asks. It is written here rather than on the page that needed it,
+   because a chart living on one page and unknown to section 04 is how a design
+   system starts disagreeing with itself.
+
+   One beat, in its own 135-unit space. The trace and every bracket over it are
+   expressed in those same numbers, so a pane cannot bracket an interval the
+   trace does not actually have there. */
+var BEAT={p0:16,p1:37,q:46,qd:48.5,r:52,s:59,st:66,t1:96,end:135,
+          base:80,pAmp:9,qAmp:6,rAmp:46,sAmp:11,tAmp:15};
+/* A quadratic reaches half its control offset, so a bump of pAmp needs the
+   control point at 2*pAmp above the baseline. */
+function beatPath(x0,w){
+  var B=BEAT, k=w/B.end, y=B.base;
+  var X=function(v){ return (x0+v*k).toFixed(2); };
+  return 'M'+X(0)+' '+y+
+         'H'+X(B.p0)+
+         'Q'+X((B.p0+B.p1)/2)+' '+(y-B.pAmp*2)+' '+X(B.p1)+' '+y+
+         'H'+X(B.q)+
+         'L'+X(B.qd)+' '+(y+B.qAmp)+
+         'L'+X(B.r)+' '+(y-B.rAmp)+
+         'L'+X(B.s)+' '+(y+B.sAmp)+
+         'L'+X(B.st)+' '+y+
+         'Q'+X((B.st+B.t1)/2)+' '+(y-B.tAmp*2)+' '+X(B.t1)+' '+y+
+         'H'+X(B.end);
+}
+function waveformHTML(o){
+  var W=560,H=132,n=o.panes.length,pw=W/n,i,p,x0,k,a,b,h='';
+  var span=function(p,x0){ var k=pw/BEAT.end; return [x0+p.from*k, x0+p.to*k]; };
+  h='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="'+o.aria+'">';
+  /* the measured span first, so the trace is drawn over its own tint */
+  for(i=0;i<n;i++){
+    x0=i*pw; k=span(o.panes[i],x0); a=k[0]; b=k[1];
+    h+='<rect x="'+a.toFixed(2)+'" y="20" width="'+(b-a).toFixed(2)+'" height="76" '+
+       'fill="var(--phenome-blue-500)" opacity=".08"/>';
+    if(i) h+='<line x1="'+x0+'" y1="18" x2="'+x0+'" y2="114" stroke="var(--divider)"/>';
+  }
+  for(i=0;i<n;i++)
+    h+='<path d="'+beatPath(i*pw,pw)+'" fill="none" stroke="var(--ink-600)" stroke-width="1.2" '+
+       'stroke-linecap="round" stroke-linejoin="round"/>';
+  /* the bracket takes the leader's weight and alpha from pattern 02, because it
+     is doing the same job: pointing at where a number came from */
+  for(i=0;i<n;i++){
+    p=o.panes[i]; x0=i*pw; k=span(p,x0); a=k[0]; b=k[1];
+    h+='<text x="'+(x0+10)+'" y="13" fill="var(--ink-400)" style="font-family:var(--font-sans);'+
+       'font-size:var(--text-micro);font-weight:500;letter-spacing:var(--tracking-overline)">'+p.key+'</text>'+
+       '<path d="M'+a.toFixed(2)+' 104v7H'+b.toFixed(2)+'v-7" fill="none" stroke="#203a8573" stroke-width="1"/>';
+  }
+  return h+'</svg>';
+}
+
+/* The heart rhythm page's readings, in one place. The strip brackets them and
+   the tracks under it score them, so a value cannot appear on the plot and
+   disagree with the track below. */
+var ECG={
+  aria:'One heartbeat shown four times, each pane bracketing the interval it names: P wave, PR interval, QRS duration and QTc interval',
+  panes:[{key:'P',from:14,to:39},{key:'PR',from:14,to:46},
+         {key:'QRS',from:44,to:62},{key:'QTc',from:44,to:98}]
+};
+var HEART_TRACKS=[
+  {name:'Conduction time',meta:'PR interval',value:160,unit:'ms',min:80,max:340,
+   bounds:[120,220,300],zones:[{name:'Shortened'},{name:'Normal'},{name:'Mild'},{name:'High'}],
+   status:['ok','Normal'],tinted:false},
+  {name:'Ventricular contraction',meta:'QRS duration',value:100,unit:'ms',min:60,max:180,
+   bounds:[120,130],zones:[{name:'Normal'},{name:'Mild'},{name:'High'}],
+   status:['ok','Normal'],tinted:false},
+  {name:'Contract and reset time',meta:'QTc interval',value:417,unit:'ms',min:280,max:560,
+   bounds:[330,450,500],zones:[{name:'Shortened'},{name:'Normal'},{name:'Mild'},{name:'High'}],
+   status:['ok','Normal'],tinted:false}
+];
+/* The heart page's DOM half. Its markup is parsed after this script, so this
+   runs on DOMContentLoaded with bindProvenance rather than in the boot line. */
+function buildHeart(){
+  var w=document.getElementById('heartWave');
+  if(w) w.innerHTML=waveformHTML(ECG);
+  var t=document.getElementById('heartTracks'); if(!t) return;
+  var out='',i;
+  for(i=0;i<HEART_TRACKS.length;i++) out+='<div class="heart-trk">'+trackHTML(HEART_TRACKS[i])+'</div>';
+  t.innerHTML=out;
+}
+
 function buildTracks(){
   var host=document.getElementById('trackDemo'); if(!host) return;
   host.innerHTML=
@@ -3064,8 +3164,8 @@ function bindProvenance(){
 }
 
 /* ────────────────────────── wiring ────────────────────────── */
-var VIEWS={scan:'viewScan',lab:'viewLab',spec:'viewSpec'};
-var TABS ={scan:'tabScan', lab:'tabLab', spec:'tabSpec'};
+var VIEWS={scan:'viewScan',lab:'viewLab',heart:'viewHeart',spec:'viewSpec'};
+var TABS ={scan:'tabScan', lab:'tabLab', heart:'tabHeart', spec:'tabSpec'};
 function show(which){
   for(var k in VIEWS){
     var v=document.getElementById(VIEWS[k]);
@@ -3073,14 +3173,19 @@ function show(which){
     document.getElementById(TABS[k]).setAttribute('aria-pressed', String(k===which));
   }
   document.body.style.overflowY = (which==='spec') ? 'auto' : 'hidden';
-  if(which==='scan'){ fit(); playReveal(); } else { window.scrollTo(0,0); }
+  if(which==='scan'){ fit(); playReveal(); }
+  else { if(which==='heart') fitHeart(); window.scrollTo(0,0); }
   /* the second experience is heavy, so it only wakes up when it is on screen */
   window.dispatchEvent(new CustomEvent('viewchange',{detail:which}));
 }
 document.getElementById('tabScan').addEventListener('click',function(){show('scan');});
 document.getElementById('tabLab').addEventListener('click',function(){show('lab');});
+document.getElementById('tabHeart').addEventListener('click',function(){show('heart');});
 document.getElementById('tabSpec').addEventListener('click',function(){show('spec');});
-window.addEventListener('resize',function(){ if(document.getElementById('viewScan').classList.contains('is-on')) fit(); });
+window.addEventListener('resize',function(){
+  if(document.getElementById('viewScan').classList.contains('is-on')) fit();
+  if(document.getElementById('viewHeart').classList.contains('is-on')) fitHeart();
+});
 
 buildScale(); buildRamps(); buildCharts();
 buildTracks(); buildMeter(); buildDial(); buildProj();
@@ -3088,8 +3193,11 @@ buildPanel(); buildMatrix(); buildGallery();
 /* The provenance marks sit in three places: the design-system demo above, the
    home page's stage, and the body page's — and the last of those is parsed
    after this script. Wait for the document rather than racing it. */
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindProvenance);
-else bindProvenance();
+/* The heart page's rail is in the same position: its markup is parsed
+   after this script, so it is built here rather than in the line above. */
+function lateBuild(){ bindProvenance(); buildHeart(); fitHeart(); }
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lateBuild);
+else lateBuild();
 fit(); renderFigure(document.getElementById('bodyCanvas'),W,H,{cx:683,ty:50,hw:244,fh:980},5.4,1);
 buildPinned();
 document.body.style.overflowY='hidden';
@@ -5147,6 +5255,401 @@ addEventListener('viewchange', (e) => {
   if (rigOpen) rigOpen.style.display = other ? 'none' : '';
   live = (e.detail === 'lab');
   if (live) { boot(); resize(); last = performance.now(); }
+});
+</script>
+
+<!-- ============================================================
+     VIEW 4 · HEART RHYTHM.
+     One organ close-up beside one data rail — pattern 01's split canvas, at
+     the size the product actually draws it.
+
+     Why this view exists. Every part of it has been seen before: as a
+     specimen in the design system, or in one corner of a figure page. None of
+     them had been stacked — type, a plot, a track, a glass pane and the
+     page's own ground, all at once, with real readings in them. Under the
+     fourth doctrine the drop is the only thing left separating a pane from
+     the page, and this is the composition that says whether three properties
+     are enough.
+
+     It departs from section 03 in one place, deliberately. That section says
+     the information half of an organ-highlight page is plain white, so long
+     readouts stay high-contrast. That was written when a pane still carried a
+     graduated rim and did not need the page to help it. Here the rail is
+     glass over the same ground the organ half stands on, because a page whose
+     right half is opaque white cannot answer the question this view asks.
+     ============================================================ -->
+<div class="view" id="viewHeart">
+
+  <button class="lab-back on" id="heartBack" type="button" aria-label="Back to the body page">&#8249;</button>
+
+  <!-- One model, one row, so this takes the home page's solo form rather than
+       the body page's derived list. -->
+  <div class="prov on-stage" data-open="false">
+    <button class="prov-btn" type="button" aria-expanded="false" aria-controls="provHeart"
+            aria-label="Model credit for this figure">i</button>
+    <div class="prov-panel solo" id="provHeart" role="group" aria-label="Model credit">
+      <p class="prov-head"><b>Realistic Human Heart</b> by neshallads<br><a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
+    </div>
+  </div>
+
+  <div id="heartWrap">
+    <div id="heartStage">
+      <div id="heartSeam"></div>
+
+      <div id="heartField">
+        <canvas id="heartGL"></canvas>
+
+        <!-- Pattern 02 · the leaders and the conduction arrows. One SVG over
+             the organ, every stroke at the pattern's own 1.5px and 45% navy.
+             Each readout's rule and its leader are a single polyline: the
+             hairline under the number IS the start of the line that reaches
+             back to the point the number was taken from. -->
+        <svg id="heartLeads" viewBox="0 0 708 1024" aria-hidden="true">
+          <g fill="none" stroke="#203a8573" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="96,256 236,256 306,302"/>
+            <polyline points="676,362 512,362 424,404"/>
+            <polyline points="78,474 208,474 268,452"/>
+            <polyline points="678,576 508,576 418,556"/>
+            <!-- conduction spreading down through the ventricles -->
+            <path d="M300 636 Q 330 682 364 670"/>
+            <path d="M456 636 Q 426 682 392 670"/>
+            <path d="M364 670 l-10 -5 M364 670 l-5 -10"/>
+            <path d="M392 670 l10 -5 M392 670 l5 -10"/>
+          </g>
+          <g fill="#203a85" fill-opacity=".62">
+            <circle cx="306" cy="302" r="4"/>
+            <circle cx="424" cy="404" r="4"/>
+            <circle cx="268" cy="452" r="4"/>
+            <circle cx="418" cy="556" r="4"/>
+          </g>
+        </svg>
+
+        <div class="pin" style="left:96px;top:190px">Atrial<b class="num">118<em>ms</em></b></div>
+        <div class="pin" style="left:556px;top:296px">Conduction<b class="num">160<em>ms</em></b></div>
+        <div class="pin" style="left:78px;top:408px">Reset<b class="num">417<em>ms</em></b></div>
+        <div class="pin" style="left:558px;top:510px">Ventricular<b class="num">100<em>ms</em></b></div>
+
+        <div class="lab-load" id="heartLoad"><i></i><span>Loading</span></div>
+      </div>
+
+      <div id="heartRail">
+        <h1 class="heart-title">Heart rhythm</h1>
+        <div class="heart-sub">Heart rate: 61 bpm <span class="pill ok">Normal</span></div>
+        <div class="heart-rule"></div>
+        <div class="gl heart-pane" id="heartWave"></div>
+        <div class="gl heart-pane" id="heartTracks"></div>
+        <p class="heart-foot">Every interval is read from the same twelve-lead recording. The bands are adult reference ranges, shown for orientation and not as a diagnosis.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Geometry only. Both panes take .gl verbatim from the recipe at the top of
+     the file — this view adds no glass of its own, which is the whole point of
+     standing it in front of a live ground. */
+  #heartWrap{position:relative;margin:0 auto;overflow:hidden}
+  #heartStage{position:absolute;top:0;left:0;width:1366px;height:1024px;transform-origin:top left}
+
+  /* The seam, at the reference composition's 52%. It fades out at both ends
+     rather than butting into the frame: the two halves are one surface with a
+     division in it, not two screens pushed together. */
+  #heartSeam{position:absolute;left:708px;top:0;bottom:0;width:1px;
+    background:linear-gradient(to bottom,transparent,var(--divider) 13%,var(--divider) 87%,transparent)}
+
+  #heartField{position:absolute;left:0;top:0;width:708px;height:1024px}
+  /* Fixed at stage size. The stage's own transform is what makes it responsive,
+     exactly as it is for the home page's figure. */
+  #heartGL{position:absolute;left:96px;top:186px;width:520px;height:600px;display:block}
+  #heartLeads{position:absolute;left:0;top:0;width:708px;height:1024px;pointer-events:none}
+  #heartField .pin{z-index:2}
+  /* The one token swap this page makes. At the specimen's 24px these four
+     readings sit two rungs below the 44px title beside them and read as
+     captions on the figure rather than as the figure's measurements. 33px is
+     the next rung up the same scale, and it is the rung the system already
+     names for KPI numerals. */
+  #heartField .pin b{font-size:var(--kpi-value-lg)}
+
+  /* fixed, not absolute: the stage is scaled and letterboxed, and this button
+     belongs to the viewport's furniture, the way it does on the body page */
+  #heartBack{position:fixed}
+
+  #heartRail{position:absolute;left:764px;top:104px;width:554px}
+  .heart-title{font-family:var(--font-serif-medium);font-size:var(--text-title-lg);
+    font-weight:var(--w-serif-title);letter-spacing:-.015em;line-height:1.04;color:var(--ink-900)}
+  .heart-sub{display:flex;align-items:center;gap:11px;margin-top:13px;
+    font-size:var(--text-label);color:var(--ink-label)}
+  .heart-rule{height:1px;background:var(--divider);margin:22px 0 24px}
+  .heart-pane{border-radius:var(--radius-lg);padding:20px 24px}
+  .heart-pane + .heart-pane{margin-top:22px;padding:26px 28px 18px}
+  .heart-trk + .heart-trk{margin-top:26px;padding-top:26px;border-top:1px solid var(--divider)}
+  .heart-foot{margin-top:20px;font-size:var(--text-micro);color:var(--ink-400);line-height:1.5}
+</style>
+
+<script type="module">
+/* ---------------------------------------------------------------------------
+   Heart rhythm page · one organ, and nothing else in the scene.
+
+   This is the body page's renderer with everything the body page needs taken
+   out: no body mesh, no centreline, no seven-organ table, no camera flight, no
+   hotspots. What is left is the pair of passes that make the look — shade into
+   a buffer with matTone, then lay one dot per screen cell with matHalftone —
+   driven by the body page's own organ preset and its close-up gains, so the
+   heart here is the heart you get by opening it over there.
+
+   Two things it does NOT copy, both for the same reason: this canvas is a
+   520x600 window on a page that already has a ground, not a full-bleed stage.
+
+     the sky sphere  Sterile Blue behind the organ would paint an opaque
+                     rectangle over the page's own wash, with a visible box
+                     edge on four sides. The halftone pass is already
+                     transparent and discards empty cells, so the dots
+                     composite straight onto the page instead.
+     the light rig   matTone reads a facing ratio and a light DIRECTION
+                     uniform, and no material on this page samples an
+                     environment map. With the pearl gone there is nothing for
+                     a PMREM or three directional lights to do.
+
+   Nothing animates. The composition is static, the same rule the home page's
+   figure follows, so there is no RAF loop at all: the two passes run once when
+   the model lands and again when the tab comes back on screen.
+
+   The tone and halftone materials are copied rather than shared. That is the
+   third copy in this file, and it is deliberate: the other two are each bound
+   to their own renderer, and handing one renderer's WebGLRenderTarget to
+   another is a class of bug not worth the fifty lines it would save. If a
+   fourth copy ever appears, that is the moment to lift all of them out.
+   --------------------------------------------------------------------------- */
+const { THREE, loadGLB, fitToFloor } = await (async () => {
+  for (let i = 0; i < 600; i++) {
+    if (window.__glb) return window.__glb;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error('the GLB reader never arrived');
+})();
+
+/* One object, one file. The page loads HEART.file and the credit panel names
+   HEART.credit, so the two cannot drift onto different models — the guarantee
+   the body page gets from deriving its list off CATS, at the scale of one row.
+   yaw is CATS' cardio entry verbatim, so this heart and the one inside the
+   body are turned the same way. */
+const HEART = {
+  file: 'GLB/organ/realistic_human_heart.glb',
+  yaw: -12,
+  credit: { work: 'Realistic Human Heart', author: 'neshallads' },
+  /* fill is measured against the whole bounding box, and the box includes the
+     vessel stubs — so at a value that sounds safe the muscle itself lands at
+     barely half the frame. 1.02 lets the stubs run to the very top edge, which
+     is where the reference composition puts them, and aim seats the muscle
+     rather than the box: 0.44 of the box height, not its centre. */
+  fill: 0.90,
+  aim: 0.46,
+};
+
+/* SCREEN.organ and CLOSEUP from the body page, transcribed rather than
+   approximated: it has to be the same screen, or the two pages disagree about
+   what an organ in focus looks like. */
+const SCREEN_ORGAN = { pitch:3, angle:0, fill:0.95, soft:0.1, contrast:1.8, floor:0.045,
+                       invert:1, glow:1, colour:'#9fb9e6', tip:'#203a85' };
+
+const CW = 520, CH = 600;                 // stage pixels; the stage scales them
+const canvas = document.getElementById('heartGL');
+/* Floored at 1 as well as capped at 2. The dot grid is measured in device
+   pixels and clamped to a two-pixel minimum, so on a display reporting less
+   than 1 — a zoomed-out window, a scaled desktop — the pitch would land
+   coarser than the design's three and the field would read as a different
+   screen. Rendering above the device ratio costs a fraction of one frame
+   here, because this page draws two passes and then stops. */
+const load = document.getElementById('heartLoad');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+renderer.setPixelRatio(DPR);
+if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+/* The body page renders through ACES at Sterile Blue's own exposure. Leaving
+   it off here left the same two hex values landing several steps paler and
+   greyer than the organ they are copied from — the pipeline is part of the
+   colour, not a setting beside it. */
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.setClearColor(0x000000, 0);
+renderer.autoClear = false;               // the halftone quad composites onto the frame
+renderer.setSize(CW, CH, false);          // false: the stylesheet owns the CSS size
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, CW / CH, 0.05, 2000);
+const pivot = new THREE.Group();
+scene.add(pivot);
+
+const hex2vec = (h) => {
+  const v = parseInt(h.slice(1), 16);
+  return new THREE.Vector3(((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255);
+};
+
+const matTone = new THREE.ShaderMaterial({
+  side: THREE.DoubleSide,
+  blending: THREE.NoBlending,
+  uniforms: {
+    uLightMix: { value: 0 },
+    uLightDir: { value: new THREE.Vector3(0.5, 0.7, 0.5) },
+  },
+  vertexShader: `
+    varying vec3 vN; varying vec3 vV;
+    void main() {
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      vN = normalize(normalMatrix * normal);
+      vV = normalize(-mv.xyz);
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: `
+    varying vec3 vN; varying vec3 vV;
+    uniform float uLightMix;
+    uniform vec3 uLightDir;
+    void main() {
+      vec3 nv = normalize(vN);
+      float facing = clamp(abs(dot(nv, normalize(vV))), 0.0, 1.0);
+      float ndl = clamp(dot(nv, normalize(uLightDir)) * 0.5 + 0.5, 0.0, 1.0);
+      float bright = mix(facing, ndl, uLightMix);
+      gl_FragColor = vec4(bright, bright, bright, 1.0);
+    }`,
+});
+
+const matHalftone = new THREE.ShaderMaterial({
+  uniforms: {
+    uTone: { value: null }, uRes: { value: new THREE.Vector2(2, 2) },
+    uPitch: { value: 3 }, uAngle: { value: 0 },
+    uFill: { value: 0.95 }, uSoft: { value: 0.1 }, uContrast: { value: 1.8 }, uFloor: { value: 0.045 },
+    uInvert: { value: 1 }, uOpacity: { value: 1 }, uGlow: { value: 1 },
+    uColor: { value: hex2vec('#9fb9e6') }, uTip: { value: hex2vec('#203a85') },
+  },
+  transparent: true, depthTest: false, depthWrite: false,
+  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform sampler2D uTone;
+    uniform vec2 uRes;
+    uniform vec3 uColor, uTip;
+    uniform float uPitch, uAngle, uFill, uSoft, uContrast, uInvert, uOpacity, uGlow, uFloor;
+    void main() {
+      vec2 px = vUv * uRes;
+      float c = cos(uAngle), s = sin(uAngle);
+      vec2 g = vec2(c * px.x + s * px.y, -s * px.x + c * px.y) / uPitch;
+      vec2 id = floor(g) + 0.5;
+      vec2 cpx = vec2(c * id.x - s * id.y, s * id.x + c * id.y) * uPitch;
+      float tsum = 0.0, asum = 0.0;
+      for (int j = -1; j <= 1; j++) {
+        for (int i = -1; i <= 1; i++) {
+          vec2 o = vec2(float(i), float(j)) * uPitch * 0.34;
+          vec4 sm = texture2D(uTone, (cpx + o) / uRes);
+          tsum += sm.r * sm.a;
+          asum += sm.a;
+        }
+      }
+      float av = asum / 9.0;
+      float tv = asum > 0.0001 ? tsum / asum : 0.0;
+      float bright = mix(tv, 1.0 - tv, uInvert);
+      float cov = av * (uFloor + (1.0 - uFloor) * pow(clamp(bright, 0.0, 1.0), uContrast));
+      if (cov <= 0.0008) discard;
+      float r = 0.5 * uFill * sqrt(cov);
+      float d = length(g - id);
+      float aa = max(0.8 / uPitch, 0.0005);
+      float a = 1.0 - smoothstep(max(r - aa - uSoft * r, 0.0), r + aa, d);
+      if (a <= 0.003) discard;
+      gl_FragColor = vec4(mix(uColor, uTip, clamp(bright, 0.0, 1.0)) * uGlow, a * uOpacity);
+    }`,
+});
+
+const quadScene = new THREE.Scene();
+const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), matHalftone));
+
+const RTW = Math.max(2, Math.round(CW * DPR)), RTH = Math.max(2, Math.round(CH * DPR));
+const toneRT = new THREE.WebGLRenderTarget(RTW, RTH, {
+  minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+  wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
+  depthBuffer: true, stencilBuffer: false,
+});
+matHalftone.uniforms.uRes.value.set(RTW, RTH);
+
+/* SCREEN.organ verbatim, and nothing added to it. The body page's close-up
+   gains belong to the BODY's screen — the thing in focus is meant to look the
+   same whichever way you reached it, and its preset never moves. Applying them
+   here would make this heart a heart the body page cannot show. */
+function applyScreen() {
+  const p = SCREEN_ORGAN, u = matHalftone.uniforms;
+  u.uPitch.value = Math.max(p.pitch * DPR, 2);
+  u.uAngle.value = p.angle * Math.PI / 180;
+  u.uFill.value = p.fill; u.uSoft.value = p.soft;
+  u.uContrast.value = p.contrast;
+  u.uFloor.value = p.floor;
+  u.uInvert.value = p.invert; u.uGlow.value = p.glow;
+  u.uOpacity.value = 1;
+  u.uColor.value.copy(hex2vec(p.colour));
+  u.uTip.value.copy(hex2vec(p.tip));
+}
+
+let ready = false, booted = false;
+
+function render() {
+  if (!ready) return;
+  renderer.setRenderTarget(toneRT);
+  renderer.clear(true, true, true);
+  renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
+  renderer.clear(true, true, true);
+  matHalftone.uniforms.uTone.value = toneRT.texture;
+  applyScreen();
+  renderer.render(quadScene, quadCam);
+}
+
+/* Framed off the model's own turned bounding box rather than a hand-tuned
+   distance, so swapping the file cannot silently crop the organ. Both frame
+   axes are tested and the tighter one wins. */
+function frameOrgan() {
+  pivot.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(pivot);
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+  const half = Math.tan((camera.fov * Math.PI / 180) / 2);
+  const dist = Math.max(s.y * 0.5 / half, s.x * 0.5 / half / camera.aspect) / HEART.fill;
+  const aimY = box.min.y + s.y * HEART.aim;
+  camera.position.set(c.x, aimY, c.z + dist);
+  camera.lookAt(c.x, aimY, c.z);
+  camera.updateProjectionMatrix();
+}
+
+async function boot() {
+  if (booted) return;
+  booted = true;
+  load.classList.add('on');
+  try {
+    const holder = fitToFloor(await loadGLB(HEART.file), 1);
+    holder.traverse((o) => { if (o.isMesh) o.material = matTone; });
+    pivot.add(holder);
+    pivot.rotation.y = HEART.yaw * Math.PI / 180;
+    frameOrgan();
+    ready = true;
+    setTimeout(() => load.classList.remove('on'), 200);
+  } catch (err) {
+    /* The chip stays up carrying the reason. The body page's copy of this
+       clears it from a finally, which means its own failure message is on
+       screen for 200ms and then gone — and an organ field that is simply
+       empty tells the reader nothing at all. Kept visible here on purpose. */
+    load.innerHTML = '<span>GLB not reachable — serve the folder over HTTP</span>';
+    booted = false;                       // let the next visit try again
+    throw err;
+  }
+}
+
+/* A canvas that has been off screen is not guaranteed to still hold what it
+   drew, and two passes cost nothing, so it simply draws again. */
+addEventListener('viewchange', (e) => {
+  if (e.detail !== 'heart') return;
+  boot().then(render, () => {});
+});
+
+document.getElementById('heartBack').addEventListener('click', () => {
+  document.getElementById('tabLab').click();
 });
 </script>
 

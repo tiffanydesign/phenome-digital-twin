@@ -2472,7 +2472,17 @@ function fitStage(wrapId, stageId){
   wrap.style.width=(W*s)+'px'; wrap.style.height=(H*s)+'px';
 }
 function fit(){ fitStage('scanWrap','stage'); }
-function fitHeart(){ fitStage('heartWrap','heartStage'); }
+/* Also publishes where the stage's seam lands in the window, which is what
+   lets the information half reach the frame instead of stopping at the
+   stage's edge. Read after fitStage, because it is fitStage that sets the
+   wrap's width and therefore where auto margins centre it. */
+function fitHeart(){
+  fitStage('heartWrap','heartStage');
+  var wrap=document.getElementById('heartWrap'), view=document.getElementById('viewHeart');
+  if(!wrap||!view) return;
+  var s=Math.min(window.innerWidth/W, window.innerHeight/H, 1);
+  view.style.setProperty('--seam-x', Math.round(wrap.offsetLeft + 708*s)+'px');
+}
 
 /* ────────────────────────── SPEC VIEW ────────────────────────── */
 /* listed strictly largest to smallest; every row is drawn at its true size */
@@ -2746,7 +2756,7 @@ function buildCharts(){
      working part of a page: the heart rhythm view calls the same
      waveformHTML with the same ECG data. Written once, shown twice. */
   C.push(['Waveform strip','Use when the reading is an interval rather than a level, so the plot has to show where on a repeating signal the duration was taken.',
-    waveformHTML(ECG),
+    waveformHTML(ECG,'spec'),
     '<i style="background:#203a851f"></i>Measured interval']);
 
   var html='',i;
@@ -2808,7 +2818,7 @@ function trackHTML(c){
    expressed in those same numbers, so a pane cannot bracket an interval the
    trace does not actually have there. */
 var BEAT={p0:16,p1:37,q:46,qd:48.5,r:52,s:59,st:66,t1:96,end:135,
-          base:80,pAmp:9,qAmp:6,rAmp:46,sAmp:11,tAmp:15};
+          base:84,pAmp:9,qAmp:6,rAmp:50,sAmp:11,tAmp:15};
 /* A quadratic reaches half its control offset, so a bump of pAmp needs the
    control point at 2*pAmp above the baseline. */
 function beatPath(x0,w){
@@ -2825,29 +2835,78 @@ function beatPath(x0,w){
          'Q'+X((B.st+B.t1)/2)+' '+(y-B.tAmp*2)+' '+X(B.t1)+' '+y+
          'H'+X(B.end);
 }
-function waveformHTML(o){
-  var W=560,H=132,n=o.panes.length,pw=W/n,i,p,x0,k,a,b,h='';
-  var span=function(p,x0){ var k=pw/BEAT.end; return [x0+p.from*k, x0+p.to*k]; };
-  h='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="'+o.aria+'">';
-  /* the measured span first, so the trace is drawn over its own tint */
+/* One strip, and the beat train runs straight through the pane boundaries
+   rather than restarting at each one. That is the difference between a rhythm
+   strip cut into named sections and four small charts standing in a row, and
+   it is the whole reason the reading is legible: the eye follows one signal
+   and the panes tell it where to look.
+
+   The period is deliberately NOT the pane width. At 132 against panes of 140
+   the beats land at a different offset in every pane, which is what a real
+   strip does; matched to the pane it reads as wallpaper.
+
+   Colour is three gradients and no fourth, all off the brand ramp:
+
+     trace   deep navy at the left, easing to the ramp's own blue at the right.
+             A stroke that is one flat ink across 560px reads as a rule; this
+             reads as a signal travelling.
+     span    the measured interval, cyan at the top falling to navy at the
+             floor, so the band has a light source rather than an opacity.
+     wash    one very low cyan breath from the leading edge, the same move the
+             page ground makes, so the plot sits in the page's light. */
+function waveformHTML(o,uid){
+  var W=560,H=134,n=o.panes.length,pw=W/n;
+  var PER=132, k=PER/BEAT.end, nb=Math.ceil(W/PER)+1, i,j,p,a,b,h='';
+  var g='wv-'+(uid||'a');
+  /* the beat whose feature sits closest to each pane's centre is the beat that
+     pane is talking about, so the bracket cannot end up under the wrong one */
+  var beatFor=function(i){
+    var mid=i*pw+pw/2, best=0, d=1e9, j, c;
+    for(j=0;j<nb;j++){ c=j*PER+PER/2; if(Math.abs(c-mid)<d){ d=Math.abs(c-mid); best=j; } }
+    return best*PER;
+  };
+  var span=function(p,x0){ return [x0+p.from*k, x0+p.to*k]; };
+
+  h='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="'+o.aria+'">'+
+    '<defs>'+
+      '<linearGradient id="'+g+'-t" x1="0" y1="0" x2="1" y2="0">'+
+        '<stop offset="0" stop-color="#0a1e57"/><stop offset=".55" stop-color="#203a85"/>'+
+        '<stop offset="1" stop-color="#2e74b2"/></linearGradient>'+
+      '<linearGradient id="'+g+'-f" x1="0" y1="0" x2="0" y2="1">'+
+        '<stop offset="0" stop-color="#30b0cd" stop-opacity=".15"/>'+
+        '<stop offset=".55" stop-color="#2394cc" stop-opacity=".07"/>'+
+        '<stop offset="1" stop-color="#203a85" stop-opacity=".025"/></linearGradient>'+
+      '<linearGradient id="'+g+'-w" x1="0" y1="0" x2="1" y2="0">'+
+        '<stop offset="0" stop-color="#30b0cd" stop-opacity=".055"/>'+
+        '<stop offset=".62" stop-color="#30b0cd" stop-opacity="0"/></linearGradient>'+
+      '<clipPath id="'+g+'-c"><rect x="0" y="16" width="'+W+'" height="112"/></clipPath>'+
+    '</defs>'+
+    '<rect x="0" y="16" width="'+W+'" height="112" fill="url(#'+g+'-w)"/>';
+
   for(i=0;i<n;i++){
-    x0=i*pw; k=span(o.panes[i],x0); a=k[0]; b=k[1];
-    h+='<rect x="'+a.toFixed(2)+'" y="20" width="'+(b-a).toFixed(2)+'" height="76" '+
-       'fill="var(--phenome-blue-500)" opacity=".08"/>';
-    if(i) h+='<line x1="'+x0+'" y1="18" x2="'+x0+'" y2="114" stroke="var(--divider)"/>';
+    p=o.panes[i]; a=span(p,beatFor(i)); b=a[1]; a=a[0];
+    h+='<rect x="'+a.toFixed(2)+'" y="20" width="'+(b-a).toFixed(2)+'" height="84" fill="url(#'+g+'-f)"/>';
+    if(i) h+='<line x1="'+(i*pw)+'" y1="16" x2="'+(i*pw)+'" y2="128" stroke="var(--divider)"/>';
   }
-  for(i=0;i<n;i++)
-    h+='<path d="'+beatPath(i*pw,pw)+'" fill="none" stroke="var(--ink-600)" stroke-width="1.2" '+
-       'stroke-linecap="round" stroke-linejoin="round"/>';
-  /* the bracket takes the leader's weight and alpha from pattern 02, because it
-     is doing the same job: pointing at where a number came from */
+
+  h+='<g clip-path="url(#'+g+'-c)">';
+  for(j=0;j<nb;j++) h+='<path d="'+beatPath(j*PER,PER)+'"/>';
+  h+='</g>';
+
+  /* the bracket takes pattern 02's leader weight and alpha, because it is doing
+     pattern 02's job: pointing at where a number was taken from */
   for(i=0;i<n;i++){
-    p=o.panes[i]; x0=i*pw; k=span(p,x0); a=k[0]; b=k[1];
-    h+='<text x="'+(x0+10)+'" y="13" fill="var(--ink-400)" style="font-family:var(--font-sans);'+
-       'font-size:var(--text-micro);font-weight:500;letter-spacing:var(--tracking-overline)">'+p.key+'</text>'+
-       '<path d="M'+a.toFixed(2)+' 104v7H'+b.toFixed(2)+'v-7" fill="none" stroke="#203a8573" stroke-width="1"/>';
+    p=o.panes[i]; a=span(p,beatFor(i)); b=a[1]; a=a[0];
+    h+='<text x="'+(i*pw+pw/2).toFixed(1)+'" y="12" text-anchor="middle" fill="var(--ink-400)" '+
+       'style="font-family:var(--font-sans);font-size:var(--text-micro);font-weight:500;'+
+       'letter-spacing:var(--tracking-overline)">'+p.key+'</text>'+
+       '<path d="M'+a.toFixed(2)+' 111v7H'+b.toFixed(2)+'v-7" fill="none" stroke="#203a8573" stroke-width="1"/>';
   }
-  return h+'</svg>';
+  /* one selector for every beat in the train, rather than the same four
+     attributes repeated across five paths */
+  return h.replace('<g clip-path',
+    '<g fill="none" stroke="url(#'+g+'-t)" stroke-width="1.3" stroke-linecap="round" '+
+    'stroke-linejoin="round" clip-path')+'</svg>';
 }
 
 /* The heart rhythm page's readings, in one place. The strip brackets them and
@@ -2873,7 +2932,7 @@ var HEART_TRACKS=[
    runs on DOMContentLoaded with bindProvenance rather than in the boot line. */
 function buildHeart(){
   var w=document.getElementById('heartWave');
-  if(w) w.innerHTML=waveformHTML(ECG);
+  if(w) w.innerHTML=waveformHTML(ECG,'page');
   var t=document.getElementById('heartTracks'); if(!t) return;
   var out='',i;
   for(i=0;i<HEART_TRACKS.length;i++) out+='<div class="heart-trk">'+trackHTML(HEART_TRACKS[i])+'</div>';
@@ -5280,6 +5339,11 @@ addEventListener('viewchange', (e) => {
      ============================================================ -->
 <div class="view" id="viewHeart">
 
+  <!-- The information half, on a viewport layer rather than inside the stage.
+       The stage still owns where the seam falls; this only takes that number
+       and runs from it to the edge of the window. -->
+  <div id="heartBleed"></div>
+
   <button class="lab-back on" id="heartBack" type="button" aria-label="Back to the body page">&#8249;</button>
 
   <!-- One model, one row, so this takes the home page's solo form rather than
@@ -5357,6 +5421,40 @@ addEventListener('viewchange', (e) => {
      division in it, not two screens pushed together. */
   #heartSeam{position:absolute;left:708px;top:0;bottom:0;width:1px;
     background:linear-gradient(to bottom,transparent,var(--divider) 13%,var(--divider) 87%,transparent)}
+
+  /* The information half. Section 03 draws this as plain white carrying a
+     trace of the organ side's glow across the seam, and that is the recipe
+     here — resolved at page scale rather than swatch scale. The swatch's own
+     CSS says its layers run "smaller and a little stronger" because it is a
+     small box; across 658x1024 they run larger and a little weaker, which is
+     the same compensation read the other way.
+
+     One change to the recipe, and it is the change that keeps the panes on
+     this half visible at all. The base is --surface-page, not --surface-card.
+     A pane is 42% white over a drop; on #fff it has nothing to lift off and
+     the whole half goes to one flat sheet with three invisible boxes on it.
+     --surface-page is the token whose entire job is being the ground a card
+     sits on, so this is the system's own answer rather than a new tint.
+
+     Three lobes and a field, every one of them already on the page: cyan
+     bleeding in from the seam at 58% height, the ground's own navy answering
+     it from the far corner, a breath of the same cyan at the top right where
+     <body> puts one, and a 168deg ramp holding the 150deg field's direction
+     without repeating its weight. Nothing here is a hue the ramp does not
+     already contain.
+
+     It is fixed to the viewport and not absolute in the stage. The stage is
+     1366 wide and the window usually is not, and a white half that stops 37px
+     short of the frame reads as a mistake rather than as a device — the other
+     two views both fill the window. --seam-x is where the stage's own 708
+     lands after scaling, set by fitHeart, so the composition still owns the
+     division and only the paint runs past the edge. */
+  #heartBleed{position:fixed;left:var(--seam-x,52%);top:0;right:0;bottom:0;z-index:0;
+    background:
+      radial-gradient(780px 640px at -7% 58%,#30b0cd17,transparent 68%),
+      radial-gradient(640px 540px at 114% 110%,#203a850d,transparent 62%),
+      radial-gradient(520px 380px at 98% -14%,#30b0cd10,transparent 64%),
+      linear-gradient(168deg,#fbfcfe 0%,var(--surface-page) 58%,#edf1f8 100%)}
 
   #heartField{position:absolute;left:0;top:0;width:708px;height:1024px}
   /* Fixed at stage size. The stage's own transform is what makes it responsive,

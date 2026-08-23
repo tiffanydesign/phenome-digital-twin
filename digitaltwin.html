@@ -227,9 +227,15 @@
 
      59%. Not a guess: it is the value that rail was raised to the last time
      this went wrong, and it is still the least that keeps a seven-row panel
-     reading as a surface. Anything on the body page that has to hold its own
-     boundary takes this tier — and only the body page, because it is the only
-     page with a live field. */
+     reading as a surface.
+
+     It said "only the body page, because it is the only page with a live
+     field", and the scope was drawn one case too tight. The condition is not
+     a live field, it is a field that gives the blur nothing to bend — a body
+     moving across near-white does it, and so does a quiet ground behind a
+     card. The heart rhythm page's rail hit the identical failure and takes
+     this tier for the identical reason. Anything that has to hold its own
+     boundary against a backdrop the blur cannot work on takes it. */
   --gl-tint-live:#ffffff96;
   /* A recess is no longer thicker glass with an occlusion under the lip.
      It is one flat blue-grey wash and nothing else -- no inset, no drop,
@@ -2886,15 +2892,19 @@ function waveformHTML(o,uid){
      pattern 02's job: pointing at where a number was taken from */
   for(i=0;i<n;i++){
     p=o.panes[i]; a=span(p,beatFor(i)); b=a[1]; a=a[0];
-    h+='<text x="'+(i*pw+pw/2).toFixed(1)+'" y="12" text-anchor="middle" fill="var(--ink-400)" '+
-       'style="font-family:var(--font-sans);font-size:var(--text-micro);font-weight:500;'+
+      /* 17 is a viewBox unit and not a pixel — everything in this SVG is, the
+       84-tall band included. The strip draws 560 units into 464px on the rail,
+       so 17 lands on --text-micro there; a token would have arrived at 11.6px
+       and that is what made these labels the smallest type on the page. */
+  h+='<text x="'+(i*pw+pw/2).toFixed(1)+'" y="13" text-anchor="middle" fill="var(--ink-400)" '+
+       'style="font-family:var(--font-sans);font-size:17px;font-weight:500;'+
        'letter-spacing:var(--tracking-overline)">'+p.key+'</text>'+
        '<path d="M'+a.toFixed(2)+' 111v7H'+b.toFixed(2)+'v-7" fill="none" stroke="#203a8573" stroke-width="1"/>';
   }
   /* one selector for every beat in the train, rather than the same four
      attributes repeated across five paths */
   return h.replace('<g clip-path',
-    '<g fill="none" stroke="var(--ink-600)" stroke-width="1.3" stroke-linecap="round" '+
+    '<g fill="none" stroke="var(--ink-600)" stroke-width="1.5" stroke-linecap="round" '+
     'stroke-linejoin="round" clip-path')+'</svg>';
 }
 
@@ -5383,28 +5393,28 @@ addEventListener('viewchange', (e) => {
              back to the point the number was taken from. -->
         <svg id="heartLeads" viewBox="0 0 708 1024" aria-hidden="true">
           <g fill="none" stroke="#203a8573" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="100,294 234,294 312,334"/>
-            <polyline points="632,400 498,400 412,433"/>
-            <polyline points="82,512 216,512 280,479"/>
-            <polyline points="636,612 498,612 406,580"/>
+            <polyline points="70,294 204,294 282,334"/>
+            <polyline points="602,400 468,400 382,433"/>
+            <polyline points="52,512 186,512 250,479"/>
+            <polyline points="606,612 468,612 376,580"/>
             <!-- conduction spreading down through the ventricles -->
-            <path d="M302 660 Q 332 702 362 690"/>
-            <path d="M438 660 Q 410 702 382 690"/>
-            <path d="M362 690 l-10 -5 M362 690 l-5 -10"/>
-            <path d="M382 690 l10 -5 M382 690 l5 -10"/>
+            <path d="M272 660 Q 302 702 332 690"/>
+            <path d="M408 660 Q 380 702 352 690"/>
+            <path d="M332 690 l-10 -5 M332 690 l-5 -10"/>
+            <path d="M352 690 l10 -5 M352 690 l5 -10"/>
           </g>
           <g fill="#203a85" fill-opacity=".62">
-            <circle cx="312" cy="334" r="4"/>
-            <circle cx="412" cy="433" r="4"/>
-            <circle cx="280" cy="479" r="4"/>
-            <circle cx="406" cy="580" r="4"/>
+            <circle cx="282" cy="334" r="4"/>
+            <circle cx="382" cy="433" r="4"/>
+            <circle cx="250" cy="479" r="4"/>
+            <circle cx="376" cy="580" r="4"/>
           </g>
         </svg>
 
-        <div class="pin" style="left:100px;top:228px">Atrial<b class="num">118<em>ms</em></b></div>
-        <div class="pin" style="left:536px;top:334px">Conduction<b class="num">160<em>ms</em></b></div>
-        <div class="pin" style="left:82px;top:446px">Reset<b class="num">417<em>ms</em></b></div>
-        <div class="pin" style="left:540px;top:546px">Ventricular<b class="num">100<em>ms</em></b></div>
+        <div class="pin" style="left:70px;top:228px">Atrial<b class="num">118<em>ms</em></b></div>
+        <div class="pin" style="left:506px;top:334px">Conduction<b class="num">160<em>ms</em></b></div>
+        <div class="pin" style="left:52px;top:446px">Reset<b class="num">417<em>ms</em></b></div>
+        <div class="pin" style="left:510px;top:546px">Ventricular<b class="num">100<em>ms</em></b></div>
 
         <div class="lab-load" id="heartLoad"><i></i><span>Loading</span></div>
       </div>
@@ -5421,7 +5431,6 @@ addEventListener('viewchange', (e) => {
           <h4>Intervals</h4>
           <div id="heartTracks"></div>
         </div>
-        <p class="heart-foot">Every interval is read from the same twelve-lead recording. The bands are adult reference ranges, shown for orientation and not as a diagnosis.</p>
       </div>
 
     </div>
@@ -5466,22 +5475,42 @@ addEventListener('viewchange', (e) => {
      owns the division and only the paint runs past the edge. */
   #heartOrganBg{position:fixed;left:0;top:0;width:var(--seam-x,48%);bottom:0;z-index:0;
     background:var(--stage-field-2)}
+  /* This half is flat no longer, and the reason is measurable rather than a
+     change of mind. A pane is three properties: a fill, a blur and a drop.
+     Over a flat colour the blur is inert — blurring one colour returns that
+     colour — so a flat field silently deletes a third of the material and
+     leaves the fill to carry the boundary alone. On #eef3f9 a 42% white fill
+     resolves to #f5f7fc: seven values of separation, which is nothing. That
+     is why the cards read as rectangles and not as glass, and it is why
+     section 06's own specimens read correctly — they stand on the page's
+     ground, with the sheet's type running behind them for the blur to bend.
+
+     So the field gets structure back, but not the structure that was wrong
+     before. What was wrong before was white: near-white lobes that put bright
+     patches behind the reading and competed with it. There is no white here.
+     One 154deg ramp between two tones of the ground's own field, running
+     DOWN into the darker of them rather than up into paper, and one very low
+     navy lobe at the top corner. The half now leaves the seam at exactly the
+     tone the organ half holds and deepens as it goes, which gives the panes
+     something to sit on and the blur something to do. */
   #heartInfoBg{position:fixed;left:var(--seam-x,48%);top:0;right:0;bottom:0;z-index:0;
-    background:var(--stage-field-1)}
+    background:
+      radial-gradient(760px 640px at 92% 4%,#203a8512,transparent 64%),
+      linear-gradient(154deg,var(--stage-field-2) 0%,var(--stage-field-3) 100%)}
 
   #heartField{position:absolute;left:0;top:0;width:708px;height:1024px}
   /* Fixed at stage size. The stage's own transform is what makes it responsive,
      exactly as it is for the home page's figure. */
   /* Centred in the left half on both axes: 134+440/2 = 354 against the half's
      own 354, and 222+580/2 = 512 against 1024's 512. */
-  #heartGL{position:absolute;left:134px;top:222px;width:440px;height:580px;display:block}
+  #heartGL{position:absolute;left:104px;top:222px;width:440px;height:580px;display:block}
   /* The organ's own light. Section 03's page background is now flat on both
      halves, which is what stops the field competing with the figure — and a
      flat field gives a translucent dot cloud nothing to sit against. One soft
      white bloom behind the organ, and only behind the organ, does what the
      old multi-lobe wash was being asked to do and could not: it lights the
      thing being read rather than the room it is in. */
-  #heartGlow{position:absolute;left:74px;top:172px;width:560px;height:680px;
+  #heartGlow{position:absolute;left:44px;top:172px;width:560px;height:680px;
     pointer-events:none;
     background:radial-gradient(ellipse 52% 50% at 50% 49%,
       #ffffffb8 0%,#ffffff91 32%,#ffffff45 56%,#ffffff14 74%,#ffffff00 86%)}
@@ -5502,12 +5531,18 @@ addEventListener('viewchange', (e) => {
      half's own 1037, and translateY off the middle rather than a top that
      has to be re-guessed every time the content grows a row. The 69px it
      leaves at the seam is the same 69 it leaves at the frame. */
-  #heartRail{position:absolute;left:777px;top:50%;transform:translateY(-50%);width:520px}
+  /* 807, not the 777 that centred it. The two halves were each holding their
+     content in the middle of themselves and spending the page's outer margins
+     on nothing — 82 clear at the left frame and 69 at the right, with the two
+     compositions leaning in toward a seam that did not need them. Both move
+     30 outward: the organ into the left margin, the rail into the right, and
+     the gutter at the seam grows by 60 without either side losing width. */
+  #heartRail{position:absolute;left:807px;top:50%;transform:translateY(-50%);width:520px}
   .heart-title{font-family:var(--font-serif-medium);font-size:var(--text-title-lg);
     font-weight:var(--w-serif-title);letter-spacing:-.015em;line-height:1.04;color:var(--ink-900)}
   .heart-sub{display:flex;align-items:center;gap:11px;margin-top:13px;
     font-size:var(--text-label);color:var(--ink-label)}
-  .heart-rule{height:1px;background:var(--divider);margin:18px 0 20px}
+  .heart-rule{height:1px;background:var(--divider);margin:14px 0 16px}
   /* Section 06's card, not the design system document's card. These panes
      were taking --radius-lg, which is 12px and belongs to .card — the white
      paper block the spec sheet itself is built out of. No glass surface in
@@ -5522,8 +5557,8 @@ addEventListener('viewchange', (e) => {
      these two are: a card with a plot in it, and a card with three readings
      in it. Both panes take the same padding; the second one was carrying a
      different set for no reason anyone could have stated. */
-  .heart-pane{border-radius:26px;padding:24px 28px 26px}
-  .heart-pane + .heart-pane{margin-top:20px}
+  .heart-pane{border-radius:26px;padding:24px 28px 26px;background-color:var(--gl-tint-live)}
+  .heart-pane + .heart-pane{margin-top:18px}
   /* Every glass surface in the system gives its children a stacking context
      of their own — .sg-pane, .sg-card, .sg-row, .sg-btn and .lab-card all
      declare it, and .sg-pane's comment says why: content sits above the
@@ -5538,10 +5573,37 @@ addEventListener('viewchange', (e) => {
      under the page's 44px title and argue with it. .lab-card is the product
      card at this depth in a hierarchy and it uses the 12px overline: this is
      that, verbatim. */
-  .heart-pane h4{font-family:var(--font-sans);font-size:12px;font-weight:var(--w-module);
-    letter-spacing:var(--tracking-overline);color:var(--ink-600);margin-bottom:14px}
-  .heart-trk + .heart-trk{margin-top:20px;padding-top:20px;border-top:1px solid var(--divider)}
-  .heart-foot{margin-top:18px;font-size:var(--text-micro);color:var(--ink-400);line-height:1.5}
+  /* --text-micro, not .lab-card's literal 12px. The token is named for exactly
+     this — "card eyebrows, table group headers and footnotes" — and .lab-card
+     is 12 because it is a 296px panel floating over a figure, where this is a
+     520px card on a page. The rank is the same; the rung is the scale's. */
+  .heart-pane h4{font-family:var(--font-sans);font-size:var(--text-micro);font-weight:var(--w-module);
+    letter-spacing:var(--tracking-overline);color:var(--ink-600);margin-bottom:15px}
+
+  /* The rail was being read at two rungs below the organ half. The pins over
+     there are an 18px label over a 33px numeral; over here the same readings
+     were arriving as a 14px scale under a 24px bubble, with a 10px pill beside
+     a 18px name — three different answers to how big a reading is, on one
+     screen, for the same four numbers. The rule now is one line: nothing on
+     this half is set below --text-micro, and a measured value is --kpi-value-lg
+     wherever it appears, so 160 on the track is the 160 on the organ. */
+  /* line-height 1 as well as the size. At normal the 33px bubble stands 40 tall
+     and the track-wrap has to reserve 60 above a 3px rule for it; at 1 it needs
+     53, and the column gets 18px of its height back across three tracks. */
+  #heartRail .track .bub{font-size:var(--kpi-value-lg);line-height:1}
+  #heartRail .track .bub em{font-size:var(--text-label)}
+  /* 46 was headroom for a 24px bubble sitting 20 clear of the track. */
+  #heartRail .track-wrap{padding-top:56px}
+  #heartRail .tscale{height:42px}
+  #heartRail .tscale b,#heartRail .tscale i{font-size:var(--text-data)}
+  #heartRail .tscale i{top:22px}
+  /* The pill is 10px in the system because it is drawn beside 14px table text
+     in section 05's ladder. Beside an 18px track name it is a footnote on a
+     reading rather than the reading's own status, so it takes the same rung
+     as the name it qualifies. Padding and radius follow the size up. */
+  #heartRail .pill{font-size:var(--text-label);padding:4px 12px;border-radius:7px;
+    letter-spacing:.02em}
+  .heart-trk + .heart-trk{margin-top:16px;padding-top:16px;border-top:1px solid var(--divider)}
 </style>
 
 <script type="module">

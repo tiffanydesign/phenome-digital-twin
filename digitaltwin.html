@@ -940,23 +940,59 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   letter-spacing:var(--tracking-kpi);text-transform:none;color:var(--ink-900)}
 .pin b em{font-style:normal;font-size:var(--text-label);color:var(--ink-400);margin-left:4px;letter-spacing:0}
 
-/* 03 zoned range track */
-.track-wrap{padding:46px 0 4px}
+/* 03 zoned range track ─────────────────────────────────────────────────────
+   Redrawn round the question a reader actually brings to it, which is not
+   "what is the number" but "am I all right". Three things were in the way.
+
+   THE VALUE MOVED. It rode above the knob, so with three of these stacked the
+   readings sat at 31%, 33% and 49% across the column — three numbers that beg
+   to be compared, and no two of them in the same place. The eye had to search
+   for each one. It is now right-aligned in a fixed column on the name's own
+   line: 160, 100 and 417 stack, and the knob still says where on the scale it
+   fell. Nothing is lost and the reading became scannable.
+
+   THE SCALE SHOUTED. Under every track sat four boundary numbers and four zone
+   names, and the zone names were set BOLDER than everything around them, in
+   ink-400 — the one ink this file already documents as too light to read at
+   this size. Twenty-four labels, the densest type on the page, carrying the
+   least important thing on it. Now only the zone the reading falls in is dark
+   and semibold; the other three recede to ink-600 at 400. One word per row
+   answers the question, and the rest is available without being read.
+
+   THE ALIAS OUTRANKED THE NAME. "Conduction time" and "PR interval" were the
+   same 18px. One is what the reading is; the other is what a cardiologist
+   calls it. They are now 19 and 15.
+
+   Five sizes on this surface and no sixth — 44 title, 32 value, 19 name, 15
+   supporting, 13 meta — and the rest of the hierarchy is carried by ink, not
+   by more sizes. Every ink here clears 4.5:1 on the pane it sits on, which is
+   why the receded zones are ink-600 and not something lighter. */
+.trk + .trk{margin-top:26px;padding-top:26px;border-top:1px solid var(--divider)}
+.trk-head{display:flex;align-items:baseline;justify-content:space-between;gap:18px}
+.trk-id{display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;min-width:0}
+.trk-id b{font-size:19px;font-weight:400;color:#10214b}
+.trk-id span{font-size:15px;font-weight:400;color:#4a5578}
+/* the reading, and the only column on the card that is right-aligned */
+.trk-read{flex:none;display:flex;align-items:baseline;gap:5px}
+.trk-read b{font-size:32px;font-weight:400;line-height:1;color:#10214b;
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.trk-read em{font-style:normal;font-size:15px;color:#4a5578}
+/* 20, not 46: the 46 was headroom for a bubble that no longer floats there */
+.track-wrap{padding:20px 0 0}
 .track{position:relative;height:3px;border-radius:2px;background:var(--surface-sunken)}
 .track .zn{position:absolute;top:0;bottom:0}
 .track .tk{position:absolute;top:-4px;width:1px;height:11px;background:var(--border-strong)}
 .track .kb{position:absolute;top:0;width:15px;height:15px;margin:-6px 0 0 -7.5px;border-radius:50%;
   background:var(--phenome-blue-500);box-shadow:0 0 0 3px var(--surface-card),0 2px 8px #10214b2e}
-.track .bub{position:absolute;bottom:20px;transform:translateX(-50%);white-space:nowrap;
-  font-size:var(--kpi-value-sm);font-weight:var(--w-data);letter-spacing:var(--tracking-kpi);color:var(--ink-900)}
-.track .bub em{font-style:normal;margin-left:4px;font-size:var(--text-label);color:var(--ink-400);letter-spacing:0}
-.tscale{position:relative;height:36px;margin-top:11px}
-.tscale b,.tscale i{position:absolute;transform:translateX(-50%);white-space:nowrap;font-style:normal}
-.tscale b{top:0;font-size:var(--text-micro);font-weight:400;color:var(--ink-600)}
-.tscale i{top:18px;font-size:var(--text-micro);font-weight:700;letter-spacing:var(--tracking-overline);
-  color:var(--ink-400)}
-.trk-name{display:flex;align-items:baseline;gap:10px;font-size:var(--text-label);color:var(--ink-900)}
-.trk-name em{font-style:normal;color:var(--ink-400)}
+.tscale{position:relative;height:38px;margin-top:12px}
+.tscale b,.tscale i{position:absolute;transform:translateX(-50%);white-space:nowrap;font-style:normal;
+  font-size:13px}
+.tscale b{top:0;font-weight:400;color:#4a5578;font-variant-numeric:tabular-nums}
+.tscale i{top:20px;font-weight:400;letter-spacing:.05em;color:#4a5578}
+.tscale i.on{font-weight:600;color:#10214b}
+/* the status qualifies the name, so it sits with the name and never outsizes
+   it — 13 against 19, and the meta rung shared with the scale below */
+.trk .pill{font-size:13px;font-weight:600;letter-spacing:.03em;padding:3px 9px;border-radius:6px}
 
 /* 04 segmented dot meter */
 .meter-row{display:flex;align-items:center;gap:16px}
@@ -2878,19 +2914,31 @@ function trackHTML(c){
   var span=c.max-c.min, p=function(v){ return ((v-c.min)/span*100).toFixed(2); };
   var edges=[c.min].concat(c.bounds,[c.max]), i, h='';
   var TINT={ok:'#509b2117',warn:'#b27f0017',alert:'#ff3c1a14','':'transparent'};
+  /* which band the reading actually landed in — the one thing the row is for,
+     and the only zone name that gets to be dark */
+  var zi=0; for(i=0;i<c.bounds.length;i++) if(c.value>=c.bounds[i]) zi=i+1;
   if(c.tinted) for(i=0;i<c.zones.length;i++){
     var a=+p(edges[i]), b=+p(edges[i+1]);
     h+='<div class="zn" style="left:'+a+'%;width:'+(b-a)+'%;background:'+TINT[c.zones[i].tone||'']+'"></div>';
   }
   for(i=0;i<c.bounds.length;i++) h+='<div class="tk" style="left:'+p(c.bounds[i])+'%"></div>';
-  h+='<div class="kb" style="left:'+p(c.value)+'%"></div>'+
-     '<div class="bub num" style="left:'+p(c.value)+'%">'+c.value+'<em>'+c.unit+'</em></div>';
+  h+='<div class="kb" style="left:'+p(c.value)+'%"></div>';
   var sc='';
   for(i=0;i<c.bounds.length;i++) sc+='<b style="left:'+p(c.bounds[i])+'%">'+c.bounds[i]+'</b>';
-  for(i=0;i<c.zones.length;i++) sc+='<i style="left:'+((+p(edges[i])+ +p(edges[i+1]))/2)+'%">'+c.zones[i].name+'</i>';
-  return (c.name?'<div class="trk-name">'+c.name+(c.meta?' <em>'+c.meta+'</em>':'')+
-         (c.status?' <span class="pill '+c.status[0]+'">'+c.status[1]+'</span>':'')+'</div>':'')+
-         '<div class="track-wrap"><div class="track">'+h+'</div><div class="tscale">'+sc+'</div></div>';
+  for(i=0;i<c.zones.length;i++)
+    sc+='<i'+(i===zi?' class="on"':'')+' style="left:'+((+p(edges[i])+ +p(edges[i+1]))/2)+'%">'+
+        c.zones[i].name+'</i>';
+  return '<div class="trk">'+
+           '<div class="trk-head">'+
+             '<div class="trk-id"><b>'+c.name+'</b>'+
+               (c.meta?'<span>'+c.meta+'</span>':'')+
+               (c.status?'<span class="pill '+c.status[0]+'">'+c.status[1]+'</span>':'')+
+             '</div>'+
+             '<div class="trk-read"><b>'+c.value+'</b><em>'+c.unit+'</em></div>'+
+           '</div>'+
+           '<div class="track-wrap"><div class="track">'+h+'</div>'+
+           '<div class="tscale">'+sc+'</div></div>'+
+         '</div>';
 }
 /* ── 13 · waveform strip ──────────────────────────────────────
    The one chart type this system did not have. Every other plot in section 04
@@ -3014,7 +3062,7 @@ function buildHeart(){
   if(w) w.innerHTML=waveformHTML(ECG,'page');
   var t=document.getElementById('heartTracks'); if(!t) return;
   var out='',i;
-  for(i=0;i<HEART_TRACKS.length;i++) out+='<div class="heart-trk">'+trackHTML(HEART_TRACKS[i])+'</div>';
+  for(i=0;i<HEART_TRACKS.length;i++) out+=trackHTML(HEART_TRACKS[i]);
   t.innerHTML=out;
 }
 
@@ -5561,8 +5609,12 @@ addEventListener('viewchange', (e) => {
     transform:translate(var(--spread,0px),-50%)}
   .heart-title{font-family:var(--font-serif-medium);font-size:var(--text-title-lg);
     font-weight:var(--w-serif-title);letter-spacing:-.015em;line-height:1.04;color:var(--ink-900)}
-  .heart-sub{display:flex;align-items:center;gap:11px;margin-top:13px;
-    font-size:var(--text-label);color:var(--ink-label)}
+  /* Supporting text under a 44px title, so the supporting rung — and its pill
+     takes the meta rung, the same one the tracks' pills take. */
+  .heart-sub{display:flex;align-items:center;gap:11px;margin-top:14px;
+    font-size:15px;color:#4a5578}
+  .heart-sub .pill{font-size:13px;font-weight:600;letter-spacing:.03em;
+    padding:3px 9px;border-radius:6px}
   .heart-rule{height:1px;background:var(--divider);margin:14px 0 16px}
   /* Section 06's card, not the design system document's card. These panes
      were taking --radius-lg, which is 12px and belongs to .card — the white
@@ -5598,8 +5650,11 @@ addEventListener('viewchange', (e) => {
      this — "card eyebrows, table group headers and footnotes" — and .lab-card
      is 12 because it is a 296px panel floating over a figure, where this is a
      520px card on a page. The rank is the same; the rung is the scale's. */
-  .heart-pane h4{font-family:var(--font-sans);font-size:var(--text-micro);font-weight:var(--w-module);
-    letter-spacing:var(--tracking-overline);color:var(--ink-600);margin-bottom:15px}
+  /* A card eyebrow is a marker, not content. It takes the meta rung and steps
+     back in weight and ink so the first thing read inside a card is the reading
+     and not the label on the box. */
+  .heart-pane h4{font-family:var(--font-sans);font-size:13px;font-weight:500;
+    letter-spacing:.08em;color:#4a5578;margin-bottom:16px}
 
   /* Four rungs on this page and no fifth, which is the whole of the type
      brief. It had five — 44, 33, 18, 16, 14 — and the 16 was the one doing no
@@ -5620,17 +5675,11 @@ addEventListener('viewchange', (e) => {
   /* line-height 1 as well as the size. At normal the 33px bubble stands 40 tall
      and the track-wrap has to reserve 60 above a 3px rule for it; at 1 it needs
      53, and the column gets 18px of its height back across three tracks. */
-  #heartRail .track .bub{font-size:var(--kpi-value-lg);line-height:1}
-  #heartRail .track .bub em{font-size:var(--text-label)}
-  /* 46 was headroom for a 24px bubble sitting 20 clear of the track. */
-  #heartRail .track-wrap{padding-top:56px}
-  /* The system's 10px is right beside section 05's 14px table text and wrong
-     beside an 18px track name, but 18 was wrong the other way: a status is a
-     qualifier on a reading and it should never be set as large as the thing
-     it qualifies. It takes the meta rung, one step under the name. */
-  #heartRail .pill{font-size:var(--text-micro);padding:3px 10px;border-radius:6px;
-    letter-spacing:.03em}
-  .heart-trk + .heart-trk{margin-top:16px;padding-top:16px;border-top:1px solid var(--divider)}
+  /* Nothing here overrides the track any more. The rail was carrying five rules
+     that re-sized a component the design system draws one way and this page
+     drew another — which is the drift this file keeps warning about. The track
+     is now drawn correctly at source and section 03's specimen shows the same
+     thing the product does. */
 </style>
 
 <script type="module">

@@ -2864,7 +2864,11 @@ function waveformHTML(o,uid){
   };
   var span=function(p,x0){ return [x0+p.from*k, x0+p.to*k]; };
 
-  h='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="'+o.aria+'">'+
+  /* No height attribute. With one, the viewBox scales to fit and the strip
+     letterboxes — it was drawing 111px tall inside a 134px box and paying for
+     two empty bands. The viewBox carries the ratio; height:auto reads it. */
+  h='<svg viewBox="0 0 '+W+' '+H+'" style="display:block;width:100%;height:auto" '+
+    'role="img" aria-label="'+o.aria+'">'+
     '<defs><clipPath id="'+g+'-c"><rect x="0" y="16" width="'+W+'" height="112"/>'+
     '</clipPath></defs>';
 
@@ -5409,8 +5413,14 @@ addEventListener('viewchange', (e) => {
         <h1 class="heart-title">Heart rhythm</h1>
         <div class="heart-sub">Heart rate: 61 bpm <span class="pill ok">Normal</span></div>
         <div class="heart-rule"></div>
-        <div class="gl heart-pane" id="heartWave"></div>
-        <div class="gl heart-pane" id="heartTracks"></div>
+        <div class="gl heart-pane">
+          <h4>Rhythm strip</h4>
+          <div id="heartWave"></div>
+        </div>
+        <div class="gl heart-pane">
+          <h4>Intervals</h4>
+          <div id="heartTracks"></div>
+        </div>
         <p class="heart-foot">Every interval is read from the same twelve-lead recording. The bands are adult reference ranges, shown for orientation and not as a diagnosis.</p>
       </div>
 
@@ -5497,11 +5507,41 @@ addEventListener('viewchange', (e) => {
     font-weight:var(--w-serif-title);letter-spacing:-.015em;line-height:1.04;color:var(--ink-900)}
   .heart-sub{display:flex;align-items:center;gap:11px;margin-top:13px;
     font-size:var(--text-label);color:var(--ink-label)}
-  .heart-rule{height:1px;background:var(--divider);margin:22px 0 24px}
-  .heart-pane{border-radius:var(--radius-lg);padding:20px 24px}
-  .heart-pane + .heart-pane{margin-top:22px;padding:26px 28px 18px}
-  .heart-trk + .heart-trk{margin-top:26px;padding-top:26px;border-top:1px solid var(--divider)}
-  .heart-foot{margin-top:20px;font-size:var(--text-micro);color:var(--ink-400);line-height:1.5}
+  .heart-rule{height:1px;background:var(--divider);margin:18px 0 20px}
+  /* Section 06's card, not the design system document's card. These panes
+     were taking --radius-lg, which is 12px and belongs to .card — the white
+     paper block the spec sheet itself is built out of. No glass surface in
+     this system is 12. The section draws a pane at 22, a list row at 22, a
+     card at 26, a file row at 26, a notification at 28, and the body page's
+     real product card at 24. At 12 a 42% fill under a soft drop stops
+     reading as a pane of glass and starts reading as a pale rectangle,
+     which is the same failure .sg-btn's note describes from the other end:
+     get one surface in a glass set wrong and the rest look like film.
+
+     26, and 24/28/26, are .sg-card's own numbers — because that is what
+     these two are: a card with a plot in it, and a card with three readings
+     in it. Both panes take the same padding; the second one was carrying a
+     different set for no reason anyone could have stated. */
+  .heart-pane{border-radius:26px;padding:24px 28px 26px}
+  .heart-pane + .heart-pane{margin-top:20px}
+  /* Every glass surface in the system gives its children a stacking context
+     of their own — .sg-pane, .sg-card, .sg-row, .sg-btn and .lab-card all
+     declare it, and .sg-pane's comment says why: content sits above the
+     grain and below the sheen, which is where it sits on real glass. Both
+     pseudo-elements are free under the fourth doctrine and a component may
+     claim them at any time; a pane whose content is not already above its
+     own material cannot. */
+  .heart-pane > *{position:relative;z-index:1}
+  /* The heading rank comes from .lab-card rather than .sg-card. Section 06's
+     card titles itself in 24px Contralto, which is right for a specimen
+     standing on its own and wrong here, where it would sit a single step
+     under the page's 44px title and argue with it. .lab-card is the product
+     card at this depth in a hierarchy and it uses the 12px overline: this is
+     that, verbatim. */
+  .heart-pane h4{font-family:var(--font-sans);font-size:12px;font-weight:var(--w-module);
+    letter-spacing:var(--tracking-overline);color:var(--ink-600);margin-bottom:14px}
+  .heart-trk + .heart-trk{margin-top:20px;padding-top:20px;border-top:1px solid var(--divider)}
+  .heart-foot{margin-top:18px;font-size:var(--text-micro);color:var(--ink-400);line-height:1.5}
 </style>
 
 <script type="module">

@@ -405,9 +405,14 @@
    Geometry — radius, padding, size — stays with the component. Only the
    material lives here.
    ============================================================ */
+/* .toggle and .lab-seg used to be on this list and are not any more. A
+   segmented control is no longer a pane holding a clearer pane — it is a
+   trough holding the brand, and a trough is the one surface in the system
+   that is NOT this material. Both now take the segmented-control recipe
+   further down instead, which is written once for the two of them. */
 .gl,
-.icon-btn,.prov-btn,.toggle,
-.lab-seg,.lab-cats,.lab-cat,.lab-back,.lab-bar-name,.lab-bar-nav button,
+.icon-btn,.prov-btn,
+.lab-cats,.lab-cat,.lab-back,.lab-bar-name,.lab-bar-nav button,
 .lab-card,.lab-load,.hot.named .tag{
   position:relative;
   border:0;                       /* nothing draws an edge here any more */
@@ -649,122 +654,112 @@ body{
 .stagger{opacity:0;transform:translateY(10px);animation:rise .6s var(--ease-frosted-out) forwards}
 @keyframes rise{to{opacity:1;transform:none}}
 
-/* ---------- floating view toggle ---------- */
-/* Was a well holding a raised thumb: which view you were on was told by
-   depth. Depth is gone, and the bar is now one pane with a second,
-   clearer pane inside it — the selected tab is the place where the glass
-   has let more light through, which is a thing glass does. Nothing is
-   dished and nothing is domed. */
-/* It carries more tint and a longer drop than any other control, and the
-   reason is not aesthetic. This is fixed chrome that has to be findable
-   over whatever the page happens to be showing — and what this page
-   mostly shows is a near-white wash, where a pane at the ordinary tint
-   has nothing to be lighter than and effectively disappears. Glass over
-   white can only be found by its edge and its shadow, so both are given
-   the panel's weight rather than a control's.
+/* ============================================================
+   THE SEGMENTED CONTROL · one place, both of them
+   ------------------------------------------------------------
+   Two controls in this file are the same object: the view switcher at the
+   bottom-left of every page, and the sex switch at the top of the body
+   page. They were drawn separately and so they drifted — the switcher was
+   a pane holding a clearer pane at 14px, and the switch was a trough
+   holding the brand at 13px. Same component, two materials, two type
+   sizes. A reader has no way to know those are meant to be one thing,
+   and there is no argument for the difference; there was only history.
 
-   Under the plain doctrine the edge is gone outright, and that broke this
-   component before it fixed it. Written first as a 40% pane holding a 50%
-   pill — the export's own pair — the selection measured 1.02:1 against its
-   own bar over this page's ground. The export's numbers work on the
-   export's field, which is a saturated three-stop blue; ten points of
-   white over #dde7f4 is nothing at all.
+   So the material and the type are written here once, for both, in the
+   same form the glass recipe above uses: a selector list you can see is
+   a list you can audit. Only GEOMETRY stays with the instance — where it
+   is anchored, and what it does about the thing behind it.
 
-   So it becomes the third segmented control in the file to take a TROUGH,
-   after section 06's tab bar and the body page's sex switch. That is the
-   right answer here twice over. The selection reads because the two
-   halves are different materials rather than two alphas of one — a
-   difference no ground can flatten. And the bar is easier to find than
-   the pane ever was: at 18% blue-grey it sits DARKER than the near-white
-   page instead of trying to out-white it, which is the problem the old
-   comment above was working around rather than solving.
+   The form is the sex switch's, because it was the correct one. A trough
+   holding the brand beats a pane holding a clearer pane for a reason
+   that has nothing to do with taste: the two halves are different
+   MATERIALS rather than two alphas of one, and no ground can flatten
+   that. The switcher's old pairing had already failed this way once —
+   written at the export's 40%-holding-50%, its selection measured 1.02:1
+   against its own bar over this page's near-white ground.
 
-   The drop keeps the panel's weight, for the reason stated above. And it
-   keeps a thin backdrop blur, which the other two troughs do not: this
-   one is position:fixed and floats over the body page's live WebGL
-   figure, so it has something moving behind it that they never do.
-
-   Chromium takes a different route to the same place — see
-   .toggle.liquid, which puts its own thin white fill back so the lens has
-   something to refract, and whose 27%-holding-50% pair reads on its own. */
-.toggle{position:fixed;left:24px;bottom:24px;z-index:50;display:flex;gap:4px;padding:5px;
-  border-radius:999px;
-  background-color:var(--gl-tint-sunk);
-  -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin);
-  box-shadow:var(--gl-shadow-panel),var(--gl-inner)}
-/* ink-600, not ink-400. The inactive tabs sit on a near-white pane, where
-   ink-400 measures about 2.9:1 — under the floor for text this size. */
-.toggle button{border:0;background:none;cursor:pointer;font-family:inherit;
-  font-size:var(--text-micro);font-weight:var(--w-module);letter-spacing:var(--tracking-overline);
-  color:var(--ink-600);padding:9px 18px;border-radius:999px;position:relative;
-  transition:color .2s var(--ease-frosted-out),box-shadow .2s var(--ease-frosted-out),
-             background-color .2s var(--ease-frosted-out)}
-.toggle button:hover{color:var(--ink-900);background-color:#ffffff40}
-.toggle button[aria-pressed="true"]{
-  color:#2c3f6e;
-  background-color:var(--gl-tint-solid);
-  /* the selected pane sits *in* the bar, so it throws almost nothing —
-     3px of drop, not 18. What marks it is clarity, not altitude. */
-  box-shadow:0 1px 3px -1px #2a3f6e1f,inset 0 0 12px -6px #ffffffe6}
-/* the one hairline it does get: the top edge only, where a clearer pane
-   set into a foggier one catches the light */
-.toggle button[aria-pressed="true"]::before{content:"";position:absolute;inset:0;
-  border-radius:inherit;pointer-events:none;
-  background:linear-gradient(180deg,#ffffffe0,#ffffff00 42%);
+   And a trough is easier to find than the pane it replaces, which
+   settles an argument the old comment here spent two paragraphs losing.
+   That comment reasoned that fixed chrome over a near-white wash needs
+   extra tint and a longer drop to be findable at all. True, and it was
+   solving the wrong problem: at 18% blue-grey the bar sits DARKER than
+   the page rather than trying to out-white it. It needs neither the
+   extra tint nor the drop, and now carries neither.
+   ============================================================ */
+.toggle,.lab-seg{
+  position:relative;display:flex;gap:3px;padding:5px;border-radius:999px;
+  border:0;background-image:none;background-color:var(--gl-tint-sunk);
+  box-shadow:none}
+/* ink-600, not ink-400: on the trough ink-400 measures about 2.9:1, under
+   the floor for text this size. The unselected segment stays bare — it is
+   floor, not furniture. */
+.toggle button,.lab-seg button{
+  position:relative;border:0;background:none;cursor:pointer;
+  padding:8px 20px;border-radius:999px;
+  font-family:var(--font-sans);font-size:13px;font-weight:var(--w-module);
+  letter-spacing:var(--tracking-overline);color:var(--ink-600);
+  transition:color .22s var(--ease-frosted-out),
+             background-color .22s var(--ease-frosted-out)}
+.toggle button:not([aria-pressed="true"]):hover,
+.lab-seg button:not(.on):hover{color:var(--ink-900);background-color:#ffffff33}
+/* The selection is the brand, and it sits BEHIND the glass rather than on
+   top of it, so the backdrop still crosses the selected segment and it
+   belongs to the same material as the bar around it. The drop is 1px: the
+   selection is *in* the bar, and altitude is not what marks it. */
+.toggle button[aria-pressed="true"],
+.lab-seg button.on{color:#fff;
+  background:linear-gradient(180deg,#2b4796c4,#1c3579d6);
+  box-shadow:0 1px 3px -1px #0a1e5747,inset 0 0 12px -6px #ffffff70}
+/* the top edge only, where a clearer pane set into a foggier one catches
+   the light — the only lit edge left anywhere in the file */
+.toggle button[aria-pressed="true"]::before,
+.lab-seg button.on::before{content:"";position:absolute;inset:0;
+  border-radius:inherit;pointer-events:none;padding:1px;
+  background:linear-gradient(180deg,#ffffff8c,#ffffff00 45%);
   -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
           mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
-  padding:1px;-webkit-mask-composite:xor;mask-composite:exclude}
+  -webkit-mask-composite:xor;mask-composite:exclude}
+
+/* ---------- geometry · the view switcher ----------
+   The one thing it does not share with the sex switch, and it is not a
+   look: this bar is position:fixed and outlives the view under it, so it
+   floats over a scrolling document on the design-system page and over a
+   live WebGL figure on the body page. It therefore keeps a thin backdrop
+   blur that the sex switch has no use for. Without it, body copy scrolls
+   legibly through the trough and the bar reads as a hole in the page. */
+.toggle{position:fixed;left:24px;bottom:24px;z-index:50;
+  -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin)}
 
 /* ------------------------------------------------------------------
-   The tab bar as a refractive lens — one component, as an experiment.
+   The tab bar as a refractive lens — DORMANT. Read this before putting
+   it back, because it did not fail; it was displaced.
 
-   Everything above is the baseline and stays the baseline: this class is
-   only added when backdrop-filter can actually take an SVG filter, which
-   today is Chromium alone (WebKit 245510 is open, Gecko has never shipped
-   it). This bar is how the study is navigated, so it degrades to the well
-   rather than to a broken surface, and deleting the class plus its script
-   leaves the well untouched.
+   The experiment: on Chromium alone, backdrop-filter can take an SVG
+   filter, so the bar's 11px bezel carried a real measured refraction
+   instead of a drawn highlight — the one surface in the file where the
+   bending of light was computed rather than painted. It degraded to the
+   plain bar everywhere else. The build script and the #tabGlassDefs host
+   are still here and still run; `.liquid` is still added to the bar. Only
+   the three CSS rules that consumed it are gone, so the class now lands
+   on an element that does nothing with it.
 
-   It is worth being honest that this departs from section 06 rather than
-   extending it. A recessed surface goes away from you and a lens comes
-   toward you; the doctrine has no lens in it. If this is kept, section 06
-   needs a paragraph, not a silent exception.
+   Why it is gone. The view switcher and the sex switch are one component,
+   and they are now drawn by one recipe. The lens overrode two of the
+   three things that recipe exists to hold: it replaced the 18% trough
+   with a 27% white fill, and it replaced the brand selection with a light
+   50% pane. So on Chromium — which is to say, for almost every reader —
+   the lens was precisely what stopped the two controls from matching. The
+   choice was the experiment or the shared component, not both.
 
-   The fill is much thinner than the flat pane's. A lens that also carries
-   an opaque fill is just the pane with a filter attached, and would
-   refract nothing worth seeing.
+   It also never sat easily in the doctrine, which the original note said
+   plainly: a recessed surface goes away from you and a lens comes toward
+   you, and there is no lens in section 06. Under the plain doctrine that
+   gap widened rather than closed — the lens became the only lit edge in
+   a file that had removed every other one.
 
-   Under the plain doctrine this is the page's ONLY lit edge, and it is
-   now fully self-contained. It used to inherit content, inset, padding
-   and the mask-composite ring from the shared rim rule and override only
-   the gradient; that rule is gone, so the whole band is written out here.
-   That is the honest arrangement anyway: the bezel belongs to the lens,
-   which is the one surface in the file that measures the bending of
-   light instead of drawing a highlight where light would have bent.
+   To restore it, re-add the three rules and give it somewhere of its own
+   to live. It should not come back onto a shared segmented control.
    ------------------------------------------------------------------ */
-.toggle.liquid{
-  /* thin, but not as thin as the first pass: at 17% the bar itself could not
-     be found over the home page's near-white wash, and only the selected pill
-     was visible. 27% is the least that keeps the bar locatable while still
-     leaving the lens something to bend. */
-  background-image:none;
-  background-color:#ffffff45;
-  -webkit-backdrop-filter:var(--tab-glass);backdrop-filter:var(--tab-glass)}
-/* the specular has to travel the full 11px band, so it is stretched to
-   match — and every property the shared rim used to supply is stated */
-.toggle.liquid::before{
-  content:"";position:absolute;inset:0;border-radius:inherit;
-  pointer-events:none;padding:var(--tab-bezel,11px);
-  background:
-    linear-gradient(0deg,#ffffffa1 0%,#ffffff00 58%),
-    linear-gradient(145deg,#fffffff0 0%,#ffffff6b 22%,#ffffff00 52%,#ffffff00 100%);
-  -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
-          mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
-  -webkit-mask-composite:xor;mask-composite:exclude;
-  -webkit-backdrop-filter:none;backdrop-filter:none}
-.toggle.liquid button[aria-pressed="true"]{
-  background-color:var(--gl-tint-solid);
-  box-shadow:0 1px 3px -1px #2a3f6e26,inset 0 0 12px -6px #ffffffe6}
 
 /* ============================================================
    VIEW 2 · DESIGN SYSTEM
@@ -3838,40 +3833,18 @@ try {
   /* ---------- top bar ---------- */
   .lab-top{position:absolute;left:0;right:0;top:0;padding:22px 26px;display:flex;align-items:center;
     pointer-events:none;z-index:6}
-  /* A segmented control is the one component section 06 draws twice: the bar,
-     and the selected thing in it. It has been a flat frosted pill holding a
-     flat blue one, then a dish holding a dome, then a pane holding a clearer
-     pane. It is now a RECESS holding the brand — section 06's tab bar takes
-     the same arrangement, and for the same reason: with no rim left, a pane
-     set inside a pane has nothing to separate the two. The brand stays on the
-     selection, because a selection has to read as one, and it sits *behind*
-     the glass rather than on top of it so the backdrop still crosses it. */
-  .lab-seg{margin:0 auto;display:flex;gap:3px;padding:5px;border-radius:999px;pointer-events:auto;
-    background-color:var(--gl-tint-sunk);
-    -webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
-  .lab-seg button{position:relative;border:0;cursor:pointer;padding:8px 20px;border-radius:999px;
-    background:transparent;
-    /* 13px 500 sentence case, not 11px 700 caps at .14em. The old setting was
-       three compensations for the capitals stacked on each other: caps need
-       the tracking, the tracking needs the weight to stay solid, and the
-       weight needs the size to come down so it does not shout. Take the caps
-       out and all three unwind at once. */
-    font-family:var(--font-sans);font-size:13px;font-weight:var(--w-module);
-    letter-spacing:var(--tracking-overline);
-    color:var(--ink-600);transition:.22s var(--ease-frosted-out)}
-  /* the unselected segment stays bare: it is floor, not furniture */
-  .lab-seg button:not(.on):hover{color:var(--ink-900);background:#ffffff33}
-  .lab-seg button.on{color:#fff;
-    background:linear-gradient(180deg,#2b4796c4,#1c3579d6);
-    box-shadow:0 1px 3px -1px #0a1e5747,inset 0 0 12px -6px #ffffff70}
-  /* the top edge only, where a clearer pane set into a foggier one catches
-     the light — the same hairline the design system's tab switcher takes */
-  .lab-seg button.on::before{content:"";position:absolute;inset:0;border-radius:inherit;
-    pointer-events:none;padding:1px;
-    background:linear-gradient(180deg,#ffffff8c,#ffffff00 45%);
-    -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
-            mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
-    -webkit-mask-composite:xor;mask-composite:exclude}
+  /* ---------- geometry · the sex switch ----------
+     Everything this control looks like now lives in THE SEGMENTED CONTROL
+     recipe at the top of the file, written once for this and the view
+     switcher because they are the same object. What is left here is where it
+     sits: centred in a .lab-top that is pointer-events:none, so the switch
+     has to switch its own events back on.
+
+     Nothing else belongs in this block. It previously restated the trough,
+     the type, the hover, the brand selection and the lit edge — all five
+     have moved, and re-declaring any of them here would silently win over
+     the recipe, since this stylesheet is parsed second. */
+  .lab-seg{margin:0 auto;pointer-events:auto}
   .lab-brand{position:absolute;right:26px;top:24px;font-family:var(--font-sans);font-size:19px;
     font-weight:600;letter-spacing:-.01em;color:var(--ink-900)}
   .lab-brand em{font-style:normal;font-weight:300;color:var(--ink-600);margin-left:2px}

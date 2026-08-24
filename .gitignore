@@ -24,3 +24,6 @@ tmp/
 #   - the source docx (contains an internal Lark link)
 #   - Neko主页.png (third-party screenshot, used only as a design reference)
 _local/
+
+# Session logs written by the hooks, local scratch
+.claude/logs/

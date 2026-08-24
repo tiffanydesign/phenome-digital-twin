@@ -1,6 +1,6 @@
 # Phenome · Digital Twin
 
-A single-file design study for a health-scan portal. `digitaltwin.html` carries the design system and three interactive WebGL pages side by side: a screen-space halftone figure for the home page, a stepped organ view for the body page, and a single-organ report for the heart rhythm page.
+A single-file design study for a health-scan portal. `digitaltwin.html` carries the design system and four interactive WebGL pages side by side: a screen-space halftone figure for the home page, a stepped organ view for the body page, and two single-organ reports — heart rhythm and kidneys.
 
 **Live: https://tiffanydesign.github.io/phenome-digital-twin/**
 
@@ -8,14 +8,20 @@ A single-file design study for a health-scan portal. `digitaltwin.html` carries 
 - 3D: three.js r160 with a minimal GLB reader of its own, so no GLTFLoader
 - The figure is a static composition — no rotation, no orbit, key light behind the subject, no cast shadow
 
-## The four pages
+## The five pages
 
 | Tab | What it is |
 | :--- | :--- |
 | **Home page** | The scan summary. A halftone figure whose legs dissolve into the page rather than stopping at the frame. |
 | **Body page** | Pick an organ, the camera flies to it, the body turns to glass around it. |
 | **Heart rhythm** | One organ close-up beside one data rail. The composition the design system was drawn from, put back together out of its own parts: split canvas, pinned readouts on hairline leaders, a waveform strip and three zoned range tracks, all on glass over the page's own ground. |
+| **Kidneys** | The same composition, a second time, with a cut-away model and a different chart. It exists to test whether the heart page was a drawing or a pattern: same split, same rail, same glass, and not one component of its own — section 04's dot meter, section 06's card, pattern 02's pinned readouts, pattern 11's provenance mark. |
 | **Design system** | Tokens, type scale, colour, chart types, eleven report patterns, glass surfaces. |
+
+The two single-organ pages are drawn by one renderer. `organView(cfg)` builds a
+complete tone-and-halftone pass per call — its own WebGL context, materials and
+render target, so nothing crosses a renderer boundary — and both pages differ
+only in a model file, a yaw and two framing numbers.
 
 ## Running it locally
 
@@ -62,7 +68,8 @@ GLB/
     realistic_stomach.glb            Stomach
     small_and_large_intestine.glb    Intestines
     human_liver_and_gallbladder.glb  Liver & Gallbladder
-    human_kidney.glb                 Kidneys
+    human_kidney.glb                 Kidneys, inside the body
+    kidney_with_labels.glb           Kidneys, the cut-away on its own page
 ```
 
 The three lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/organ-material-lab.html` and so on.
@@ -102,13 +109,14 @@ Every model under `GLB/` comes from Sketchfab under [CC Attribution 4.0 Internat
 | `small_and_large_intestine.glb` | Small and large intestine | antonia.sundberg | [Sketchfab](https://sketchfab.com/3d-models/small-and-large-intestine-8a1ca8e3ca224cdeb9264674416bde38) |
 | `human_liver_and_gallbladder.glb` | Human liver and gallbladder | ElliotSS | [Sketchfab](https://sketchfab.com/3d-models/human-liver-and-gallbladder-6c4e9bd0d49f4828b804259330c0c6c4) |
 | `human_kidney.glb` | Human Kidney | neshallads | [Sketchfab](https://sketchfab.com/3d-models/human-kidney-e1476ceb1e3b4412af5418eee9c5ed08) |
+| `kidney_with_labels.glb` | Kidney_with_labels | ikon97840 | [Sketchfab](https://sketchfab.com/3d-models/kidney-with-labels-68a030f7dad444b0b6b4a9ce6a572625) |
 | `realistic_stomach.glb` | Realistic Stomach | Brain Diagno (`Brain_Diagno`) | [Sketchfab](https://sketchfab.com/3d-models/realistic-stomach-07859d72489d4f818e508b3738ab7449) |
 
 ### Attribution in the interface
 
 The models are modified (retopology, materials replaced), so CC BY asks for the change to be stated alongside the credit. The design system specifies how, as **pattern 11, Provenance mark**: one ⓘ ring per anatomy field opens a panel that names the licence and the modification once, then lists each work and its author.
 
-It is live on both figure pages, bottom-left above the tab bar. The home page shows one borrowed model so its list is one row. The body page's list is **built from the same `CATS` array the page loads its files from**, so the credit cannot name a model the page does not use, or miss one it does — and when an organ is open, its row takes the dot.
+It is live on all four figure pages, bottom-left above the tab bar. The home page and the two single-organ pages each show one borrowed model, so their list is one row. The body page's list is **built from the same `CATS` array the page loads its files from**, so the credit cannot name a model the page does not use, or miss one it does — and when an organ is open, its row takes the dot.
 
 The credit line reads:
 

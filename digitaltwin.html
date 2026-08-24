@@ -921,16 +921,42 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .xlate p{font-size:var(--text-label);line-height:1.65;color:var(--ink-600)}
 .xlate p b{color:var(--ink-900)}
 
-/* 01 split canvas */
-.split{display:grid;grid-template-columns:45fr 55fr;height:240px;border-radius:var(--radius-lg);
-  overflow:hidden;border:1px solid var(--divider)}
-.split .vis{position:relative;background:
-  radial-gradient(420px 240px at 60% 30%,#30b0cd26,transparent 70%),
-  linear-gradient(150deg,#e6e9f2,#f4f6fb)}
-.split .rail{background:var(--surface-card);padding:22px 26px;border-left:1px solid var(--divider)}
-.split .ghost{height:9px;border-radius:5px;background:var(--surface-sunken)}
+/* 01 split canvas
+   ONE GROUND, and this specimen was the last place in the file still drawing
+   the old one. It had an invented wash on the left — a cyan pool over a two
+   stop grey — and --surface-card white on the right, divided by a hard 1px
+   border. That is section 03's original rule, written when the information
+   half was opaque so long readouts stayed high-contrast, and the Kidneys and
+   Heart rhythm pages both departed from it on purpose: a pane needs the page
+   to have structure under it now that the graduated rim is gone, so both
+   halves of a real report stand on <body>'s own five-layer wash and the rail
+   is glass over it.
+
+   So both halves take that wash, by the same means the provenance panel takes
+   it: the identical layer stack at background-attachment:fixed, which is
+   positioned against the viewport and therefore paints the pixels the page
+   would have painted at that spot. Not a copy of the ground, the ground.
+
+   And the division is the Kidneys page's seam rather than a border: one
+   hairline that fades out at both ends, so the two halves read as one surface
+   with a division in it instead of two screens pushed together. */
+.split{position:relative;display:grid;grid-template-columns:45fr 55fr;height:240px;
+  border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--divider);
+  background:
+    radial-gradient(1200px 800px at 85% -10%,#30b0cd1a,transparent 60%),
+    radial-gradient(1000px 700px at -10% 90%,#203a8512,transparent 55%),
+    radial-gradient(760px 760px at -170px -170px,#c4daf773,#c4daf700 68%),
+    radial-gradient(700px 700px at calc(100% + 170px) calc(100% + 200px),#d2e2f866,#d2e2f800 70%),
+    linear-gradient(150deg,var(--stage-field-1) 0%,var(--stage-field-2) 46%,var(--stage-field-3) 100%);
+  background-attachment:fixed}
+.split .vis{position:relative}
+.split .rail{position:relative;padding:22px 26px}
+/* the seam, at the same fade the two report pages draw it with */
+.split .rail::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;
+  background:linear-gradient(to bottom,transparent,var(--divider) 13%,var(--divider) 87%,transparent)}
+.split .ghost{position:relative;height:9px;border-radius:5px;background:#96a8cd33}
 .split .lbl{position:absolute;left:18px;bottom:14px;font-size:var(--text-micro);font-weight:700;
-  letter-spacing:var(--tracking-overline);color:var(--ink-400)}
+  letter-spacing:var(--tracking-overline);color:var(--ink-600)}
 
 /* 02 pinned readout */
 .pinned{position:relative;width:660px;height:330px;margin:0 auto}
@@ -967,32 +993,46 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    supporting, 13 meta — and the rest of the hierarchy is carried by ink, not
    by more sizes. Every ink here clears 4.5:1 on the pane it sits on, which is
    why the receded zones are ink-600 and not something lighter. */
-.trk + .trk{margin-top:26px;padding-top:26px;border-top:1px solid var(--divider)}
-.trk-head{display:flex;align-items:baseline;justify-content:space-between;gap:18px}
-.trk-id{display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;min-width:0}
-.trk-id b{font-size:19px;font-weight:400;color:#10214b}
-.trk-id span{font-size:15px;font-weight:400;color:#4a5578}
+.trk + .trk{margin-top:20px;padding-top:20px;border-top:1px solid var(--divider)}
+.trk-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px}
+/* Two lines, always, and it is the wrap that forced the decision. On the
+   report ladder the name is 18, its alias 16 and the pill 14, and three of
+   those on one line come to about 371px against the 371 the column has once
+   the reading is subtracted — so "Conduction time" fitted, "Ventricular
+   contraction" did not, and one row in three sat differently from the other
+   two. A layout that depends on how long a word is has not been decided, it
+   has been left to chance.
+
+   Name on the first line, then what qualifies it — the clinical alias and the
+   status — on the second. Which is also the honest reading order: the thing,
+   then the two things that say which thing it is and how it stands. */
+.trk-id{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0}
+.trk-qual{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.trk-id b{font-size:var(--text-label);font-weight:var(--w-data);color:var(--ink-900)}
+.trk-qual > span:not(.pill){font-size:var(--text-data);font-weight:var(--w-data);color:var(--ink-600)}
 /* the reading, and the only column on the card that is right-aligned */
 .trk-read{flex:none;display:flex;align-items:baseline;gap:5px}
-.trk-read b{font-size:32px;font-weight:400;line-height:1;color:#10214b;
+.trk-read b{font-size:var(--kpi-value-lg);font-weight:var(--w-data);line-height:1;color:var(--ink-900);
   font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
-.trk-read em{font-style:normal;font-size:15px;color:#4a5578}
-/* 20, not 46: the 46 was headroom for a bubble that no longer floats there */
-.track-wrap{padding:20px 0 0}
+.trk-read em{font-style:normal;font-size:var(--text-data);color:var(--ink-600)}
+/* 20, not 46: the 46 was headroom for a bubble that no longer floats there.
+   14 now, because the head above it grew a second line and the line is its
+   own separation. */
+.track-wrap{padding:14px 0 0}
 .track{position:relative;height:3px;border-radius:2px;background:var(--surface-sunken)}
 .track .zn{position:absolute;top:0;bottom:0}
 .track .tk{position:absolute;top:-4px;width:1px;height:11px;background:var(--border-strong)}
 .track .kb{position:absolute;top:0;width:15px;height:15px;margin:-6px 0 0 -7.5px;border-radius:50%;
   background:var(--phenome-blue-500);box-shadow:0 0 0 3px var(--surface-card),0 2px 8px #10214b2e}
-.tscale{position:relative;height:38px;margin-top:12px}
+.tscale{position:relative;height:44px;margin-top:10px}
 .tscale b,.tscale i{position:absolute;transform:translateX(-50%);white-space:nowrap;font-style:normal;
-  font-size:13px}
-.tscale b{top:0;font-weight:400;color:#4a5578;font-variant-numeric:tabular-nums}
-.tscale i{top:20px;font-weight:400;letter-spacing:.05em;color:#4a5578}
-.tscale i.on{font-weight:600;color:#10214b}
+  font-size:var(--text-data)}
+.tscale b{top:0;font-weight:var(--w-data);color:var(--ink-600);font-variant-numeric:tabular-nums}
+.tscale i{top:23px;font-weight:var(--w-data);letter-spacing:.03em;color:var(--ink-600)}
+.tscale i.on{font-weight:var(--w-module);color:var(--ink-900)}
 /* the status qualifies the name, so it sits with the name and never outsizes
    it — 13 against 19, and the meta rung shared with the scale below */
-.trk .pill{font-size:13px;font-weight:600;letter-spacing:.03em;padding:3px 9px;border-radius:6px}
+/* the pill sets its own type, once, where the component is defined */
 
 /* 04 segmented dot meter */
 .meter-row{display:flex;align-items:center;gap:16px}
@@ -1003,19 +1043,28 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .meter .d.alert{background:var(--status-danger-fill)}
 .meter .d.off{background:var(--surface-sunken)}
 .meter-bound{position:absolute;top:-5px;width:2px;height:17px;background:var(--ink-400);border-radius:1px}
-.meter-scale{position:relative;height:16px;margin-top:8px}
-.meter-scale i{position:absolute;top:0;font-size:11px;font-weight:700;letter-spacing:.02em;color:var(--ink-400);
-  white-space:nowrap;transform:translateX(-50%)}
+/* The scale, on the report ladder's meta rung. It was 11px at weight 700 —
+   smaller and heavier than the same job on the track below, which is the tell
+   that neither had been set against the other. A scale tick is a number, so it
+   takes the data weight, and ink-600 throughout: the .bound step existed to
+   pull two of them out of ink-400, and ink-400 is not a rung this system has
+   for text at this size. */
+.meter-scale{position:relative;height:22px;margin-top:10px}
+.meter-scale i{position:absolute;top:0;font-size:var(--text-data);font-weight:var(--w-data);
+  letter-spacing:0;color:var(--ink-600);white-space:nowrap;transform:translateX(-50%)}
 .meter-scale i:first-child{transform:none}
 .meter-scale i:last-child{transform:translateX(-100%)}
-.meter-scale i.bound{color:var(--ink-600)}
-.meter-out{font-size:var(--kpi-value-sm);font-weight:var(--w-data);letter-spacing:var(--tracking-kpi);color:var(--ink-900)}
+/* --kpi-value-lg, not --kpi-value-sm. The small rung is named for "secondary
+   numerals in pinned readouts, track values and list rows"; this is the
+   reading the chart exists to show, and on the page that carries it, it is the
+   same size as the same number pinned on the organ. */
+.meter-out{font-size:var(--kpi-value-lg);font-weight:var(--w-data);letter-spacing:var(--tracking-kpi);color:var(--ink-900)}
 .meter-out.mon{color:var(--status-warning-ink)}
 .meter-out.alert{color:var(--status-danger-ink)}
 .meter-case + .meter-case{margin-top:24px;padding-top:24px;border-top:1px solid var(--divider)}
 .meter-cap{display:flex;align-items:center;gap:12px;margin-bottom:16px}
-.meter-caplab{font-size:var(--text-micro);color:var(--ink-400)}
-.meter-over{font-size:15px;font-weight:700;line-height:1;margin-left:2px}
+.meter-caplab{font-size:var(--text-data);color:var(--ink-600)}
+.meter-over{font-size:var(--text-data);font-weight:var(--w-bold);line-height:1;margin-left:2px}
 .meter-over.mon{color:var(--status-warning-fill)}
 .meter-over.alert{color:var(--status-danger-fill)}
 
@@ -1023,9 +1072,19 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    Four states on the same severity ladder share one shape: tint at 12% of
    the status hue, text at the -ink variant. Action is not a fifth state on
    that ladder — it's a recommendation, so it gets its own outlined, neutral
-   shape and sits underneath the reading it applies to, never inside the row. */
-.pill{display:inline-flex;align-items:center;padding:3px 8px;border-radius:5px;line-height:1.4;
-  font-size:10px;font-weight:700;letter-spacing:.06em;}
+   shape and sits underneath the reading it applies to, never inside the row.
+
+   ONE SIZE, and this is the rule the component had lost. There were five: 10
+   here, 13 inside a track, 13 on the heart page's sub-line, 13.5 in the
+   ladder demo, and 16 on the kidney rail — every one of them written where it
+   was needed rather than here, and no two of them agreeing. A reader who sees
+   Normal three times on one screen at three sizes does not read three ranks;
+   they read three components. The size is --text-micro, one rung under the
+   meta text a pill accompanies on a report page, because a status is a marker
+   on a reading and not the reading. Every override is gone: this is the only
+   place a pill's type is set. */
+.pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:6px;line-height:1.35;
+  font-size:var(--text-micro);font-weight:var(--w-bold);letter-spacing:var(--tracking-overline)}
 .pill.ok{background:#509b211f;color:var(--status-success-ink)}
 .pill.note{background:#1d6bfb1a;color:var(--status-info-ink)}
 .pill.mon{background:#b27f001f;color:var(--status-warning-ink)}
@@ -1037,16 +1096,22 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    can't be read as a fifth severity. */
 .pill-lad{display:grid;gap:14px}
 .pill-lad-row{display:grid;grid-template-columns:145px 1fr;gap:22px;align-items:center}
-.pill-lad-row p{font-size:var(--text-micro);line-height:1.55;color:var(--ink-400)}
-.pill-lad .pill,.pill-lad .tag{justify-self:start;font-size:13.5px;letter-spacing:.05em;
-  padding:5px 11px;border-radius:6px}
+.pill-lad-row p{font-size:var(--text-data);line-height:1.55;color:var(--ink-600)}
+/* No "demo scale" any more: the specimen is the component, at the size the
+   component is. A ladder drawn a size and a half larger than the thing it
+   documents is how a spec sheet starts flattering itself. */
+.pill-lad .pill,.pill-lad .tag{justify-self:start}
 .pill-lad .tag{gap:7px;padding-left:10px;color:var(--phenome-blue-500);border-color:#203a8566}
 .pill-lad .tag::before{color:var(--phenome-blue-400)}
 .pill-lad-act{margin-top:4px;padding-top:18px;border-top:1px solid var(--divider)}
 @media (max-width:720px){.pill-lad-row{grid-template-columns:1fr;gap:8px}}
-.tag{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 8px;border-radius:5px;
+/* Action, and it is the pill's geometry exactly — same size, same weight,
+   same tracking, same radius — because the two sit under one another on a
+   reading and any difference in shape between them would read as a difference
+   in kind that is already carried by the outline. */
+.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 11px 4px 9px;border-radius:6px;
   border:1px solid var(--border-strong);color:var(--ink-600);
-  font-size:10px;font-weight:700;letter-spacing:.05em}
+  font-size:var(--text-micro);font-weight:var(--w-bold);letter-spacing:var(--tracking-overline)}
 .tag::before{content:"\2192";font-weight:400;color:var(--ink-400)}
 
 /* 07 projection with benchmark */
@@ -1173,10 +1238,34 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 
 /* Not glass, though it floats: glass borrows the luminance of whatever
    is behind it, and a credit has to stay legible over a dark torso as
-   well as over paper. So it takes the card recipe at popover scale. */
+   well as over paper. So it takes the card recipe at popover scale.
+
+   The fill is <body>'s ground, copied exactly — the same five layers in the
+   same order — and it is background-attachment:fixed on both, which is the
+   whole trick. A fixed background is positioned against the viewport rather
+   than against the element, so the panel paints the pixels the page would
+   have painted at that spot: not a colour sampled from the wash, not a
+   near-match, the wash itself, continuing through. What was there instead
+   was flat --surface-card, and a plain white rectangle over a blue-grey wash
+   is the one surface on the page that announced it was a floating box.
+
+   Fixed also means it does not slide when the page scrolls, which matters on
+   the one view that scrolls: on the spec sheet the panel would otherwise
+   carry a frozen crop of the wash past a moving one. It stays registered.
+
+   It is still not glass and still has no blur: over a dark organ this reads
+   as the page's own ground rather than as the organ seen through frost, and
+   that is the legibility the original note is protecting. */
 .prov-panel{position:absolute;left:0;bottom:calc(100% + 9px);
   width:302px;max-width:100%;
-  padding:15px 17px 14px;background:var(--surface-card);
+  padding:15px 17px 14px;
+  background:
+    radial-gradient(1200px 800px at 85% -10%,#30b0cd1a,transparent 60%),
+    radial-gradient(1000px 700px at -10% 90%,#203a8512,transparent 55%),
+    radial-gradient(760px 760px at -170px -170px,#c4daf773,#c4daf700 68%),
+    radial-gradient(700px 700px at calc(100% + 170px) calc(100% + 200px),#d2e2f866,#d2e2f800 70%),
+    linear-gradient(150deg,var(--stage-field-1) 0%,var(--stage-field-2) 46%,var(--stage-field-3) 100%);
+  background-attachment:fixed;
   border:1px solid var(--border-strong);border-radius:var(--radius-lg);
   box-shadow:var(--shadow-card);
   opacity:0;visibility:hidden;transform:translateY(4px);
@@ -1202,12 +1291,18 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .prov-item{display:flex;align-items:baseline;gap:11px;padding:8px 0;
   border-bottom:1px solid var(--divider)}
 .prov-item:last-child{border-bottom:0;padding-bottom:2px}
-/* the slot is always rendered so a change of focus never shifts the list */
-.prov-item::before{content:"";flex:none;width:4px;height:4px;border-radius:50%;
-  background:transparent;transform:translateY(-3px)}
 .prov-item b{font-weight:400;font-size:var(--text-micro);line-height:1.4;color:var(--ink-900)}
 .prov-item span{flex:none;margin-left:auto;font-size:12px;color:var(--ink-600)}
-.prov-item.is-on::before{background:var(--phenome-blue-400)}
+/* Which row belongs to the organ on screen, told by weight rather than by a
+   mark. It was a 4px brand dot in a slot every row reserved so the list would
+   not shift when focus moved — correct as mechanics and wrong as a reading:
+   this panel's whole job is to be the page's own ground with a credit written
+   on it, and a coloured dot is the one thing in it that is not writing. The
+   slot went with it, so the rows now start at the panel's own margin.
+
+   Weight carries it instead, which is what the rest of the file already does
+   when a thing is current: 500 against 400, no colour, no shape. */
+.prov-item.is-on b{font-weight:var(--w-module)}
 
 /* On a live stage the ring anchors to the viewport rather than to a field box.
    Both figure pages are full-bleed, and the home page's composition is scaled
@@ -1339,8 +1434,8 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 /* ---------- pane ---------- */
 .sg-pane{border-radius:22px}
 .sg-row{display:flex;align-items:center;gap:16px;padding:15px 20px;border-radius:22px}
-.sg-row b{display:block;font-size:var(--text-data);font-weight:var(--w-module);color:var(--ink-900)}
-.sg-row span{display:block;margin-top:3px;font-size:var(--text-micro);color:var(--ink-400)}
+.sg-row b{display:block;font-size:var(--text-label);font-weight:var(--w-module);color:var(--ink-900)}
+.sg-row span{display:block;margin-top:4px;font-size:var(--text-data);color:var(--ink-600)}
 
 /* ---------- buttons ----------
    Two ranks, one material. The primary is not a block of brand fill laid
@@ -1377,6 +1472,30 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .sg-field kbd{position:relative;z-index:1;flex:none;padding:3px 7px;border-radius:6px;
   font-family:var(--font-numeral);font-size:11.5px;color:var(--ink-400);
   background:#ffffff5c;box-shadow:inset 0 0 0 1px #2a3f6e14}
+
+/* ---------- 02b · the report ladder ----------
+   A table of rungs, and the numbers in it are set at the rung they name so the
+   left column IS the specimen. Nothing here is a new size: every row is a
+   token that already existed, and the card's job is to say which six of the
+   thirteen a report page is allowed to reach for. */
+.ladder{margin-bottom:22px}
+.ladder-h{font-size:var(--text-micro);font-weight:var(--w-module);
+  letter-spacing:var(--tracking-overline);color:var(--ink-600);margin-bottom:18px}
+.ladder-r{display:grid;grid-template-columns:64px 148px 1fr;gap:18px;align-items:baseline;
+  padding:11px 0;border-top:1px solid var(--divider)}
+.ladder-r:first-of-type{border-top:0;padding-top:0}
+.ladder-r b{font-family:var(--font-numeral);font-weight:var(--w-numeral);
+  font-size:var(--kpi-value-sm);letter-spacing:var(--tracking-numeral);color:var(--ink-900)}
+.ladder-r span{font-family:var(--font-mono-ui,ui-monospace,SFMono-Regular,Menlo,monospace);
+  font-size:var(--text-data);color:var(--phenome-blue-500)}
+.ladder-r i{font-style:normal;font-size:var(--text-data);line-height:1.55;color:var(--ink-600)}
+.ladder-n{margin-top:20px;padding-top:18px;border-top:1px solid var(--divider);
+  font-size:var(--text-data);line-height:1.6;color:var(--ink-600)}
+.ladder-n b{font-weight:var(--w-module);color:var(--ink-900)}
+@media (max-width:720px){
+  .ladder-r{grid-template-columns:52px 1fr;gap:8px 14px}
+  .ladder-r i{grid-column:1 / -1}
+}
 
 /* ---------- segmented tabs ----------
    The one component the section draws twice: the bar, and the selected
@@ -1604,10 +1723,13 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    by an inset hairline, which needed the hairline to exist at all — this
    needs nothing, because a blue wash on a white pane is already a shape.
    #3a5188 on #4a6bb024 over a 42% pane measures about 6.4:1. */
-.sg-chip{padding:4px 13px;border-radius:999px;font-size:11.5px;font-weight:var(--w-module);
-  letter-spacing:.05em;color:#3a5188;background:#4a6bb024}
-.sg-card .sub-lab{margin-top:6px;font-size:var(--text-micro);color:var(--ink-600)}
-.sg-big{font-family:var(--font-numeral);font-weight:var(--w-numeral);font-size:76px;
+.sg-chip{padding:4px 12px;border-radius:999px;font-size:var(--text-micro);font-weight:var(--w-module);
+  letter-spacing:var(--tracking-overline);color:#3a5188;background:#4a6bb024}
+.sg-card .sub-lab{margin-top:7px;font-size:var(--text-data);color:var(--ink-600)}
+/* --text-display, not a literal 76. This is the system's hero numeral and the
+   mono is the face it is set in; 76 was four pixels short of the one rung the
+   scale draws for exactly this and nothing else. */
+.sg-big{font-family:var(--font-numeral);font-weight:var(--w-numeral);font-size:var(--text-display);
   line-height:.8;letter-spacing:-1px;color:var(--ink-900)}
 /* The band keeps its three zones and takes its inset back — and this is
    the one inset anywhere in the file now, so it is worth saying why it
@@ -1630,14 +1752,21 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    18px, not 16: the ring was carrying 5px of apparent diameter. */
 .sg-zone b{position:absolute;left:88%;top:50%;width:18px;height:18px;
   transform:translate(-50%,-50%);border-radius:50%;background:#5f83d2}
-.sg-scale{display:flex;justify-content:space-between;margin-top:9px;
-  font-size:11.5px;color:var(--ink-400)}
+.sg-scale{display:flex;justify-content:space-between;margin-top:11px;
+  font-size:var(--text-data);color:var(--ink-600)}
 .sg-hair{height:1px;margin:16px 0;
   background:linear-gradient(90deg,transparent,#2a3f6e26,transparent)}
 .sg-line{display:flex;justify-content:space-between;align-items:baseline;gap:14px}
-.sg-line > span{font-size:var(--text-data);color:var(--ink-label)}
-.sg-line em{font-style:normal;color:var(--ink-400);font-size:var(--text-micro)}
-.sg-line b{font-family:var(--font-numeral);font-weight:300;font-size:26px;color:var(--ink-900)}
+/* :not(.pill), and it is a real bug rather than tidying. A status pill in one
+   of these rows is also a direct span child, and `.sg-line > span` outranks
+   `.pill` — one class plus an element against one class — so every pill inside
+   a card row came out at the label's 18 while the same pill in a track or on a
+   meter was 14. The component sets its own type; a row may say where its label
+   sits and nothing more. */
+.sg-line > span:not(.pill){font-size:var(--text-label);color:var(--ink-900)}
+.sg-line em{font-style:normal;color:var(--ink-600);font-size:var(--text-data)}
+/* a reading in a card row, at the rung every measured value takes */
+.sg-line b{font-family:var(--font-numeral);font-weight:300;font-size:var(--kpi-value-lg);color:var(--ink-900)}
 
 /* There was a second pane behind this one here for a while, overlapping
    it, on the argument that watching one edge cross another is the only
@@ -1842,7 +1971,34 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
     <!-- TYPE SCALE -->
     <section class="blk">
       <h2 class="sec-h">02 · Type scale</h2>
-      <p class="sec-intro">Every role, largest to smallest, drawn at its true size.</p>
+      <p class="sec-intro">Every role, largest to smallest, drawn at its true size. Thirteen rungs
+        exist; a report page reaches for six of them, plus one more for markers, and never
+        invents a fourteenth.</p>
+      <!-- The report ladder. It is written here rather than on either report
+           page because it is the thing those two pages agree about, and a rule
+           that lives on one page is a rule the next page will not find.
+
+           It is also, honestly, a rule derived rather than decreed: the
+           kidney page was built, its type was fixed until it read, the heart
+           page was brought onto the same rungs, and this is what was left. The
+           components those pages use — the pill, the track, the dot meter, the
+           card and its rows — were then moved onto it at source, which is why
+           neither page carries a single font-size override any more. -->
+      <div class="card ladder">
+        <div class="ladder-h">The report ladder · six rungs for content, one for markers</div>
+        <div class="ladder-r"><b>80</b><span>--text-display</span><i>A hero numeral, in the mono. One per page at most.</i></div>
+        <div class="ladder-r"><b>44</b><span>--text-title-lg</span><i>The page title, once, in Contralto Medium.</i></div>
+        <div class="ladder-r"><b>33</b><span>--kpi-value-lg</span><i>A measured value, or a finding stated as a word — so the number pinned on the organ and the same number in the rail are one size, and the eye pairs them.</i></div>
+        <div class="ladder-r"><b>24</b><span>--kpi-value-sm</span><i>A card's title, in Contralto Xsmall.</i></div>
+        <div class="ladder-r"><b>18</b><span>--text-label</span><i>Names and supporting prose: everything that says what a value is.</i></div>
+        <div class="ladder-r"><b>16</b><span>--text-data</span><i>Meta: glosses, captions, scale ticks, row descriptions.</i></div>
+        <div class="ladder-r"><b>14</b><span>--text-micro</span><i>Markers only — the status pill and the action tag, one rung under the meta they sit beside. Not a rung for prose.</i></div>
+        <p class="ladder-n">Rank inside a rung is carried by ink, weight and tracking, never by a
+          seventh size. Three inks and no more: <b>ink-900</b> for what you are meant to read,
+          <b>ink-label</b> for supporting prose and units, <b>ink-600</b> for meta.
+          <b>ink-400</b> is not a text ink at these sizes — it measures about 2.9:1 on the
+          page's own ground.</p>
+      </div>
       <div class="card" id="scaleCard"></div>
     </section>
 
@@ -1920,7 +2076,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
       <div class="card">
         <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:18px;flex-wrap:wrap">
           <span style="font-size:var(--text-label);color:var(--ink-900)">Filtration rate</span>
-          <span style="font-size:var(--text-micro);color:var(--ink-400)">eGFR · 90 to 120 expected</span>
+          <span style="font-size:var(--text-data);color:var(--ink-600)">eGFR · 90 to 120 expected</span>
         </div>
         <div id="meterDemo"></div>
       </div>
@@ -2191,7 +2347,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
             <div class="sub-lab">Enhanced filtration · mL/min/1.73m&sup2;</div>
             <div style="display:flex;align-items:flex-end;gap:14px;margin-top:14px">
               <div class="sg-big num">116</div>
-              <div style="font-size:var(--text-micro);color:var(--ink-400);line-height:1.5;padding-bottom:8px">above the<br>expected band</div>
+              <div style="font-size:var(--text-data);color:var(--ink-600);line-height:1.5;padding-bottom:10px">above the<br>expected band</div>
             </div>
             <div style="margin-top:26px">
               <div class="sg-zone"><u></u><b></b></div>
@@ -2244,6 +2400,9 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   <!-- Third, not last: it is a detail of the body page, and the design
        system is a document that belongs at the end of the set. -->
   <button id="tabHeart" aria-pressed="false">Heart rhythm</button>
+  <!-- Fourth, beside the page it is a sibling of: the two single-organ
+       reports sit together, in the order the body page lists their organs. -->
+  <button id="tabKidney" aria-pressed="false">Kidneys</button>
   <button id="tabSpec" aria-pressed="false">Design system</button>
 </div>
 
@@ -2598,30 +2757,35 @@ function fit(){ fitStage('scanWrap','stage'); }
    2560, which would run the organ's leaders off the frame. 54 leaves 28 inside
    the left edge and 21 inside the right, and past that the ground carries on
    anyway, so the halves read as open even where the stage has run out. */
-function fitHeart(){
-  fitStage('heartWrap','heartStage');
-  var view=document.getElementById('viewHeart'); if(!view) return;
+/* Both single-organ reports are the same composition, so the spread is one
+   function taking the pair rather than two copies free to drift apart —
+   exactly the argument fitStage makes one paragraph up. */
+function fitOrgan(wrapId, stageId, viewId){
+  fitStage(wrapId, stageId);
+  var view=document.getElementById(viewId); if(!view) return;
   var s=Math.min(window.innerWidth/W, window.innerHeight/H);
   var band=Math.max(0,(window.innerWidth/s - W)/2);
   view.style.setProperty('--spread', Math.round(Math.min(band/2, 54))+'px');
 }
+function fitHeart(){ fitOrgan('heartWrap','heartStage','viewHeart'); }
+function fitKidney(){ fitOrgan('kidneyWrap','kidneyStage','viewKidney'); }
 
 /* ────────────────────────── SPEC VIEW ────────────────────────── */
 /* listed strictly largest to smallest; every row is drawn at its true size */
 var SCALE=[
- ['--text-display','80','100','-0.02em','Hero numerals such as 7, 41 and 18.4. The largest setting in the system, and the only one set in the mono.'],
- ['--text-name','68','400','-0.005em','Patient names and page titles, one step below the hero numeral.'],
- ['--text-title-lg','44','400','-0.015em','Report and detail page titles such as Kidneys or Heart rhythm, set over a hairline.'],
- ['--kpi-value-lg','33','400','0','KPI numerals such as 3102, 54 and 118/76.'],
- ['--text-page-title','26','400','0','Page titles in the portal shell.'],
- ['--kpi-value-sm','24','400','0','Secondary numerals in pinned readouts, track values and list rows.'],
- ['--text-module','21','400','0.06em','Group titles on the summary: Omics, Vitals and Body, set in the display face.'],
- ['--text-label','18','400','0em','Data labels such as Genome variants, Resting heart and 41 years, set in #4d4d4d.'],
- ['--text-body','17','400','0em','Paragraphs, form values and drawer copy.'],
- ['--text-data','16','400','0em','Table cells, timestamps and secondary readouts.'],
+ ['--text-display','80','100','-0.02em','Report ladder. A hero numeral such as 116, 7 or 18.4 — the largest setting in the system, the only one set in the mono, and at most one per page.'],
+ ['--text-name','68','400','-0.005em','Patient names on the summary. Shell type, not report type.'],
+ ['--text-title-lg','44','400','-0.015em','Report ladder. The page title, once: Kidneys, Heart rhythm. Contralto Medium, set over a hairline.'],
+ ['--kpi-value-lg','33','400','0','Report ladder. Any measured value, and a finding stated as a word — the meter’s 87, the track’s 160, the card row’s 0.58, the verdict Monitor. One size, so a number pinned on the organ pairs with the same number in the rail.'],
+ ['--text-page-title','26','400','0','Page titles in the portal shell. Shell type.'],
+ ['--kpi-value-sm','24','400','0','Report ladder. A card’s title, in Contralto Xsmall.'],
+ ['--text-module','21','400','0.06em','Group titles on the summary: Omics, Vitals and Body, set in the display face. Shell type.'],
+ ['--text-label','18','400','0em','Report ladder. Names and supporting prose — a track’s name, a card row’s label, a unit, a page’s lede.'],
+ ['--text-body','17','400','0em','Paragraphs in the design system document itself. Not a report rung.'],
+ ['--text-data','16','400','0em','Report ladder. Meta — glosses, chart captions, scale ticks, row descriptions.'],
  ['--text-hero-cap','16','500','0.06em','The caption beside a hero numeral, such as Molecular layers.'],
- ['--text-overline','15','500','0.06em','Section eyebrows inside cards.'],
- ['--text-micro','14','500','0.06em','Card eyebrows, table group headers and footnotes.']
+ ['--text-overline','15','500','0.06em','Section eyebrows in the design system document.'],
+ ['--text-micro','14','500','0.06em','Report ladder, markers only. The status pill and the action tag, one rung under the meta they sit beside — plus card eyebrows and footnotes in this document. Never a rung for a reading.']
 ];
 function buildScale(){
   var host=document.getElementById('scaleCard'), html='';
@@ -2931,8 +3095,10 @@ function trackHTML(c){
   return '<div class="trk">'+
            '<div class="trk-head">'+
              '<div class="trk-id"><b>'+c.name+'</b>'+
-               (c.meta?'<span>'+c.meta+'</span>':'')+
-               (c.status?'<span class="pill '+c.status[0]+'">'+c.status[1]+'</span>':'')+
+               '<span class="trk-qual">'+
+                 (c.meta?'<span>'+c.meta+'</span>':'')+
+                 (c.status?'<span class="pill '+c.status[0]+'">'+c.status[1]+'</span>':'')+
+               '</span>'+
              '</div>'+
              '<div class="trk-read"><b>'+c.value+'</b><em>'+c.unit+'</em></div>'+
            '</div>'+
@@ -3020,13 +3186,15 @@ function waveformHTML(o,uid){
      pattern 02's job: pointing at where a number was taken from */
   for(i=0;i<n;i++){
     p=o.panes[i]; a=span(p,beatFor(i)); b=a[1]; a=a[0];
-      /* 17 is a viewBox unit and not a pixel — everything in this SVG is, the
+      /* 19 is a viewBox unit and not a pixel — everything in this SVG is, the
        84-tall band included. The strip draws 560 units into 464px on the rail,
-       so 17 lands on --text-micro there; a token would have arrived at 11.6px
-       and that is what made these labels the smallest type on the page. */
-  h+='<text x="'+(i*pw+pw/2).toFixed(1)+'" y="13" text-anchor="middle" fill="var(--ink-400)" '+
-       'style="font-family:var(--font-sans);font-size:17px;font-weight:500;'+
-       'letter-spacing:var(--tracking-overline)">'+p.key+'</text>'+
+       so 19 lands within a rounding of --text-data there, which is the report
+       ladder's meta rung and what every other chart label on the page takes.
+       A token written here would have arrived at 13.3px instead, because the
+       viewBox would have scaled it down again. */
+  h+='<text x="'+(i*pw+pw/2).toFixed(1)+'" y="13" text-anchor="middle" fill="var(--ink-600)" '+
+       'style="font-family:var(--font-sans);font-size:19px;font-weight:400;'+
+       'letter-spacing:.03em">'+p.key+'</text>'+
        '<path d="M'+a.toFixed(2)+' 111v7H'+b.toFixed(2)+'v-7" fill="none" stroke="#203a8573" stroke-width="1"/>';
   }
   /* one selector for every beat in the train, rather than the same four
@@ -3066,6 +3234,32 @@ function buildHeart(){
   t.innerHTML=out;
 }
 
+/* The kidney page's one chart, and it is section 04's dot meter unmodified —
+   the same reading the specimen already shows, in the product that reading
+   belongs to. 87 against a floor of 90 is the case the specimen was drawn
+   for, and it is why the whole page says Monitor rather than Normal.
+
+   The band is 90 to 120, which is the design system's own floor, not the
+   85-115 the reference screenshot prints beside a value it then calls Mild.
+   A band a reading sits inside cannot be the reason the reading is flagged,
+   and this page would rather be right than be a transcription.
+
+   The scale runs past the ceiling rather than stopping at it: a band closed at
+   both ends needs somewhere to be closed against, or its upper bound reads as
+   the end of what can be measured.
+
+   160 and not 140 or 150, and the reason is the scale's own labels. The end
+   tick is right-aligned against the end of the meter and the ceiling's tick is
+   centred on its mark, so the gap between them is whatever the arithmetic
+   leaves: 0 at 140, 8px at 150, and 19 at 160 — which is the same 19 the floor
+   and the ceiling leave each other. Four numbers evenly spaced under a 240px
+   meter, instead of three numbers and a pair that reads as one. */
+function buildKidney(){
+  var m=document.getElementById('kidneyMeter'); if(!m) return;
+  m.innerHTML=meterHTML({max:160,bounds:[90,120],value:87,status:'mon',
+    caption:'Just below the expected floor'});
+}
+
 function buildTracks(){
   var host=document.getElementById('trackDemo'); if(!host) return;
   host.innerHTML=
@@ -3074,42 +3268,56 @@ function buildTracks(){
       status:['ok','Normal'],tinted:false});
 }
 
-/* 04 · segmented dot meter */
+/* 04 · segmented dot meter
+   Lifted out of buildMeter for the same reason trackHTML sits outside
+   buildTracks: two pages draw this component now, and a chart that lives
+   inside one page's build function is how the spec sheet and the product
+   start disagreeing about what a component looks like.
+
+   bound became bounds. The demo carries one — a floor, with the ceiling at
+   the end of the scale — and a reading like the filtration rate carries two,
+   because its expected band is closed at both ends and the scale runs past
+   it. One number still works: it is read as a one-item list. */
+var METER_STATUS={ok:'Normal',mon:'Monitor',alert:'Alert'};
+function meterHTML(o){
+  var max=o.max, value=o.value, status=o.status, N=24, dotW=7, gap=3;
+  var bounds=o.bounds||[o.bound];
+  var totalW=N*dotW+(N-1)*gap;
+  var over=value>max;                              /* reading past the ceiling */
+  var filled=over?N:Math.round(value/max*N);       /* over range fills every dot */
+  var pct=function(v){ return (v/max*100).toFixed(2); };
+  var h='',i;
+  for(i=0;i<N;i++) h+='<span class="d'+(i<filled?' '+status:' off')+'"></span>';
+  /* when the value runs past the last dot, a chevron in the status colour
+     marks the overflow so the meter never silently caps out */
+  if(over) h+='<span class="meter-over '+status+'" aria-hidden="true">›</span>';
+  var marks='', scale='<i>0</i>';
+  for(i=0;i<bounds.length;i++){
+    marks+='<div class="meter-bound" style="left:'+pct(bounds[i])+'%"></div>';
+    scale+='<i class="bound" style="left:'+pct(bounds[i])+'%">'+bounds[i]+'</i>';
+  }
+  scale+='<i style="left:100%">'+max+'</i>';
+  return '<div class="meter-case">'+
+    '<div class="meter-cap"><span class="pill '+status+'">'+METER_STATUS[status]+'</span>'+
+      '<span class="meter-caplab">'+o.caption+'</span></div>'+
+    '<div class="meter-row">'+
+      '<div class="meter-wrap" style="width:'+totalW+'px">'+
+        '<div class="meter">'+h+'</div>'+
+        marks+
+        '<div class="meter-scale">'+scale+'</div>'+
+      '</div>'+
+      '<span class="meter-out num'+(status!=='ok'?' '+status:'')+'">'+value+
+        '<em style="font-style:normal;font-size:var(--text-label);color:var(--ink-600);margin-left:6px;letter-spacing:0">'+
+        (o.unit||'mL/min')+'</em></span>'+
+    '</div>'+
+  '</div>';
+}
 function buildMeter(){
   var host=document.getElementById('meterDemo'); if(!host) return;
-  var STATUS={ok:'Normal',mon:'Monitor',alert:'Alert'};
-  function oneMeter(o){
-    var max=o.max, bound=o.bound, value=o.value, status=o.status, N=24, dotW=7, gap=3;
-    var totalW=N*dotW+(N-1)*gap;
-    var over=value>max;                              /* reading past the ceiling */
-    var filled=over?N:Math.round(value/max*N);       /* over range fills every dot */
-    var boundPct=(bound/max*100).toFixed(2);
-    var h='',i;
-    for(i=0;i<N;i++) h+='<span class="d'+(i<filled?' '+status:' off')+'"></span>';
-    /* when the value runs past the last dot, a chevron in the status colour
-       marks the overflow so the meter never silently caps out */
-    if(over) h+='<span class="meter-over '+status+'" aria-hidden="true">\u203A</span>';
-    return '<div class="meter-case">'+
-      '<div class="meter-cap"><span class="pill '+status+'">'+STATUS[status]+'</span>'+
-        '<span class="meter-caplab">'+o.caption+'</span></div>'+
-      '<div class="meter-row">'+
-        '<div class="meter-wrap" style="width:'+totalW+'px">'+
-          '<div class="meter">'+h+'</div>'+
-          '<div class="meter-bound" style="left:'+boundPct+'%"></div>'+
-          '<div class="meter-scale">'+
-            '<i>0</i><i class="bound" style="left:'+boundPct+'%">'+bound+'</i><i style="left:100%">'+max+'</i>'+
-          '</div>'+
-        '</div>'+
-        '<span class="meter-out num'+(status!=='ok'?' '+status:'')+'">'+value+
-          '<em style="font-style:normal;font-size:var(--text-label);color:var(--ink-400);margin-left:6px;letter-spacing:0">mL/min</em></span>'+
-      '</div>'+
-    '</div>';
-  }
   host.innerHTML=
-    oneMeter({max:120,bound:90,value:87, status:'mon',caption:'Below the expected floor'})+
-    oneMeter({max:120,bound:90,value:132,status:'alert',caption:'Past the ceiling, over range'});
+    meterHTML({max:120,bound:90,value:87, status:'mon',caption:'Below the expected floor'})+
+    meterHTML({max:120,bound:90,value:132,status:'alert',caption:'Past the ceiling, over range'});
 }
-
 /* 05 · arc index dial */
 function buildDial(){
   var host=document.getElementById('dialDemo'); if(!host) return;
@@ -3350,8 +3558,8 @@ function bindProvenance(){
 }
 
 /* ────────────────────────── wiring ────────────────────────── */
-var VIEWS={scan:'viewScan',lab:'viewLab',heart:'viewHeart',spec:'viewSpec'};
-var TABS ={scan:'tabScan', lab:'tabLab', heart:'tabHeart', spec:'tabSpec'};
+var VIEWS={scan:'viewScan',lab:'viewLab',heart:'viewHeart',kidney:'viewKidney',spec:'viewSpec'};
+var TABS ={scan:'tabScan', lab:'tabLab', heart:'tabHeart', kidney:'tabKidney', spec:'tabSpec'};
 function show(which){
   for(var k in VIEWS){
     var v=document.getElementById(VIEWS[k]);
@@ -3360,17 +3568,23 @@ function show(which){
   }
   document.body.style.overflowY = (which==='spec') ? 'auto' : 'hidden';
   if(which==='scan'){ fit(); playReveal(); }
-  else { if(which==='heart') fitHeart(); window.scrollTo(0,0); }
+  else {
+    if(which==='heart') fitHeart();
+    if(which==='kidney') fitKidney();
+    window.scrollTo(0,0);
+  }
   /* the second experience is heavy, so it only wakes up when it is on screen */
   window.dispatchEvent(new CustomEvent('viewchange',{detail:which}));
 }
 document.getElementById('tabScan').addEventListener('click',function(){show('scan');});
 document.getElementById('tabLab').addEventListener('click',function(){show('lab');});
 document.getElementById('tabHeart').addEventListener('click',function(){show('heart');});
+document.getElementById('tabKidney').addEventListener('click',function(){show('kidney');});
 document.getElementById('tabSpec').addEventListener('click',function(){show('spec');});
 window.addEventListener('resize',function(){
   if(document.getElementById('viewScan').classList.contains('is-on')) fit();
   if(document.getElementById('viewHeart').classList.contains('is-on')) fitHeart();
+  if(document.getElementById('viewKidney').classList.contains('is-on')) fitKidney();
 });
 
 buildScale(); buildRamps(); buildCharts();
@@ -3379,9 +3593,13 @@ buildPanel(); buildMatrix(); buildGallery();
 /* The provenance marks sit in three places: the design-system demo above, the
    home page's stage, and the body page's — and the last of those is parsed
    after this script. Wait for the document rather than racing it. */
-/* The heart page's rail is in the same position: its markup is parsed
-   after this script, so it is built here rather than in the line above. */
-function lateBuild(){ bindProvenance(); buildHeart(); fitHeart(); }
+/* The two organ pages' rails are in the same position: their markup is parsed
+   after this script, so they are built here rather than in the line above. */
+function lateBuild(){
+  bindProvenance();
+  buildHeart(); fitHeart();
+  buildKidney(); fitKidney();
+}
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lateBuild);
 else lateBuild();
 fit(); renderFigure(document.getElementById('bodyCanvas'),W,H,{cx:683,ty:50,hw:244,fh:980},5.4,1);
@@ -3764,6 +3982,12 @@ function buildNode(json, bin, index, cache, seen) {
   if (seen.has(index)) return null;
   seen.add(index);
   const n = json.nodes[index], obj = new THREE.Group();
+  /* The parser dropped node names, which was fine while every model in the
+     file was one shell shaded one way. A cut-away is not: its cortex, its
+     medulla and its vessels are separate meshes and the page has to be able to
+     say which is which. Carrying the name costs nothing and no existing caller
+     reads it. */
+  if (n.name) obj.name = n.name;
   if (n.matrix) new THREE.Matrix4().fromArray(n.matrix).decompose(obj.position, obj.quaternion, obj.scale);
   else {
     if (n.translation) obj.position.fromArray(n.translation);
@@ -4298,10 +4522,16 @@ try {
   .hot .tag{max-width:0;overflow:hidden;white-space:nowrap;opacity:0;
     font-family:var(--font-sans);font-size:15px;color:var(--ink-900);
     transition:max-width .42s var(--ease-frosted-out),opacity .3s ease,padding .42s var(--ease-frosted-out)}
-  /* The tag sits directly over the organ it names — the surface with the most
-     movement behind it anywhere on the page — so it is the thickest of the
-     controls: a heavier tint, so an organ's dark red never comes through far
-     enough to touch the name. */
+  /* The ring and the pill are ONE object, which is what the negative margin
+     is for: the pill starts 16px inside the ring's right edge and pads 26 on
+     that side to clear it, so the ring reads as the head of the label rather
+     than as a separate mark that happens to be nearby. That pairing is the
+     original and it is right — a version that pulled them apart with a 12px
+     gap turned one label into two things floating near each other, and the
+     gap was the first thing you saw.
+
+     It keeps the heavier tint. It sits over the organ, which is the surface
+     with the most movement behind it anywhere on the page. */
   .hot.named .tag{max-width:260px;opacity:1;padding:11px 20px 11px 26px;margin-left:-16px;
     border-radius:999px;
     /* The one surface in the file that states its own alpha instead of
@@ -4358,15 +4588,53 @@ try {
      different number on any machine that falls back. Centred, the nav pill kept
      its own 66px and the two halves sat at different heights; stretched, it
      takes the name's height by construction and cannot drift from it. */
+  /* ---------- two pills, and the reason they stay two ----------
+     This was rebuilt once as a single trough holding the name as a selected
+     segment, on the argument that the sex switch and the view switcher are
+     the same component and this is too. It is not, and the attempt is worth
+     a paragraph because the reasoning looked sound.
+
+     A segmented control MARKS its selection because there are alternatives
+     beside it to be told apart from. Here there is one name and no
+     alternatives, so marking it says nothing — and what it cost was a slab of
+     brand gradient across the bottom third of the figure, the heaviest object
+     on a page whose whole subject is a pale body dissolving into a pale
+     ground. The name and the two arrows are also not peers: one is a reading,
+     the other is navigation, and a control that puts them in one groove says
+     they are the same kind of thing.
+
+     So: two pills of the same glass, 14px apart, which is what the shipped
+     page draws. align-items:stretch, not center, and it is the difference
+     between the bar being one object and being two that happen to be
+     adjacent. The name pill's height comes from a 34px display face on
+     line-height:normal, so it is whatever Contralto's own ascent and descent
+     make it — 73px here, and a different number on any machine that falls
+     back. Centred, the nav pill kept its own 66px and the two halves sat at
+     different heights; stretched, it takes the name's height by construction
+     and cannot drift from it. */
   .lab-bar{position:absolute;left:50%;bottom:80px;transform:translate(-50%,26px);z-index:6;
     display:flex;align-items:stretch;gap:14px;width:min(780px,calc(100% - 460px));
     opacity:0;pointer-events:none;transition:opacity .34s ease,transform .34s var(--ease-frosted-out)}
   .lab-bar.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
   /* The widest surface on the page, and the one the missing shadow cost most:
      with nothing beneath it the pill's right half had no edge to find and the
-     name appeared to sit on the stage rather than on a bar. */
+     name appeared to sit on the stage rather than on a bar.
+
+     --gl-tint-solid, not --gl-tint-live: one step lighter, 50% against 59%.
+     The live tier exists for a measured reason — a panel over a moving figure
+     needs the density to hold its own boundary — and that reason is about the
+     EDGE, which here is held by a real drop the seven-row rail and the
+     reading card do not have to lean on as hard. At 59% the bar was the one
+     piece of furniture on this page you saw before you saw the body. At 50%
+     the figure's own dots travel visibly through it and it still carries a
+     34px title without the field breaking up the letters.
+
+     50 and not 42, which is section 06's Pane and what the two organ rails
+     take: those stand on a quiet ground, and this stands on a live one. If it
+     wants to go further, that is the next step and the last — below the Pane
+     there is no tier, only a number nobody else uses. */
   .lab-bar-name{flex:1;display:flex;align-items:center;gap:16px;padding:16px 30px;border-radius:999px;
-    background-color:var(--gl-tint-live);
+    background-color:var(--gl-tint-solid);
     -webkit-backdrop-filter:var(--gl-blur-panel);backdrop-filter:var(--gl-blur-panel);
     box-shadow:var(--glass-panel-drop),var(--glass-lit)}
   /* the same mark as the rail row it came from, at the same step */
@@ -4397,9 +4665,12 @@ try {
      66px tall, matched to the name pill: 46px disc on 10px padding. The discs
      are 46px because that is what .sg-discs draws, and the 62px circles were
      sized when they were the only surface there. */
+  /* The pill takes the same tier as the name beside it, because the two
+     halves of one bar cannot sit on different tiers; that was true at 59%
+     and it is true at 50%. */
   .lab-bar-nav{display:flex;align-items:center;gap:10px;padding:0 14px;
     border-radius:999px;
-    background-color:var(--gl-tint-live);
+    background-color:var(--gl-tint-solid);
     -webkit-backdrop-filter:var(--gl-blur-panel);backdrop-filter:var(--gl-blur-panel);
     box-shadow:var(--glass-panel-drop),var(--glass-lit)}
   .lab-bar-nav button{position:relative;z-index:1;
@@ -4490,9 +4761,9 @@ try {
     .lab-bar-name{padding:12px 22px}
     .lab-bar-name b{font-family:var(--font-serif-xsmall);font-size:23px}
     /* 38px on 8px padding is 54px, matched to the name pill at this size the
-       same way 46-on-10 matches it at full width */
-    /* only the horizontal inset and the disc size change; the height still
-       comes from the name pill via align-items:stretch */
+       same way 46-on-10 matches it at full width. Only the horizontal inset
+       and the disc size change; the height still comes from the name pill via
+       align-items:stretch. */
     .lab-bar-nav{padding:0 12px;gap:8px}
     .lab-bar-nav button{width:38px;height:38px;font-size:17px}
     .lab-card{display:none}
@@ -5048,9 +5319,22 @@ async function organFor(cat) {
        rides on. Order matters: the default XYZ Euler applies Rx after Ry, so
        the pitch tips the seated organ in body space, not in its own frame. */
     holder.rotation.set((cat.pitch || 0) * Math.PI / 180, cat.yaw * Math.PI / 180, 0);
-    holder.visible = false;
     rec.pivot.add(holder);
-    rec.organs[cat.id] = { holder, mat };
+    /* Where the organ's right flank is, in the pivot's space — measured once,
+       here, because it is a property of the mesh and its seating and neither
+       of those changes again. The open hotspot uses it to stand its ring on
+       the flank rather than over the middle of the organ; see the projection
+       at the end of frame().
+
+       Pivot space and not world space, because the pivot turns with the sex
+       switch and a world-space number would be wrong the moment it did. The
+       AABB of a rotated AABB is a little generous, and the projection pulls
+       14px back inside it for exactly that reason. */
+    holder.updateWorldMatrix(true, true);
+    const b = new THREE.Box3().setFromObject(holder)
+      .applyMatrix4(new THREE.Matrix4().copy(rec.pivot.matrixWorld).invert());
+    holder.visible = false;
+    rec.organs[cat.id] = { holder, mat, flankX: b.max.x };
     return rec.organs[cat.id];
   } finally {
     loading.classList.remove('on');
@@ -5297,6 +5581,8 @@ canvas.addEventListener('pointercancel', endDrag);
 
 /* --------------------------------------------------------------- the loop */
 const tmp = new THREE.Vector3();
+/* the open hotspot's second projection — the organ's own side, not its middle */
+const hotEdge = new THREE.Vector3();
 let live = false, last = performance.now();
 
 function resize() {
@@ -5404,7 +5690,43 @@ function frame(now) {
   if (holder) holder.visible = true;
   organList.forEach((k, i) => { rec.organs[k].holder.visible = wasVisible[i]; });
 
-  /* hotspots ride the projection of their own anchor */
+  /* Hotspots ride the projection of their own anchor.
+
+     A dormant one is a ring and nothing else, so it sits on the anchor: the
+     organ's middle, which is where a marker for a thing you have not opened
+     belongs.
+
+     An open one carries the organ's NAME, and where that goes took three
+     tries. Centred on the anchor, the pill lay across the middle of the organ
+     and hid the thing the camera had just flown to. Measured out past the
+     silhouette's LEFT edge, nothing was covered and it looked worse: every
+     organ's label parked off to one side of the figure, the ring floating in
+     the field beside the mesh instead of marking a place on it, and seven
+     organs all pointing the same way.
+
+     What a pinned readout actually needs is that the ring be ON the thing and
+     the name be OFF it. So the ring is put just inside the organ's right
+     flank — 14 screen pixels in, so it always has mesh under it — and the
+     pill runs rightward off the silhouette into open field. It clips the
+     organ's edge, which is what a pin does; the mass of the organ, and the
+     middle where the eye goes, stay clear.
+
+     Right, not left, for the reason reading order gives: the ring is the
+     mark and the name is what the mark says, and a label that reads back
+     toward its own anchor asks the eye to travel twice. The rail on the right
+     starts at 300px in from the frame and the label runs about 150 from the
+     flank, so the two do not meet at any width the stage is drawn for.
+
+     The flank is projected rather than nudged in screen pixels, because the
+     camera moves: a fixed offset would be right at one distance and wrong at
+     every other. And the ring is placed at a FRACTION of the way out to it
+     rather than a fixed distance back from it, for the same reason at the
+     other end: a box is the widest the organ ever gets and most organs are
+     not that wide at the height the anchor sits. The heart's box carries the
+     aortic arch, which reaches right at the top and nowhere near the middle,
+     so 14px inside the box put the ring in clear air beside the muscle. 0.6
+     of the half-width lands inside the mesh on all seven and still leaves the
+     name clear of it. */
   for (const c of CATS) {
     const el = hots[c.id];
     if (!el) continue;
@@ -5412,7 +5734,18 @@ function frame(now) {
     tmp.project(camera);
     const x = (tmp.x * 0.5 + 0.5) * window.innerWidth;
     const y = (-tmp.y * 0.5 + 0.5) * window.innerHeight;
-    el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%,-50%)`;
+    const o = rec && rec.organs[c.id];
+    if (el.classList.contains('named') && o && o.flankX !== undefined) {
+      hotEdge.copy(organAnchor(c));
+      hotEdge.x = o.flankX;
+      rec.pivot.localToWorld(hotEdge).project(camera);
+      const ex = (hotEdge.x * 0.5 + 0.5) * window.innerWidth;
+      const px = x + (ex - x) * 0.6;
+      el.style.transform =
+        `translate(${px.toFixed(1)}px, ${y.toFixed(1)}px) translate(-17px,-50%)`;
+    } else {
+      el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%,-50%)`;
+    }
   }
 }
 requestAnimationFrame(frame);
@@ -5540,14 +5873,14 @@ addEventListener('viewchange', (e) => {
       </div>
 
       <div id="heartRail">
-        <h1 class="heart-title">Heart rhythm</h1>
-        <div class="heart-sub">Heart rate: 61 bpm <span class="pill ok">Normal</span></div>
-        <div class="heart-rule"></div>
-        <div class="gl heart-pane">
+        <h1 class="org-title">Heart rhythm</h1>
+        <div class="org-sub">Heart rate: 61 bpm <span class="pill ok">Normal</span></div>
+        <div class="org-rule"></div>
+        <div class="gl org-pane">
           <h4>Rhythm strip</h4>
           <div id="heartWave"></div>
         </div>
-        <div class="gl heart-pane">
+        <div class="gl org-pane">
           <h4>Intervals</h4>
           <div id="heartTracks"></div>
         </div>
@@ -5623,15 +5956,24 @@ addEventListener('viewchange', (e) => {
      same way, 134+440/2 = 354 against 354. */
   #heartRail{position:absolute;left:777px;top:50%;width:520px;
     transform:translate(var(--spread,0px),-50%)}
-  .heart-title{font-family:var(--font-serif-medium);font-size:var(--text-title-lg);
+
+  /* ── the organ rail's four parts ──────────────────────────────────────
+     .org-, not .heart-. Two pages draw this rail now, and the moment the
+     second one arrived the choice was between copying four rules into it or
+     admitting that a title, a sub-line, a hairline and a pane are not
+     anything about a heart. They are the shape of a single-organ report, and
+     the kidney page takes them verbatim — which is the only way the two pages
+     can be relied on to still agree a year from now.
+
+     The geometry above stays #heartRail's own: where the rail sits is a fact
+     about a composition, and the kidney page states its own copy of it. */
+  .org-title{font-family:var(--font-serif-medium);font-size:var(--text-title-lg);
     font-weight:var(--w-serif-title);letter-spacing:-.015em;line-height:1.04;color:var(--ink-900)}
   /* Supporting text under a 44px title, so the supporting rung — and its pill
      takes the meta rung, the same one the tracks' pills take. */
-  .heart-sub{display:flex;align-items:center;gap:11px;margin-top:14px;
+  .org-sub{display:flex;align-items:center;gap:11px;margin-top:14px;
     font-size:15px;color:#4a5578}
-  .heart-sub .pill{font-size:13px;font-weight:600;letter-spacing:.03em;
-    padding:3px 9px;border-radius:6px}
-  .heart-rule{height:1px;background:var(--divider);margin:14px 0 16px}
+  .org-rule{height:1px;background:var(--divider);margin:14px 0 16px}
   /* Section 06's card, not the design system document's card. These panes
      were taking --radius-lg, which is 12px and belongs to .card — the white
      paper block the spec sheet itself is built out of. No glass surface in
@@ -5646,8 +5988,22 @@ addEventListener('viewchange', (e) => {
      these two are: a card with a plot in it, and a card with three readings
      in it. Both panes take the same padding; the second one was carrying a
      different set for no reason anyone could have stated. */
-  .heart-pane{border-radius:26px;padding:24px 28px 26px;background-color:var(--gl-tint-live)}
-  .heart-pane + .heart-pane{margin-top:18px}
+  /* No fill of its own any more. It was --gl-tint-live, the 59% tier, on the
+     argument in that token's own note: a quiet ground gives the blur nothing
+     to bend, so the pane needs the extra density to hold its boundary. That
+     was right about the failure and one tier too far as a remedy — 59% on a
+     near-white page is a pale rectangle that happens to be frosted, and the
+     panes on these two rails stopped looking like the specimen in section 06
+     that every one of them is copied from.
+
+     So they take .gl verbatim, which is 42% — section 06's Pane, the value the
+     export draws a pane and a card at, and the number the whole doctrine is
+     written around. What holds the boundary instead is the drop, which is what
+     the plain doctrine says holds it. Read the two side by side and the
+     product now shows what the design system specifies, which is the only
+     test that matters here. */
+  .org-pane{border-radius:26px;padding:24px 28px 26px}
+  .org-pane + .org-pane{margin-top:18px}
   /* Every glass surface in the system gives its children a stacking context
      of their own — .sg-pane, .sg-card, .sg-row, .sg-btn and .lab-card all
      declare it, and .sg-pane's comment says why: content sits above the
@@ -5655,7 +6011,7 @@ addEventListener('viewchange', (e) => {
      pseudo-elements are free under the fourth doctrine and a component may
      claim them at any time; a pane whose content is not already above its
      own material cannot. */
-  .heart-pane > *{position:relative;z-index:1}
+  .org-pane > *{position:relative;z-index:1}
   /* The heading rank comes from .lab-card rather than .sg-card. Section 06's
      card titles itself in 24px Contralto, which is right for a specimen
      standing on its own and wrong here, where it would sit a single step
@@ -5669,8 +6025,29 @@ addEventListener('viewchange', (e) => {
   /* A card eyebrow is a marker, not content. It takes the meta rung and steps
      back in weight and ink so the first thing read inside a card is the reading
      and not the label on the box. */
-  .heart-pane h4{font-family:var(--font-sans);font-size:13px;font-weight:500;
-    letter-spacing:.08em;color:#4a5578;margin-bottom:16px}
+  /* .sg-card's heading, verbatim — 24px Contralto Xsmall — and this reverses
+     a decision made twice on this file, so the reversal is worth writing down.
+
+     It was a 13px eyebrow, on the argument that section 06's 24px card title
+     "is right for a specimen standing on its own and wrong here, where it
+     would sit a single step under the page's 44px title and argue with it".
+     That was true of the page it was written for: a 44px title, and then
+     nothing until 13. Two sizes that far apart do argue, and the fix chosen
+     was to push the second one further away.
+
+     Both rails now have a 33 in them — the heart's readings, the kidney's
+     verdict — so 44 / 33 / 24 is a ladder with rungs a reader can actually
+     stand on, and the card title is no longer the second thing on the page.
+     It is also, plainly, a card title: a 13px overline over a 520px pane
+     labels the pane the way a filing tab labels a drawer, and nobody reading
+     their own results is looking for the drawer.
+
+     The eyebrow rank survives where it belongs — .lab-card is a 296px panel
+     floating over a figure and keeps its 12px overline, which is the case the
+     old note was really describing. */
+  .org-pane h4{font-family:var(--font-serif-xsmall);font-size:var(--kpi-value-sm);
+    font-weight:var(--w-serif-title);letter-spacing:0;
+    color:var(--ink-900);margin-bottom:16px}
 
   /* Four rungs on this page and no fifth, which is the whole of the type
      brief. It had five — 44, 33, 18, 16, 14 — and the 16 was the one doing no
@@ -5698,19 +6075,347 @@ addEventListener('viewchange', (e) => {
      thing the product does. */
 </style>
 
+<!-- ============================================================
+     VIEW 5 · KIDNEYS.
+     The second single-organ report, and it takes VIEW 4's composition
+     unchanged: the same split at 708, the same 440x580 window on the left,
+     the same 520px rail centred in the right half, the same ground, the same
+     glass. Nothing about that arrangement was ever about a heart.
+
+     What it is for. The heart page asked whether three properties are enough
+     to separate a pane from the page. This one asks the question that comes
+     straight after it: whether the answer was about that composition or about
+     the system. A pattern that works once is a drawing; a pattern that works
+     twice, with a different organ, a different chart and a different verdict
+     in it, is a pattern. Every part of this page is already written down
+     somewhere else in the file — section 04's dot meter, section 06's card,
+     pattern 02's pinned readouts, pattern 11's provenance mark, VIEW 4's
+     rail — and the page adds no component of its own. That is the test.
+
+     Two things it does differently from the heart page, both because the
+     reading is different rather than because the page is:
+
+       the chart   A rhythm is four intervals on one repeating signal, so it
+                   takes a strip and three tracks. A filtration rate is one
+                   number against one band, so it takes section 04's meter and
+                   nothing else, with one pane of blood chemistry beside it.
+       the verdict The heart page's status is Normal and sits in the sub-line
+                   as a pill. This one is Monitor, which is a finding, and a
+                   finding gets said in words at the value rung rather than
+                   whispered in a capsule — so it stands in the head where the
+                   heart page puts its sub-line, above the rule, with the panes
+                   under it reading as the evidence for it.
+
+     The cut-away shells are ranked rather than shaded alike, and the rail's
+     type is on four rungs. Both have their own notes below.
+
+     The cut-away model is the point of the left half. A whole kidney is a
+     bean and reads as one silhouette; this mesh carries the cortex, the
+     medullary pyramids, the capsule, the ureter and both vessels as separate
+     shells, so the halftone pass has interior structure to resolve instead of
+     an outline. It is the first model in the file where the dots describe
+     something you could not have drawn from the profile.
+     ============================================================ -->
+<div class="view" id="viewKidney">
+
+  <button class="lab-back on" id="kidneyBack" type="button" aria-label="Back to the body page">&#8249;</button>
+
+  <!-- One model, one row, so pattern 11's solo form, the same as VIEW 4's. -->
+  <div class="prov on-stage" data-open="false">
+    <button class="prov-btn" type="button" aria-expanded="false" aria-controls="provKidney"
+            aria-label="Model credit for this figure">i</button>
+    <div class="prov-panel solo" id="provKidney" role="group" aria-label="Model credit">
+      <p class="prov-head"><b>Kidney_with_labels</b> by ikon97840<br><a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
+    </div>
+  </div>
+
+  <div id="kidneyWrap">
+    <div id="kidneyStage">
+      <div id="kidneySeam"></div>
+
+      <div id="kidneyField">
+        <div id="kidneyGlow"></div>
+        <canvas id="kidneyGL"></canvas>
+
+        <!-- Pattern 02, drawn to VIEW 4's rules exactly: one polyline per
+             readout, so the hairline under the number IS the start of the
+             line that reaches back to where the number was taken from. Two,
+             not four. The heart has four intervals on one beat and they are
+             all readings of the same signal; a kidney has one number worth
+             pinning to a place on the organ, and the blood pressure that
+             drives it. A third pin would be a pin for the sake of symmetry. -->
+        <svg id="kidneyLeads" viewBox="0 0 708 1024" aria-hidden="true">
+          <g fill="none" stroke="#203a8573" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="632,392 470,392 386,428"/>
+            <polyline points="96,706 240,706 306,672"/>
+          </g>
+          <g fill="#203a85" fill-opacity=".62">
+            <circle cx="386" cy="428" r="4"/>
+            <circle cx="306" cy="672" r="4"/>
+          </g>
+        </svg>
+
+        <div class="pin" style="left:520px;top:326px">Blood pressure<b class="num">129<em>/82</em></b></div>
+        <!-- Low, not level with the organ's middle. A kidney is widest across
+             its own centre and the left readout's rule was running under the
+             flank rather than beside it — with the number's own hairline
+             disappearing into the dots, which is the one line pattern 02 needs
+             to stay legible. At the lower pole the silhouette has curved back
+             in and the whole block sits clear of it. -->
+        <div class="pin" style="left:96px;top:640px">Filtration rate<b class="num">87<em>mL/min</em></b></div>
+
+        <div class="lab-load" id="kidneyLoad"><i></i><span>Loading</span></div>
+      </div>
+
+      <div id="kidneyRail">
+        <!-- Name, finding, why. The verdict is not inside a pane: it is what
+             the page is FOR, and a pane is a container for evidence. Putting
+             it in the head also stops it being said twice — it was in the
+             sub-line as a 13px pill and again as a 33px word forty pixels
+             below, which is the whole page's conclusion delivered at two
+             ranks in the same glance. It is stated once, at the value rung,
+             and every pane under the rule is the evidence for it. -->
+        <div class="kid-head">
+          <h1 class="org-title">Kidneys</h1>
+          <div class="kid-verdict">Monitor</div>
+        </div>
+        <div class="org-rule"></div>
+
+        <!-- Section 06's panel specimen, in the product it was drawn for. Its
+             own demo is titled "Kidney function" and reads 116 mL/min/1.73m²
+             against a Low / Mild / Normal band, with a cystatin C row under
+             the hairline — it has always been this page's card, standing on
+             the spec sheet with no page to live on. Nothing about it is
+             restyled: the chip becomes a status pill because every status on
+             this rail is one, and the type moves onto this rail's rungs.
+
+             It reads 116 where the meter under it reads 87, and the two do not
+             contradict each other — they are the reason the page says Monitor.
+             One estimate is made from cystatin C and one from creatinine, and
+             when a body's two filtration estimates disagree by thirty points
+             the disagreement IS the finding. Which is also why the card names
+             its own input in the row beneath it. -->
+        <div class="gl org-pane kid-fn">
+          <div class="sg-line">
+            <h4>Kidney function</h4>
+            <span class="pill mon">Monitor</span>
+          </div>
+          <div class="sub-lab">Enhanced filtration &middot; mL/min/1.73m&sup2;</div>
+          <div class="kid-fn-read">
+            <div class="sg-big num">116</div>
+            <div class="kid-fn-cap">above the<br>expected band</div>
+          </div>
+          <div class="kid-fn-band">
+            <div class="sg-zone"><u></u><b></b></div>
+            <div class="sg-scale"><span>Low</span><span>Mild&nbsp;&middot;&nbsp;60</span><span>Normal&nbsp;&middot;&nbsp;90</span></div>
+          </div>
+          <!-- The other three inputs, as rows under the same hairline the
+               specimen already draws once. They were a third pane, two
+               columns of name-over-substances with a status under each, and
+               it cost the rail 200px it does not have: the stage is 1024 tall
+               and a rail centred in it cannot run past 950 without touching
+               both frames. Section 06 had the cheaper form all along — a
+               panel whose rows are separated by .sg-hair, no per-row surface —
+               and it is also the truer one, because these are not three
+               subjects. They are the four readings the verdict at the top of
+               the page was made from, and a panel is what says so. -->
+          <div class="sg-hair"></div>
+          <div class="sg-line">
+            <!-- no gloss: cystatin C IS a substance, and the row above already
+                 names what is made from it. A second line here also broke the
+                 row's baseline, which is the one thing .sg-line is for. -->
+            <span>Cystatin C</span>
+            <b class="num">0.58<em>&nbsp;mg/L</em></b>
+          </div>
+          <div class="sg-hair"></div>
+          <div class="sg-line">
+            <span>Waste products <i>creatinine, urea, urate</i></span>
+            <span class="pill mon">Monitor</span>
+          </div>
+          <div class="sg-hair"></div>
+          <div class="sg-line">
+            <span>Minerals <i>calcium, magnesium, phosphate</i></span>
+            <span class="pill ok">Normal</span>
+          </div>
+        </div>
+
+        <div class="gl org-pane">
+          <h4>Filtration rate <span class="gloss">eGFR, from creatinine</span></h4>
+          <div id="kidneyMeter"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Geometry only, and every number in the first block is VIEW 4's own. They
+     are repeated rather than shared because a composition is a fact about one
+     page: the two happen to agree today, and if one of them ever needs a
+     wider organ half it should be able to have it without silently moving the
+     other. What IS shared is everything that carries a look — .gl, .org-*,
+     .pin, .meter, .pill — so the two pages cannot drift in material or type
+     while staying free to differ in layout. */
+  #kidneyWrap{position:relative;margin:0 auto;overflow:hidden}
+  #kidneyStage{position:absolute;top:0;left:0;width:1366px;height:1024px;transform-origin:top left}
+  #kidneySeam{position:absolute;left:708px;top:0;bottom:0;width:1px;
+    background:linear-gradient(to bottom,transparent,var(--divider) 13%,var(--divider) 87%,transparent)}
+  #kidneyField{position:absolute;left:0;top:0;width:708px;height:1024px;
+    transform:translateX(calc(var(--spread,0px) * -1))}
+  #kidneyGL{position:absolute;left:134px;top:222px;width:440px;height:580px;display:block}
+  #kidneyGlow{position:absolute;left:74px;top:172px;width:560px;height:680px;
+    pointer-events:none;
+    background:radial-gradient(ellipse 52% 50% at 50% 49%,
+      #ffffffb8 0%,#ffffff91 32%,#ffffff45 56%,#ffffff14 74%,#ffffff00 86%)}
+  #kidneyLeads{position:absolute;left:0;top:0;width:708px;height:1024px;pointer-events:none}
+  #kidneyField .pin{z-index:2}
+  #kidneyField .pin b{font-size:var(--kpi-value-lg)}
+  #kidneyBack{position:fixed}
+  #kidneyRail{position:absolute;left:777px;top:50%;width:520px;
+    transform:translate(var(--spread,0px),-50%)}
+
+  /* ── the rail's type ─────────────────────────────────────────────────────
+     It had eight sizes on one column — 44, 33, 24, 18, 15, 14, 13 and 11 —
+     and no two of them meant anything different from each other. Four of the
+     eight were a component's own default arriving from section 04 or 06 and
+     never asked whether it still ranked correctly here: the meter's value
+     came in at 24 while the verdict beside it was 33, its scale ticks at 11
+     while the pane's eyebrow was 13, and the sub-line invented a 15 that
+     exists nowhere else in the file. That is what reads as untidy — not any
+     one size being wrong, but a column where size has stopped carrying rank.
+
+     The rungs, and every one of them a token:
+
+       76   .sg-big           the one hero numeral, in the Kidney function
+                              card — the only place on this rail the mono
+                              appears, which is the rule the mono has
+       44   --text-title-lg   the page title, once
+       33   --kpi-value-lg    a finding: the verdict, and the reading that
+                              caused it — so the 87 on the meter is the same
+                              size as the 87 on the organ opposite
+       24   --kpi-value-sm    a card's title, in Contralto Xsmall
+       18   --text-label      names and the lede: everything that says what a
+                              value is
+       16   --text-data       meta: glosses, captions, scale ticks, pills
+
+     The bottom rung was 14 and it was too small to read, which is a fact
+     about this page rather than about the token: the whole composition is
+     drawn at 1366 and scaled to the window, so 14 lands at 12.3 real pixels
+     in a 1440 window and 10.5 on a 4:3 screen. --text-data is named for
+     "table cells, timestamps and secondary readouts" and is the next rung up,
+     and a card title at 24 is what actually fixed the complaint: the panes
+     were labelled in the smallest type on the page.
+
+     Three inks, and rank inside a rung is carried by ink, weight and tracking
+     rather than by a fifth size:
+
+       --ink-900   what you are meant to read: the title, a row's name
+       --ink-label supporting prose and units
+       --ink-600   meta
+
+     --ink-400 is gone from this rail entirely. It measures about 2.9:1 on the
+     page's ground and only a little better through a 42% pane, and this file
+     already documents it as under the floor for text at these sizes.
+
+     One accent. --status-warning-ink on the verdict and on the number that
+     caused it, and the pills carry their own tint. Two golds at the same
+     size, either side of the rule, are not a repetition: they are the finding
+     and its evidence, and the colour is what says so.
+
+     Three families and no fourth, which is the whole type brief: Contralto
+     for the title and the verdict, Helvetica Neue for everything else, and
+     New Science Mono untouched — it is reserved for the 80px hero numeral and
+     there is no hero numeral on this page. The verdict takes
+     --font-serif-small rather than the title's --font-serif-medium because 33
+     is Small's optical range; setting the Medium cut at 33 is using the wrong
+     size of the right face, which is the one mistake a four-optical-size
+     family exists to prevent. */
+  /* Name left, finding right, on one baseline. It was stacked — 44 over 33,
+     both hard against the left margin — and read as two titles, the second one
+     shouting in gold under the first. Beside it, the two are one line with two
+     jobs: what this page is, and how it stands. It is also the row grammar the
+     rest of the rail already runs on, since every .sg-line under it puts a
+     label at the left and its status at the right; the head of the page and
+     the rows in the card now say the same thing the same way.
+
+     baseline, not center: 33px Contralto beside 44px Contralto sits on the
+     title's own baseline, which is the only alignment that reads as one line
+     rather than as two objects that happen to overlap vertically. */
+  .kid-head{display:flex;align-items:baseline;justify-content:space-between;gap:20px}
+  .kid-verdict{flex:none;font-family:var(--font-serif-small);
+    font-size:var(--kpi-value-lg);font-weight:var(--w-serif-title);
+    line-height:1;letter-spacing:-.01em;color:var(--status-warning-ink)}
+  /* No lede. The head is the name and the finding, and the panes under the
+     rule are what the finding was made from — a sentence between them was
+     saying in prose what the card below says in rows. */
+  #kidneyRail .org-rule{margin:20px 0 18px}
+
+  /* The clinical alias, on the eyebrow's own line and at the eyebrow's own
+     size. It was a line of its own at 18 — a gloss set larger than the name
+     it glosses, which is the inversion section 03's track component already
+     has a paragraph about. Same rung now, and the rank is weight and tracking:
+     the eyebrow is 500 on .06em, the gloss is 400 on none. */
+  #kidneyRail h4 .gloss{margin-left:11px;font-family:var(--font-sans);
+    font-size:var(--text-data);font-weight:var(--w-data);letter-spacing:0;
+    color:var(--ink-600)}
+
+  /* ── the Kidney function card ──
+     Geometry only: every surface, every colour, every component and now every
+     SIZE inside it is section 06's. The rungs the card needed are the rungs
+     the card has — that was the whole point of moving the components onto the
+     report ladder rather than correcting them here. What is left below is
+     spacing, and one gloss the specimen does not have. */
+  .kid-fn .sg-line h4{margin-bottom:0}
+  .kid-fn-read{display:flex;align-items:flex-end;gap:16px;margin-top:16px}
+  .kid-fn-cap{padding-bottom:10px;font-size:var(--text-data);line-height:1.5;
+    color:var(--ink-600)}
+  .kid-fn-band{margin-top:26px}
+  .kid-fn .sg-line{min-height:30px}
+  /* the substances a reading is made of, on the reading's own line: a gloss,
+     at the meta rung, ranked by ink rather than by a rung of its own */
+  .kid-fn .sg-line i{font-style:normal;margin-left:8px;
+    font-size:var(--text-data);color:var(--ink-600)}
+
+  /* Nothing here re-sizes a component any more. The meter, the pill and the
+     card were each being corrected on this page because each arrived from its
+     section on a rung of its own; they are drawn correctly at source now, so
+     section 04's specimen and this product page show the same object. */
+
+</style>
+
 <script type="module">
 /* ---------------------------------------------------------------------------
-   Heart rhythm page · one organ, and nothing else in the scene.
+   The single-organ figure · one organ, and nothing else in the scene.
 
    This is the body page's renderer with everything the body page needs taken
    out: no body mesh, no centreline, no seven-organ table, no camera flight, no
    hotspots. What is left is the pair of passes that make the look — shade into
    a buffer with matTone, then lay one dot per screen cell with matHalftone —
-   driven by the body page's own organ preset and its close-up gains, so the
-   heart here is the heart you get by opening it over there.
+   driven by the body page's own organ preset and its close-up gains, so an
+   organ here is the organ you get by opening it over there.
 
-   Two things it does NOT copy, both for the same reason: this canvas is a
-   520x600 window on a page that already has a ground, not a full-bleed stage.
+   It is a factory now, and the note that used to sit here said exactly when it
+   would have to become one:
+
+     "The tone and halftone materials are copied rather than shared. That is
+      the third copy in this file, and it is deliberate: the other two are each
+      bound to their own renderer, and handing one renderer's WebGLRenderTarget
+      to another is a class of bug not worth the fifty lines it would save. If
+      a fourth copy ever appears, that is the moment to lift all of them out."
+
+   The kidney page is the fourth copy, so they are lifted out — but only this
+   far. Each call still builds its OWN renderer, its own materials and its own
+   render target, which is the part the old note was protecting: nothing is
+   handed across a renderer boundary, and one page's target can never end up
+   sampled by another page's quad. What is shared is the source, not the
+   objects. The home page and the body page keep their own copies, because
+   theirs are not this: one draws a procedural figure and the other composites
+   a body, a sky and seven organs in one frame.
+
+   Two things it does NOT copy from the body page, both for the same reason:
+   these canvases are a 440x580 window on a page that already has a ground, not
+   a full-bleed stage.
 
      the sky sphere  Sterile Blue behind the organ would paint an opaque
                      rectangle over the page's own wash, with a visible box
@@ -5725,12 +6430,6 @@ addEventListener('viewchange', (e) => {
    Nothing animates. The composition is static, the same rule the home page's
    figure follows, so there is no RAF loop at all: the two passes run once when
    the model lands and again when the tab comes back on screen.
-
-   The tone and halftone materials are copied rather than shared. That is the
-   third copy in this file, and it is deliberate: the other two are each bound
-   to their own renderer, and handing one renderer's WebGLRenderTarget to
-   another is a class of bug not worth the fifty lines it would save. If a
-   fourth copy ever appears, that is the moment to lift all of them out.
    --------------------------------------------------------------------------- */
 const { THREE, loadGLB, fitToFloor } = await (async () => {
   for (let i = 0; i < 600; i++) {
@@ -5740,248 +6439,373 @@ const { THREE, loadGLB, fitToFloor } = await (async () => {
   throw new Error('the GLB reader never arrived');
 })();
 
-/* One object, one file. The page loads HEART.file and the credit panel names
-   HEART.credit, so the two cannot drift onto different models — the guarantee
-   the body page gets from deriving its list off CATS, at the scale of one row.
-   yaw is CATS' cardio entry verbatim, so this heart and the one inside the
-   body are turned the same way. */
-const HEART = {
-  file: 'GLB/organ/realistic_human_heart.glb',
-  yaw: -12,
-  credit: { work: 'Realistic Human Heart', author: 'neshallads' },
-  /* fill is measured against the whole bounding box, and the box includes the
-     vessel stubs — so at a value that sounds safe the muscle itself lands at
-     barely half the frame. 1.02 lets the stubs run to the very top edge, which
-     is where the reference composition puts them, and aim seats the muscle
-     rather than the box: 0.44 of the box height, not its centre. */
-  fill: 0.84,
-  aim: 0.46,
-};
-
-/* SCREEN.organ and CLOSEUP from the body page, transcribed rather than
-   approximated: it has to be the same screen, or the two pages disagree about
-   what an organ in focus looks like. */
+/* SCREEN.organ from the body page, transcribed rather than approximated: it
+   has to be the same screen, or the pages disagree about what an organ in
+   focus looks like. The body page's close-up gains are deliberately NOT
+   applied — those belong to the BODY's screen. The thing in focus is meant to
+   look the same whichever way you reached it, and its preset never moves. */
 const SCREEN_ORGAN = { pitch:3, angle:0, fill:0.95, soft:0.1, contrast:1.8, floor:0.045,
                        invert:1, glow:1, colour:'#9fb9e6', tip:'#203a85' };
 
 const CW = 440, CH = 580;                 // stage pixels; the stage scales them
-const canvas = document.getElementById('heartGL');
-/* Sized for the pixels this canvas actually occupies: its stage width times
-   the stage's scale times the display's ratio. Floored at 1 as well as capped
-   at 2 — the dot grid is measured in device pixels against a two-pixel
-   minimum, so a display reporting less than one would land the pitch coarser
-   than the design's three and read as a different screen. Re-rendering when
-   the scale changes costs a fraction of one frame here, because this page
-   draws two passes and then stops. */
-const load = document.getElementById('heartLoad');
-
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
-function stageDPR(){
-  const s = window.__stageScale || 1;
-  return Math.max(1, Math.min((window.devicePixelRatio || 1) * s, 2));
-}
-let DPR = stageDPR();
-renderer.setPixelRatio(DPR);
-if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
-/* The body page renders through ACES at Sterile Blue's own exposure. Leaving
-   it off here left the same two hex values landing several steps paler and
-   greyer than the organ they are copied from — the pipeline is part of the
-   colour, not a setting beside it. */
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
-renderer.setClearColor(0x000000, 0);
-renderer.autoClear = false;               // the halftone quad composites onto the frame
-renderer.setSize(CW, CH, false);          // false: the stylesheet owns the CSS size
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(32, CW / CH, 0.05, 2000);
-const pivot = new THREE.Group();
-scene.add(pivot);
 
 const hex2vec = (h) => {
   const v = parseInt(h.slice(1), 16);
   return new THREE.Vector3(((v >> 16) & 255) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255);
 };
 
-const matTone = new THREE.ShaderMaterial({
-  side: THREE.DoubleSide,
-  blending: THREE.NoBlending,
-  uniforms: {
-    uLightMix: { value: 0 },
-    uLightDir: { value: new THREE.Vector3(0.5, 0.7, 0.5) },
-  },
-  vertexShader: `
-    varying vec3 vN; varying vec3 vV;
-    void main() {
-      vec4 mv = modelViewMatrix * vec4(position, 1.0);
-      vN = normalize(normalMatrix * normal);
-      vV = normalize(-mv.xyz);
-      gl_Position = projectionMatrix * mv;
-    }`,
-  fragmentShader: `
-    varying vec3 vN; varying vec3 vV;
-    uniform float uLightMix;
-    uniform vec3 uLightDir;
-    void main() {
-      vec3 nv = normalize(vN);
-      float facing = clamp(abs(dot(nv, normalize(vV))), 0.0, 1.0);
-      float ndl = clamp(dot(nv, normalize(uLightDir)) * 0.5 + 0.5, 0.0, 1.0);
-      float bright = mix(facing, ndl, uLightMix);
-      gl_FragColor = vec4(bright, bright, bright, 1.0);
-    }`,
-});
+/* One organ, one file, one canvas, one credit. The page loads cfg.file and its
+   credit panel names the same model, so the two cannot drift onto different
+   ones — the guarantee the body page gets from deriving its list off CATS, at
+   the scale of one row. yaw is that organ's CATS entry or a value measured
+   against this framing, so the organ here is turned the way it is inside the
+   body unless there is a stated reason otherwise. */
+function organView(cfg) {
+  const canvas = document.getElementById(cfg.canvas);
+  const load = document.getElementById(cfg.load);
+  if (!canvas) return;
 
-const matHalftone = new THREE.ShaderMaterial({
-  uniforms: {
-    uTone: { value: null }, uRes: { value: new THREE.Vector2(2, 2) },
-    uPitch: { value: 3 }, uAngle: { value: 0 },
-    uFill: { value: 0.95 }, uSoft: { value: 0.1 }, uContrast: { value: 1.8 }, uFloor: { value: 0.045 },
-    uInvert: { value: 1 }, uOpacity: { value: 1 }, uGlow: { value: 1 },
-    uColor: { value: hex2vec('#9fb9e6') }, uTip: { value: hex2vec('#203a85') },
-  },
-  transparent: true, depthTest: false, depthWrite: false,
-  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
-  fragmentShader: `
-    varying vec2 vUv;
-    uniform sampler2D uTone;
-    uniform vec2 uRes;
-    uniform vec3 uColor, uTip;
-    uniform float uPitch, uAngle, uFill, uSoft, uContrast, uInvert, uOpacity, uGlow, uFloor;
-    void main() {
-      vec2 px = vUv * uRes;
-      float c = cos(uAngle), s = sin(uAngle);
-      vec2 g = vec2(c * px.x + s * px.y, -s * px.x + c * px.y) / uPitch;
-      vec2 id = floor(g) + 0.5;
-      vec2 cpx = vec2(c * id.x - s * id.y, s * id.x + c * id.y) * uPitch;
-      float tsum = 0.0, asum = 0.0;
-      for (int j = -1; j <= 1; j++) {
-        for (int i = -1; i <= 1; i++) {
-          vec2 o = vec2(float(i), float(j)) * uPitch * 0.34;
-          vec4 sm = texture2D(uTone, (cpx + o) / uRes);
-          tsum += sm.r * sm.a;
-          asum += sm.a;
-        }
-      }
-      float av = asum / 9.0;
-      float tv = asum > 0.0001 ? tsum / asum : 0.0;
-      float bright = mix(tv, 1.0 - tv, uInvert);
-      float cov = av * (uFloor + (1.0 - uFloor) * pow(clamp(bright, 0.0, 1.0), uContrast));
-      if (cov <= 0.0008) discard;
-      float r = 0.5 * uFill * sqrt(cov);
-      float d = length(g - id);
-      float aa = max(0.8 / uPitch, 0.0005);
-      float a = 1.0 - smoothstep(max(r - aa - uSoft * r, 0.0), r + aa, d);
-      if (a <= 0.003) discard;
-      gl_FragColor = vec4(mix(uColor, uTip, clamp(bright, 0.0, 1.0)) * uGlow, a * uOpacity);
-    }`,
-});
-
-const quadScene = new THREE.Scene();
-const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), matHalftone));
-
-let toneRT = null;
-function sizeToneRT(){
-  const w = Math.max(2, Math.round(CW * DPR)), h = Math.max(2, Math.round(CH * DPR));
-  if (toneRT) toneRT.dispose();
-  toneRT = new THREE.WebGLRenderTarget(w, h, {
-    minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
-    wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
-    depthBuffer: true, stencilBuffer: false,
-  });
-  matHalftone.uniforms.uRes.value.set(w, h);
-}
-sizeToneRT();
-addEventListener('stagescale', () => {
-  const next = stageDPR();
-  if (Math.abs(next - DPR) < 0.01) return;
-  DPR = next;
-  renderer.setPixelRatio(DPR);
-  renderer.setSize(CW, CH, false);
-  sizeToneRT();
-  render();
-});
-
-/* SCREEN.organ verbatim, and nothing added to it. The body page's close-up
-   gains belong to the BODY's screen — the thing in focus is meant to look the
-   same whichever way you reached it, and its preset never moves. Applying them
-   here would make this heart a heart the body page cannot show. */
-function applyScreen() {
-  const p = SCREEN_ORGAN, u = matHalftone.uniforms;
-  u.uPitch.value = Math.max(p.pitch * DPR, 2);
-  u.uAngle.value = p.angle * Math.PI / 180;
-  u.uFill.value = p.fill; u.uSoft.value = p.soft;
-  u.uContrast.value = p.contrast;
-  u.uFloor.value = p.floor;
-  u.uInvert.value = p.invert; u.uGlow.value = p.glow;
-  u.uOpacity.value = 1;
-  u.uColor.value.copy(hex2vec(p.colour));
-  u.uTip.value.copy(hex2vec(p.tip));
-}
-
-let ready = false, booted = false;
-
-function render() {
-  if (!ready) return;
-  renderer.setRenderTarget(toneRT);
-  renderer.clear(true, true, true);
-  renderer.render(scene, camera);
-  renderer.setRenderTarget(null);
-  renderer.clear(true, true, true);
-  matHalftone.uniforms.uTone.value = toneRT.texture;
-  applyScreen();
-  renderer.render(quadScene, quadCam);
-}
-
-/* Framed off the model's own turned bounding box rather than a hand-tuned
-   distance, so swapping the file cannot silently crop the organ. Both frame
-   axes are tested and the tighter one wins. */
-function frameOrgan() {
-  pivot.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(pivot);
-  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
-  const half = Math.tan((camera.fov * Math.PI / 180) / 2);
-  const dist = Math.max(s.y * 0.5 / half, s.x * 0.5 / half / camera.aspect) / HEART.fill;
-  const aimY = box.min.y + s.y * HEART.aim;
-  camera.position.set(c.x, aimY, c.z + dist);
-  camera.lookAt(c.x, aimY, c.z);
-  camera.updateProjectionMatrix();
-}
-
-async function boot() {
-  if (booted) return;
-  booted = true;
-  load.classList.add('on');
-  try {
-    const holder = fitToFloor(await loadGLB(HEART.file), 1);
-    holder.traverse((o) => { if (o.isMesh) o.material = matTone; });
-    pivot.add(holder);
-    pivot.rotation.y = HEART.yaw * Math.PI / 180;
-    frameOrgan();
-    ready = true;
-    setTimeout(() => load.classList.remove('on'), 200);
-  } catch (err) {
-    /* The chip stays up carrying the reason. The body page's copy of this
-       clears it from a finally, which means its own failure message is on
-       screen for 200ms and then gone — and an organ field that is simply
-       empty tells the reader nothing at all. Kept visible here on purpose. */
-    load.innerHTML = '<span>GLB not reachable — serve the folder over HTTP</span>';
-    booted = false;                       // let the next visit try again
-    throw err;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+  /* Sized for the pixels this canvas actually occupies: its stage width times
+     the stage's scale times the display's ratio. Floored at 1 as well as
+     capped at 2 — the dot grid is measured in device pixels against a
+     two-pixel minimum, so a display reporting less than one would land the
+     pitch coarser than the design's three and read as a different screen.
+     Re-rendering when the scale changes costs a fraction of one frame here,
+     because this page draws two passes and then stops. */
+  function stageDPR(){
+    const s = window.__stageScale || 1;
+    return Math.max(1, Math.min((window.devicePixelRatio || 1) * s, 2));
   }
+  let DPR = stageDPR();
+  renderer.setPixelRatio(DPR);
+  if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+  /* The body page renders through ACES at Sterile Blue's own exposure. Leaving
+     it off here left the same two hex values landing several steps paler and
+     greyer than the organ they are copied from — the pipeline is part of the
+     colour, not a setting beside it. */
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.setClearColor(0x000000, 0);
+  renderer.autoClear = false;             // the halftone quad composites onto the frame
+  renderer.setSize(CW, CH, false);        // false: the stylesheet owns the CSS size
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(32, CW / CH, 0.05, 2000);
+  const pivot = new THREE.Group();
+  scene.add(pivot);
+
+  const matTone = new THREE.ShaderMaterial({
+    side: THREE.DoubleSide,
+    blending: THREE.NoBlending,
+    uniforms: {
+      uLightMix: { value: 0 },
+      uLightDir: { value: new THREE.Vector3(0.5, 0.7, 0.5) },
+      /* How much of a dot this surface is worth, and the whole of the
+         cut-away treatment. The tone buffer's ALPHA is already the halftone
+         pass's mask — it is what tells a cell whether anything was there —
+         and the pass divides by it before reading brightness, so writing less
+         than 1 scales a cell's coverage without touching its tone. A shell at
+         0.4 keeps its shape, its shading and its dot GRID, and draws it at
+         0.63 of the radius: the same figure, quieter.
+
+         That is why this is one uniform and not a second pass. An interior
+         drawn at a coarser pitch, or in a paler ink, would read as a
+         different material behind glass; drawn at the same pitch and the same
+         two inks it reads as the same halftone seen through the organ's own
+         thickness, which is what a section actually looks like.
+
+         1 for every model that is one shell, so nothing else in the file
+         changes. */
+      uWeight: { value: 1 },
+      /* And how fast this surface falls away from its own rim.
+
+         The look is a contour fade: brightness is 1 minus the facing ratio, so
+         a surface turned edge-on to the camera is dark and dense and a surface
+         facing it is pale and sparse. On the heart that produces a graded
+         body, because a heart is a knot of curvature and very little of it
+         faces you squarely. A kidney is a smooth ellipsoid: nearly the whole
+         front face is square to the camera, the grazing band is a hairline
+         round the edge, and the organ comes out as an outline with nothing
+         inside it. Same shader, same numbers, and it does not read as the same
+         drawing at all.
+
+         Gamma is the correction, and it is a correction to the SHAPE rather
+         than to the treatment: below 1 it widens the band over which the fade
+         happens, so a smooth mesh grades the way a complicated one does. The
+         alternative was uContrast, and it is the wrong knob twice over — it
+         belongs to the halftone pass, so it is global to the frame and cannot
+         separate one shell from another, and it changes how tone maps to dots
+         for every mesh in the scene, which is exactly the setting that has to
+         stay identical if two pages are to agree about what an organ looks
+         like. This changes what the surface reports about itself. The screen
+         reading it is untouched. */
+      uGamma: { value: 1 },
+    },
+    vertexShader: `
+      varying vec3 vN; varying vec3 vV;
+      void main() {
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vN = normalize(normalMatrix * normal);
+        vV = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      varying vec3 vN; varying vec3 vV;
+      uniform float uLightMix;
+      uniform vec3 uLightDir;
+      uniform float uWeight, uGamma;
+      void main() {
+        vec3 nv = normalize(vN);
+        float facing = clamp(abs(dot(nv, normalize(vV))), 0.0, 1.0);
+        float ndl = clamp(dot(nv, normalize(uLightDir)) * 0.5 + 0.5, 0.0, 1.0);
+        float bright = mix(facing, ndl, uLightMix);
+        /* the fade is on 1 - bright, which is what the halftone pass inverts
+           back, so the curve has to be applied where the rim actually is */
+        bright = 1.0 - pow(clamp(1.0 - bright, 0.0, 1.0), uGamma);
+        gl_FragColor = vec4(bright, bright, bright, uWeight);
+      }`,
+  });
+
+  /* One material per distinct rank, cached: a shell's weight and gamma are
+     constants, so there are as many materials as the model has ranks — three
+     for the kidney, one for everything else. */
+  const toneMats = new Map([['1|1', matTone]]);
+  function toneFor(r) {
+    const w = Math.round((r && r.weight != null ? r.weight : 1) * 100) / 100;
+    const g = Math.round((r && r.gamma != null ? r.gamma : 1) * 100) / 100;
+    const k = w + '|' + g;
+    if (!toneMats.has(k)) {
+      const m = matTone.clone();
+      m.uniforms.uWeight.value = w;
+      m.uniforms.uGamma.value = g;
+      toneMats.set(k, m);
+    }
+    return toneMats.get(k);
+  }
+
+  /* A mesh's own node is called Object_21; the name that says what it IS sits
+     on an ancestor — Maya_2018:RED_12 — so the label is the whole chain. */
+  function labelOf(o) {
+    let s = '';
+    for (let n = o; n; n = n.parent) s += ' ' + (n.name || '');
+    return s.toLowerCase();
+  }
+  function rankOf(o) {
+    const label = labelOf(o);
+    const hit = (cfg.shells || []).find((s) => label.includes(s.match));
+    return hit || null;
+  }
+
+  const matHalftone = new THREE.ShaderMaterial({
+    uniforms: {
+      uTone: { value: null }, uRes: { value: new THREE.Vector2(2, 2) },
+      uPitch: { value: 3 }, uAngle: { value: 0 },
+      uFill: { value: 0.95 }, uSoft: { value: 0.1 }, uContrast: { value: 1.8 }, uFloor: { value: 0.045 },
+      uInvert: { value: 1 }, uOpacity: { value: 1 }, uGlow: { value: 1 },
+      uColor: { value: hex2vec('#9fb9e6') }, uTip: { value: hex2vec('#203a85') },
+    },
+    transparent: true, depthTest: false, depthWrite: false,
+    vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+    fragmentShader: `
+      varying vec2 vUv;
+      uniform sampler2D uTone;
+      uniform vec2 uRes;
+      uniform vec3 uColor, uTip;
+      uniform float uPitch, uAngle, uFill, uSoft, uContrast, uInvert, uOpacity, uGlow, uFloor;
+      void main() {
+        vec2 px = vUv * uRes;
+        float c = cos(uAngle), s = sin(uAngle);
+        vec2 g = vec2(c * px.x + s * px.y, -s * px.x + c * px.y) / uPitch;
+        vec2 id = floor(g) + 0.5;
+        vec2 cpx = vec2(c * id.x - s * id.y, s * id.x + c * id.y) * uPitch;
+        float tsum = 0.0, asum = 0.0;
+        for (int j = -1; j <= 1; j++) {
+          for (int i = -1; i <= 1; i++) {
+            vec2 o = vec2(float(i), float(j)) * uPitch * 0.34;
+            vec4 sm = texture2D(uTone, (cpx + o) / uRes);
+            tsum += sm.r * sm.a;
+            asum += sm.a;
+          }
+        }
+        float av = asum / 9.0;
+        float tv = asum > 0.0001 ? tsum / asum : 0.0;
+        float bright = mix(tv, 1.0 - tv, uInvert);
+        float cov = av * (uFloor + (1.0 - uFloor) * pow(clamp(bright, 0.0, 1.0), uContrast));
+        if (cov <= 0.0008) discard;
+        float r = 0.5 * uFill * sqrt(cov);
+        float d = length(g - id);
+        float aa = max(0.8 / uPitch, 0.0005);
+        float a = 1.0 - smoothstep(max(r - aa - uSoft * r, 0.0), r + aa, d);
+        if (a <= 0.003) discard;
+        gl_FragColor = vec4(mix(uColor, uTip, clamp(bright, 0.0, 1.0)) * uGlow, a * uOpacity);
+      }`,
+  });
+
+  const quadScene = new THREE.Scene();
+  const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), matHalftone));
+
+  let toneRT = null;
+  function sizeToneRT(){
+    const w = Math.max(2, Math.round(CW * DPR)), h = Math.max(2, Math.round(CH * DPR));
+    if (toneRT) toneRT.dispose();
+    toneRT = new THREE.WebGLRenderTarget(w, h, {
+      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+      wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
+      depthBuffer: true, stencilBuffer: false,
+    });
+    matHalftone.uniforms.uRes.value.set(w, h);
+  }
+  sizeToneRT();
+  addEventListener('stagescale', () => {
+    const next = stageDPR();
+    if (Math.abs(next - DPR) < 0.01) return;
+    DPR = next;
+    renderer.setPixelRatio(DPR);
+    renderer.setSize(CW, CH, false);
+    sizeToneRT();
+    render();
+  });
+
+  function applyScreen() {
+    const p = SCREEN_ORGAN, u = matHalftone.uniforms;
+    u.uPitch.value = Math.max(p.pitch * DPR, 2);
+    u.uAngle.value = p.angle * Math.PI / 180;
+    u.uFill.value = p.fill; u.uSoft.value = p.soft;
+    u.uContrast.value = p.contrast;
+    u.uFloor.value = p.floor;
+    u.uInvert.value = p.invert; u.uGlow.value = p.glow;
+    u.uOpacity.value = 1;
+    u.uColor.value.copy(hex2vec(p.colour));
+    u.uTip.value.copy(hex2vec(p.tip));
+  }
+
+  let ready = false, booted = false;
+
+  function render() {
+    if (!ready) return;
+    renderer.setRenderTarget(toneRT);
+    renderer.clear(true, true, true);
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+    renderer.clear(true, true, true);
+    matHalftone.uniforms.uTone.value = toneRT.texture;
+    applyScreen();
+    renderer.render(quadScene, quadCam);
+  }
+
+  /* Framed off the model's own turned bounding box rather than a hand-tuned
+     distance, so swapping the file cannot silently crop the organ. Both frame
+     axes are tested and the tighter one wins. */
+  function frameOrgan() {
+    pivot.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(pivot);
+    const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3());
+    const half = Math.tan((camera.fov * Math.PI / 180) / 2);
+    const dist = Math.max(s.y * 0.5 / half, s.x * 0.5 / half / camera.aspect) / cfg.fill;
+    const aimY = box.min.y + s.y * cfg.aim;
+    camera.position.set(c.x, aimY, c.z + dist);
+    camera.lookAt(c.x, aimY, c.z);
+    camera.updateProjectionMatrix();
+  }
+
+  async function boot() {
+    if (booted) return;
+    booted = true;
+    if (load) load.classList.add('on');
+    try {
+      const holder = fitToFloor(await loadGLB(cfg.file), 1);
+      holder.traverse((o) => {
+        if (!o.isMesh) return;
+        o.material = toneFor(rankOf(o));
+      });
+      pivot.add(holder);
+      pivot.rotation.y = cfg.yaw * Math.PI / 180;
+      if (cfg.pitch) pivot.rotation.x = cfg.pitch * Math.PI / 180;
+      frameOrgan();
+      ready = true;
+      setTimeout(() => { if (load) load.classList.remove('on'); }, 200);
+    } catch (err) {
+      /* The chip stays up carrying the reason. The body page's copy of this
+         clears it from a finally, which means its own failure message is on
+         screen for 200ms and then gone — and an organ field that is simply
+         empty tells the reader nothing at all. Kept visible here on purpose. */
+      if (load) load.innerHTML = '<span>GLB not reachable — serve the folder over HTTP</span>';
+      booted = false;                     // let the next visit try again
+      throw err;
+    }
+  }
+
+  /* A canvas that has been off screen is not guaranteed to still hold what it
+     drew, and two passes cost nothing, so it simply draws again. */
+  addEventListener('viewchange', (e) => {
+    if (e.detail !== cfg.view) return;
+    boot().then(render, () => {});
+  });
+
+  const back = document.getElementById(cfg.back);
+  if (back) back.addEventListener('click', () => {
+    document.getElementById('tabLab').click();
+  });
+
+  /* a handle, the same way the figure pages expose theirs */
+  return { render, boot, renderer, camera, pivot };
 }
 
-/* A canvas that has been off screen is not guaranteed to still hold what it
-   drew, and two passes cost nothing, so it simply draws again. */
-addEventListener('viewchange', (e) => {
-  if (e.detail !== 'heart') return;
-  boot().then(render, () => {});
+/* fill is measured against the whole bounding box, and for the heart the box
+   includes the vessel stubs — so at a value that sounds safe the muscle itself
+   lands at barely half the frame. 1.02 lets the stubs run to the very top
+   edge, which is where the reference composition puts them, and aim seats the
+   muscle rather than the box. yaw is CATS' cardio entry verbatim, so this
+   heart and the one inside the body are turned the same way. */
+window.__heartView = organView({
+  view: 'heart', canvas: 'heartGL', load: 'heartLoad', back: 'heartBack',
+  file: 'GLB/organ/realistic_human_heart.glb',
+  yaw: -12, fill: 0.84, aim: 0.46,
 });
 
-document.getElementById('heartBack').addEventListener('click', () => {
-  document.getElementById('tabLab').click();
+/* The kidney is a cut-away, and the yaw is the whole reason this file is here
+   rather than the body page's human_kidney.glb. This mesh carries the cortex,
+   the medullary pyramids, the capsule, the ureter and both vessels as separate
+   shells, and it is modelled open on one side only. Turned away from that side
+   it is a bean: 90 and 270 are edge on, 180 is the capsule, and all three
+   render as one closed silhouette with nothing inside it. 0 is the section —
+   and it is the model's own front, so the number that reveals the most is also
+   the one that needed no measuring.
+
+   It also happens to face the right way for this composition. At 0 the convex
+   border is at the outside of the page and the hilum, the vessels and the
+   ureter run out toward the seam, so the organ opens toward the readings taken
+   from it rather than away from them. The two leaders are drawn against that.
+
+   fill and aim are set so the kidney lands at the heart's size on screen, not
+   at the heart's number: measured, the ureter turns out to run beside the
+   organ rather than below it, so the box is the organ's own box give or take
+   four per cent and 0.82 against the heart's 0.84 puts the two figures at the
+   same scale.
+
+   shells is the cut-away. Six meshes, three ranks: the capsule is the organ
+   and is drawn at full weight with the widest fade, so the outside of this
+   kidney reads at the density of the heart beside it; the cortex is half; the
+   medulla, the two vessels and the ureter are under a third. The point is that
+   the section stays legible without becoming the subject — an interior at full
+   weight is a diagram of a dissection, and nobody wants to be shown that about
+   their own body. Ranked this way it reads as depth: structure seen through
+   the organ's own thickness. */
+window.__kidneyView = organView({
+  view: 'kidney', canvas: 'kidneyGL', load: 'kidneyLoad', back: 'kidneyBack',
+  file: 'GLB/organ/kidney_with_labels.glb',
+  yaw: 0, fill: 0.82, aim: 0.5,
+  shells: [
+    { match: 'capsule', weight: 1.00, gamma: 0.45 },
+    { match: 'cortex',  weight: 0.50, gamma: 0.55 },
+    { match: 'medulla', weight: 0.30, gamma: 0.55 },
+    { match: 'ureter',  weight: 0.34, gamma: 0.70 },
+    { match: ':red',    weight: 0.30, gamma: 0.55 },
+    { match: ':blue',   weight: 0.30, gamma: 0.55 },
+  ],
 });
 </script>
-
 </body>
 </html>

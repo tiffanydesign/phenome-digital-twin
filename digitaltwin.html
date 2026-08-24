@@ -867,75 +867,97 @@ body{
    rather than places — a trough with "Pose debug" permanently on display
    next to the title would make a debug surface look like a destination.
    Closed, it states the current mode and nothing else. */
-.mode-switch{position:relative;z-index:7;margin-bottom:14px;pointer-events:auto;
-  width:max-content;font-family:var(--font-sans)}
-.mode-switch-btn{display:flex;align-items:center;gap:9px;
-  padding:7px 11px 7px 13px;border:0;border-radius:999px;
-  background-image:var(--gl-grain);background-color:var(--gl-tint);
-  -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin);
-  box-shadow:0 0 0 1px var(--border-strong),var(--gl-shadow),var(--gl-inner);
-  font-size:var(--text-micro);color:var(--ink-900);cursor:pointer;
-  transition:box-shadow .18s var(--ease-frosted-out)}
+/* GEOMETRY ONLY below this line. The material comes from .gl, which the markup
+   composes in exactly the way section 06's own specimens do — class="gl sg-btn",
+   class="gl sg-pane" — rather than by restating the recipe here. An earlier pass
+   restated it, and also grew a blue rim on hover that nothing else in the file
+   has: section 06's controls answer a pointer by LIFTING the drop and darkening
+   the label, and that is the whole vocabulary.
+     .sg-btn:hover  -> --gl-shadow-lift, ink-900
+     .sg-btn:active -> --gl-inner-sunk
+     .sg-item:active-> --gl-shadow-press
+   So this control now does the same, and carries no ring at all. The one place
+   in the file that keeps a ring is .prov-btn, and its own comment says why: at
+   18px across there is not enough arc for a graduated highlight to travel. This
+   is 30px tall with a real drop under it, so the rim carries its own edge.
+   Radii are section 06's too — 16 on the control, 22 on the pane — not the
+   999px pill of the tab bar. They are different components and should not be
+   mistaken for each other: the bar is a trough holding the brand, this is a
+   pane holding a choice. */
+.mode-switch{position:relative;z-index:51;width:max-content;font-family:var(--font-sans);
+  pointer-events:auto}
+.mode-switch-btn{display:flex;align-items:center;gap:12px;
+  padding:9px 14px 9px 16px;border-radius:16px;cursor:pointer;
+  font-size:var(--text-micro);color:var(--ink-600);
+  transition:box-shadow .18s var(--ease-frosted-out),color .18s var(--ease-frosted-out)}
+.mode-switch-btn > *{position:relative;z-index:1}
 .mode-switch-btn b{font-weight:var(--w-module);letter-spacing:var(--tracking-overline)}
 .mode-switch-btn svg{width:10px;height:6px;flex:none;fill:none;
-  stroke:var(--ink-400);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
-  transition:transform .2s var(--ease-frosted-out)}
-.mode-switch-btn:hover{box-shadow:0 0 0 1px var(--phenome-blue-400),var(--gl-shadow-lift),var(--gl-inner)}
+  stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+  opacity:.55;transition:transform .2s var(--ease-frosted-out)}
+.mode-switch-btn:hover,.mode-switch-btn[aria-expanded="true"]{
+  box-shadow:var(--gl-shadow-lift),var(--gl-inner);color:var(--ink-900)}
+.mode-switch-btn:active{box-shadow:var(--gl-inner-sunk)}
 .mode-switch-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
 
-/* The list is a card, not glass: it stands over a moving model and a credit
-   you cannot read is worse than one that does not float. Same reasoning as
-   .prov-panel, and the same fill — <body>'s own ground at fixed attachment,
-   so it reads as page rather than as a box. */
-.mode-switch-list{position:absolute;left:0;top:calc(100% + 7px);z-index:1;
-  min-width:212px;margin:0;padding:5px;list-style:none;
-  border:1px solid var(--border-strong);border-radius:var(--radius-lg);
-  background:
-    radial-gradient(1200px 800px at 85% -10%,#30b0cd1a,transparent 60%),
-    radial-gradient(1000px 700px at -10% 90%,#203a8512,transparent 55%),
-    radial-gradient(760px 760px at -170px -170px,#c4daf773,#c4daf700 68%),
-    radial-gradient(700px 700px at calc(100% + 170px) calc(100% + 200px),#d2e2f866,#d2e2f800 70%),
-    linear-gradient(150deg,var(--stage-field-1) 0%,var(--stage-field-2) 46%,var(--stage-field-3) 100%);
-  background-attachment:fixed;
-  box-shadow:var(--gl-shadow-lift);
-  opacity:0;visibility:hidden;transform:translateY(-4px);
+/* The pane takes --gl-tint-live rather than the recipe's default tint, and that
+   is the file's own rule rather than a preference: the live tier exists because
+   a panel over a MOVING figure needs the density to hold its own boundary, and
+   this one opens over the model. It is the same call .lab-bar documents. */
+.mode-switch-list{position:absolute;left:0;top:calc(100% + 9px);z-index:1;
+  min-width:236px;margin:0;padding:7px;list-style:none;border-radius:22px;
+  background-color:var(--gl-tint-live);
+  opacity:0;visibility:hidden;transform:translateY(-5px);
   transition:opacity .16s var(--ease-frosted-out),transform .16s var(--ease-frosted-out),
              visibility 0s linear .16s}
 .mode-switch[data-open="true"] .mode-switch-list{opacity:1;visibility:visible;transform:none;
   transition-delay:0s,0s,0s}
-.mode-switch-list li{display:flex;flex-direction:column;gap:1px;
-  padding:8px 11px;border-radius:8px;cursor:pointer;
+.mode-switch-list li{position:relative;z-index:1;
+  display:flex;flex-direction:column;gap:2px;
+  padding:10px 13px;border-radius:15px;cursor:pointer;
   transition:background-color .14s var(--ease-frosted-out)}
 .mode-switch-list b{font-size:var(--text-micro);font-weight:var(--w-module);color:var(--ink-900)}
 .mode-switch-list small{font-size:12px;color:var(--ink-400);letter-spacing:.01em}
+/* A row is a recess in the pane, not a pane of its own — .gl-sunk's tint, which
+   is the one flat blue-grey wash the system uses for "set into". */
 .mode-switch-list li:hover,.mode-switch-list li.cursor{background-color:var(--gl-tint-sunk)}
-/* The selected row is marked on the label, not with a tick in a gutter: three
-   rows do not earn a column that is empty on two of them. */
-.mode-switch-list li[aria-selected="true"] b{color:var(--phenome-blue-500)}
+/* The selected row is marked by weight and recess, not by a tick in a gutter:
+   two or three rows do not earn a column that is empty on all but one. */
 .mode-switch-list li[aria-selected="true"]{background-color:var(--gl-tint-sunk)}
+.mode-switch-list li[aria-selected="true"] b{color:var(--phenome-blue-500)}
 
 @media(max-width:720px){
   .mode-switch-list{min-width:196px}
   .mode-switch-list small{display:none}
 }
 
-/* Two positioning wrappers over the one component. The pose switcher sits in
-   the flow of .pose-intro at the top of its view; the detail switcher is
-   viewport chrome like .toggle, pinned bottom-left just above it, and so it
-   opens UPWARD — a list dropping downward from there would leave the frame. */
-.pose-mode{position:relative;z-index:7;margin-bottom:14px;pointer-events:auto;
-  width:max-content;font-family:var(--font-sans)}
-.detail-mode{position:fixed;z-index:51;left:calc(var(--seg-size)*1.85);
-  bottom:calc(var(--seg-size)*5.15 + 12px);
-  width:max-content;font-family:var(--font-sans);display:none}
-/* It belongs to the two detail views and to nothing else, so its visibility is
-   driven off which view is on rather than by a class the JS has to remember.
-   Same :has() idiom the file already uses to hide #rig on the pose view. */
-body:has(#viewHeart.is-on) .detail-mode,
-body:has(#viewKidney.is-on) .detail-mode{display:block}
-.mode-switch.up .mode-switch-list{top:auto;bottom:calc(100% + 7px);
-  transform:translateY(4px)}
-.mode-switch.up[data-open="true"] .mode-switch-list{transform:none}
+/* ONE dock, both switchers. They used to sit in different places — the pose one
+   in the flow of .pose-intro at the top of its view, the detail one pinned
+   bottom-left — and two controls that do the same job in the same product
+   should not have to be looked for in two places. Bottom-left above the tab
+   bar, on the bar's own left inset, so the page-level furniture reads as one
+   column: which page (the bar), then which reading of it (this).
+   Both therefore open UPWARD. A list dropping down from here would leave the
+   frame, which is the whole reason the offset below is measured off the bar
+   rather than chosen. */
+/* 6.9, and the number is derived rather than picked. The corner is a STACK and
+   .prov.on-stage's comment already set its rhythm: the bar sits at 1.85 and the
+   credit one comfortable step above it at 5.2, same left, "so the two read as
+   one stack in the corner". A first pass put this switcher at 5.15 — which is
+   the credit's own slot, and the two overlapped by 7px. 6.9 is the credit's 5.2
+   plus its own 18px height plus the same kind of gap, in the same seg units, so
+   the three hold their spacing at any size: bar, then credit, then switcher. */
+.mode-switch.dock{position:fixed;z-index:51;left:calc(var(--seg-size)*1.85);
+  bottom:calc(var(--seg-size)*6.9);display:none}
+.mode-switch.dock .mode-switch-list{top:auto;bottom:calc(100% + 9px);
+  transform:translateY(5px)}
+.mode-switch.dock[data-open="true"] .mode-switch-list{transform:none}
+/* Each belongs to its own view and to nothing else, so visibility comes off
+   which view is on rather than a class the JS has to remember. Same :has()
+   idiom the file already uses to hide #rig on the pose view. */
+body:has(#viewHeart.is-on) #detailMode,
+body:has(#viewKidney.is-on) #detailMode,
+body:has(#viewPose.is-on) #poseMode{display:block}
 
 
 /* ------------------------------------------------------------------
@@ -1439,8 +1461,14 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   box-shadow:0 0 0 1px var(--border-strong),var(--gl-shadow),var(--gl-inner);
   font-family:var(--font-sans);font-size:11px;font-weight:var(--w-module);line-height:1;
   color:var(--ink-600);cursor:pointer;transition:.18s var(--ease-frosted-out)}
+/* The ring stays at --border-strong through hover and open. It used to switch
+   to --phenome-blue-400, and on an 18px disc a rim going from a hairline of
+   navy at 16% to solid brand blue is not a hover state, it is a small blue
+   block appearing under the cursor — which is what it was read as. Nothing
+   else in the file answers a pointer in colour: section 06's controls lift the
+   drop and darken the label, and that is all this does now. */
 .prov-btn:hover,.prov-btn[aria-expanded="true"]{
-  box-shadow:0 0 0 1px var(--phenome-blue-400),var(--gl-shadow-lift),var(--gl-inner);
+  box-shadow:0 0 0 1px var(--border-strong),var(--gl-shadow-lift),var(--gl-inner);
   color:var(--ink-900)}
 
 /* Not glass, though it floats: glass borrows the luminance of whatever
@@ -2637,6 +2665,27 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   <button id="tabSpec" aria-pressed="false">Design system</button>
 </div>
 
+<!-- The pose view's mode switcher, docked bottom-left beside the detail one.
+     It used to sit inside .pose-intro at the top of the view; moving it here
+     puts both switchers in one place and frees the intro to be just the title.
+     Composes class="gl" for the material, the way section 06's specimens do. -->
+<div class="mode-switch dock gl" id="poseMode">
+  <button class="mode-switch-btn gl" id="poseModeBtn" type="button"
+          aria-haspopup="listbox" aria-expanded="false" aria-label="Pose view mode">
+    <b id="poseModeCurrent">Pose lab</b>
+    <svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+  </button>
+  <ul class="mode-switch-list gl" id="poseModeList" role="listbox"
+      aria-label="Pose view mode" tabindex="-1">
+    <li role="option" data-mode="pose" aria-selected="true">
+      <b>Pose lab</b><small>Eleven authored poses</small></li>
+    <li role="option" data-mode="debug" aria-selected="false">
+      <b>Pose debug</b><small>Live coordinate editor</small></li>
+    <li role="option" data-mode="map" aria-selected="false">
+      <b>Anatomy map</b><small>Weights and landmarks</small></li>
+  </ul>
+</div>
+
 <!-- The detail page's organ switcher. It lives OUT here beside the tab bar
      rather than inside either report, because the two reports are two separate
      views and a switcher inside one of them would have to be duplicated into
@@ -2645,13 +2694,13 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
      Bottom-left, above the tab bar, on the same left inset: it is a switch
      between two readings of one page, so it belongs with the page-level
      furniture rather than floating in the organ half where the pins are. -->
-<div class="mode-switch detail-mode up" id="detailMode">
-  <button class="mode-switch-btn" id="detailModeBtn" type="button"
+<div class="mode-switch dock gl" id="detailMode">
+  <button class="mode-switch-btn gl" id="detailModeBtn" type="button"
           aria-haspopup="listbox" aria-expanded="false" aria-label="Detail page organ">
     <b id="detailModeCurrent">Heart rhythm</b>
     <svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
   </button>
-  <ul class="mode-switch-list" id="detailModeList" role="listbox"
+  <ul class="mode-switch-list gl" id="detailModeList" role="listbox"
       aria-label="Detail page organ" tabindex="-1">
     <li role="option" data-mode="heart" aria-selected="true">
       <b>Heart rhythm</b><small>Conduction intervals</small></li>
@@ -7130,43 +7179,11 @@ window.__kidneyView = organView({
     <canvas id="poseGL" aria-label="Interactive male body shown in the selected pose"></canvas>
 
     <header class="pose-intro">
-      <!-- The mode switcher, and it lives INSIDE the intro rather than floating
-           at the top centre of the stage. Two reasons. It inherits the intro's
-           three breakpoints for free, so it can never drift into the sidebar —
-           a centred control would have collided below about 884px, where the
-           sidebar's left edge crosses the middle of the frame. And it reads as
-           what it is: the line above the title saying which of the three this
-           page currently is, directly over a title that changes with it.
-           .pose-intro is pointer-events:none so the copy cannot eat drags on
-           the model; this one control puts them back. -->
-      <div class="mode-switch pose-mode" id="poseMode">
-        <button class="mode-switch-btn" id="poseModeBtn" type="button"
-                aria-haspopup="listbox" aria-expanded="false"
-                aria-label="Pose view mode">
-          <b id="poseModeCurrent">Pose lab</b>
-          <svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
-        </button>
-        <ul class="mode-switch-list" id="poseModeList" role="listbox"
-            aria-label="Pose view mode" tabindex="-1">
-          <li role="option" data-mode="pose" aria-selected="true">
-            <b>Pose lab</b><small>Eleven authored poses</small></li>
-          <li role="option" data-mode="debug" aria-selected="false">
-            <b>Pose debug</b><small>Live coordinate editor</small></li>
-          <li role="option" data-mode="map" aria-selected="false">
-            <b>Anatomy map</b><small>Weights and landmarks</small></li>
-        </ul>
-      </div>
       <div class="overline">Phenome motion study</div>
       <h1>The body,<br>in motion.</h1>
       <p>One digital twin. Eleven studies of posture, balance and range.</p>
     </header>
 
-    <div class="pose-readout" aria-live="polite">
-      <span id="poseNumber">02 / 11</span>
-      <div>
-        <b id="poseName">Natural A</b>
-        <small id="poseNote">Gaze follows the instrumented hand</small>
-      </div>
     </div>
 
     <aside class="pose-sidebar" aria-label="Pose library">
@@ -7370,15 +7387,6 @@ window.__kidneyView = organView({
     color:var(--ink-900)}
   .pose-intro p{margin-top:18px;max-width:245px;font-size:15px;line-height:1.55;color:var(--ink-600)}
 
-  .pose-readout{position:absolute;z-index:3;left:40px;bottom:92px;display:flex;align-items:center;
-    gap:16px;pointer-events:none}
-  .pose-readout>span{display:grid;place-items:center;width:50px;height:50px;border-radius:50%;
-    color:var(--phenome-blue-500);font-size:11px;font-weight:700;letter-spacing:.08em;
-    background:#ffffff70;border:1px solid #fff9;box-shadow:var(--gl-shadow-rest),var(--gl-inner);
-    -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin)}
-  .pose-readout div{display:flex;flex-direction:column;gap:3px}
-  .pose-readout b{font:400 24px/1.1 var(--font-serif-small);color:var(--ink-900)}
-  .pose-readout small{font-size:12px;color:var(--ink-400);letter-spacing:.02em}
 
   .pose-sidebar{position:absolute;z-index:4;right:24px;top:24px;bottom:24px;width:318px;
     display:flex;flex-direction:column;padding:22px 18px 18px;border-radius:22px;
@@ -7521,7 +7529,9 @@ window.__kidneyView = organView({
     font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;pointer-events:none}
   .pose-camera-hint i{width:2px;height:2px;border-radius:50%;background:var(--ink-300)}
 
-  .pose-prov{left:108px!important;bottom:99px!important}
+  /* The pose credit used to be pushed to left:108 / bottom:99 to dodge the
+     bottom-left readout's 50px numeral disc. That readout is gone, so the
+     override goes with it and this credit sits where every other one does. */
   .pose-load{position:absolute;z-index:6;left:50%;top:50%;display:flex;align-items:center;gap:11px;
     transform:translate(-50%,-50%);padding:12px 17px;border-radius:999px;background:#f8fbffdc;
     border:1px solid #fff;box-shadow:var(--gl-shadow-rest);font-size:12px;color:var(--ink-600);
@@ -7552,7 +7562,6 @@ window.__kidneyView = organView({
     #poseWrap.debug-on .pose-sidebar{width:min(360px,calc(100vw - 24px))}
     .pose-choice{grid-template-columns:24px 1fr 15px;min-height:54px;padding:6px 9px}
     .pose-choice small,.pose-sidebar>footer small{display:none}
-    .pose-readout{left:22px;bottom:86px}
     .pose-camera-hint{display:none}
     .pose-prov{display:none}
   }
@@ -7660,9 +7669,21 @@ const poseWrap = document.getElementById('poseWrap');
 const poseCanvas = document.getElementById('poseGL');
 const poseLoad = document.getElementById('poseLoad');
 const poseButtons = [...document.querySelectorAll('.pose-choice')];
-const poseName = document.getElementById('poseName');
-const poseNote = document.getElementById('poseNote');
-const poseNumber = document.getElementById('poseNumber');
+/* The bottom-left readout these three fed is gone — it restated the pose the
+   sidebar already shows selected, and in map and debug modes it restated the
+   panel's own heading. What it did NOT do is justify the corner it sat in, so
+   the switcher has that corner now.
+   Eighteen sites below still write to them, and they are left alone rather
+   than picked out one at a time: each is a plain textContent assignment inside
+   pose, anatomy or debug logic, nothing reads the values back, and unpicking
+   eighteen threads through three state machines to delete text nobody sees is
+   a poor trade for the risk. A detached node absorbs the writes with no branch
+   and no null check at any call site. If the readout ever comes back, give
+   these three real elements again and every write starts landing. */
+const detachedText = () => document.createElement('span');
+const poseName = document.getElementById('poseName') || detachedText();
+const poseNote = document.getElementById('poseNote') || detachedText();
+const poseNumber = document.getElementById('poseNumber') || detachedText();
 const poseResetView = document.getElementById('poseResetView');
 const anatomyReview = document.getElementById('anatomyReview');
 const anatomyPinLayer = document.getElementById('anatomyPinLayer');

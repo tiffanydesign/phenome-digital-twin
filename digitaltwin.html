@@ -858,6 +858,85 @@ body{
   overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;
   -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin)}
 .toggle::-webkit-scrollbar{display:none}
+/* ---------- the mode switcher ----------
+   A dropdown and not a segmented control, which is worth a line because the
+   tab bar downstairs is the segmented one and the two now sit on the same
+   page. The bar switches PAGES and shows them all, because you should be
+   able to see what else there is. This switches which of three readings of
+   one page you are looking at, and two of the three are instrument panels
+   rather than places — a trough with "Pose debug" permanently on display
+   next to the title would make a debug surface look like a destination.
+   Closed, it states the current mode and nothing else. */
+.mode-switch{position:relative;z-index:7;margin-bottom:14px;pointer-events:auto;
+  width:max-content;font-family:var(--font-sans)}
+.mode-switch-btn{display:flex;align-items:center;gap:9px;
+  padding:7px 11px 7px 13px;border:0;border-radius:999px;
+  background-image:var(--gl-grain);background-color:var(--gl-tint);
+  -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin);
+  box-shadow:0 0 0 1px var(--border-strong),var(--gl-shadow),var(--gl-inner);
+  font-size:var(--text-micro);color:var(--ink-900);cursor:pointer;
+  transition:box-shadow .18s var(--ease-frosted-out)}
+.mode-switch-btn b{font-weight:var(--w-module);letter-spacing:var(--tracking-overline)}
+.mode-switch-btn svg{width:10px;height:6px;flex:none;fill:none;
+  stroke:var(--ink-400);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+  transition:transform .2s var(--ease-frosted-out)}
+.mode-switch-btn:hover{box-shadow:0 0 0 1px var(--phenome-blue-400),var(--gl-shadow-lift),var(--gl-inner)}
+.mode-switch-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+
+/* The list is a card, not glass: it stands over a moving model and a credit
+   you cannot read is worse than one that does not float. Same reasoning as
+   .prov-panel, and the same fill — <body>'s own ground at fixed attachment,
+   so it reads as page rather than as a box. */
+.mode-switch-list{position:absolute;left:0;top:calc(100% + 7px);z-index:1;
+  min-width:212px;margin:0;padding:5px;list-style:none;
+  border:1px solid var(--border-strong);border-radius:var(--radius-lg);
+  background:
+    radial-gradient(1200px 800px at 85% -10%,#30b0cd1a,transparent 60%),
+    radial-gradient(1000px 700px at -10% 90%,#203a8512,transparent 55%),
+    radial-gradient(760px 760px at -170px -170px,#c4daf773,#c4daf700 68%),
+    radial-gradient(700px 700px at calc(100% + 170px) calc(100% + 200px),#d2e2f866,#d2e2f800 70%),
+    linear-gradient(150deg,var(--stage-field-1) 0%,var(--stage-field-2) 46%,var(--stage-field-3) 100%);
+  background-attachment:fixed;
+  box-shadow:var(--gl-shadow-lift);
+  opacity:0;visibility:hidden;transform:translateY(-4px);
+  transition:opacity .16s var(--ease-frosted-out),transform .16s var(--ease-frosted-out),
+             visibility 0s linear .16s}
+.mode-switch[data-open="true"] .mode-switch-list{opacity:1;visibility:visible;transform:none;
+  transition-delay:0s,0s,0s}
+.mode-switch-list li{display:flex;flex-direction:column;gap:1px;
+  padding:8px 11px;border-radius:8px;cursor:pointer;
+  transition:background-color .14s var(--ease-frosted-out)}
+.mode-switch-list b{font-size:var(--text-micro);font-weight:var(--w-module);color:var(--ink-900)}
+.mode-switch-list small{font-size:12px;color:var(--ink-400);letter-spacing:.01em}
+.mode-switch-list li:hover,.mode-switch-list li.cursor{background-color:var(--gl-tint-sunk)}
+/* The selected row is marked on the label, not with a tick in a gutter: three
+   rows do not earn a column that is empty on two of them. */
+.mode-switch-list li[aria-selected="true"] b{color:var(--phenome-blue-500)}
+.mode-switch-list li[aria-selected="true"]{background-color:var(--gl-tint-sunk)}
+
+@media(max-width:720px){
+  .mode-switch-list{min-width:196px}
+  .mode-switch-list small{display:none}
+}
+
+/* Two positioning wrappers over the one component. The pose switcher sits in
+   the flow of .pose-intro at the top of its view; the detail switcher is
+   viewport chrome like .toggle, pinned bottom-left just above it, and so it
+   opens UPWARD — a list dropping downward from there would leave the frame. */
+.pose-mode{position:relative;z-index:7;margin-bottom:14px;pointer-events:auto;
+  width:max-content;font-family:var(--font-sans)}
+.detail-mode{position:fixed;z-index:51;left:calc(var(--seg-size)*1.85);
+  bottom:calc(var(--seg-size)*5.15 + 12px);
+  width:max-content;font-family:var(--font-sans);display:none}
+/* It belongs to the two detail views and to nothing else, so its visibility is
+   driven off which view is on rather than by a class the JS has to remember.
+   Same :has() idiom the file already uses to hide #rig on the pose view. */
+body:has(#viewHeart.is-on) .detail-mode,
+body:has(#viewKidney.is-on) .detail-mode{display:block}
+.mode-switch.up .mode-switch-list{top:auto;bottom:calc(100% + 7px);
+  transform:translateY(4px)}
+.mode-switch.up[data-open="true"] .mode-switch-list{transform:none}
+
 
 /* ------------------------------------------------------------------
    The tab bar as a refractive lens — DORMANT. Read this before putting
@@ -2531,13 +2610,19 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 <div class="toggle" role="group" aria-label="Switch view">
   <button id="tabScan" aria-pressed="true">Home page</button>
   <button id="tabLab" aria-pressed="false">Body page</button>
-  <!-- Third, not last: it is a detail of the body page, and the design
-       system is a document that belongs at the end of the set. -->
-  <button id="tabHeart" aria-pressed="false">Heart rhythm</button>
-  <!-- Fourth, beside the page it is a sibling of: the two single-organ
-       reports sit together, in the order the body page lists their organs. -->
-  <button id="tabKidney" aria-pressed="false">Kidneys</button>
-  <!-- Fifth, after the reports and before the document. A study of the same
+  <!-- Third, not last: it is a detail of the body page, and the design system
+       is a document that belongs at the end of the set.
+       ONE tab over the two single-organ reports, the same move the pose tabs
+       got. Heart rhythm and Kidneys are the same composition — one organ
+       close-up beside one data rail — reporting on two organs, so in this bar
+       they were two slots saying "detail of the body page" twice. They are now
+       one Detail page, and which organ you are reading is chosen on the page.
+       Unlike pose, these really are two views: two WebGL contexts with two
+       meshes and two rails, and nothing is gained by forcing them into one
+       container. So the VIEWS map still has both and it is the TABS map that
+       collapses; ?view=heart and ?view=kidney keep working. -->
+  <button id="tabDetail" aria-pressed="false">Detail page</button>
+  <!-- Fourth, after the reports and before the document. A study of the same
        figure the body page draws rather than a reading taken from it, so it
        does not belong among the organ reports; and the rule the third tab
        states — the design system is a document and goes at the end — puts it
@@ -2550,6 +2635,29 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
        ?view=debug and ?view=map keep working. -->
   <button id="tabPose" aria-pressed="false">Pose lab</button>
   <button id="tabSpec" aria-pressed="false">Design system</button>
+</div>
+
+<!-- The detail page's organ switcher. It lives OUT here beside the tab bar
+     rather than inside either report, because the two reports are two separate
+     views and a switcher inside one of them would have to be duplicated into
+     the other — two copies of one control, kept in sync by hand. One instance
+     of viewport chrome, shown by CSS when either detail view is on.
+     Bottom-left, above the tab bar, on the same left inset: it is a switch
+     between two readings of one page, so it belongs with the page-level
+     furniture rather than floating in the organ half where the pins are. -->
+<div class="mode-switch detail-mode up" id="detailMode">
+  <button class="mode-switch-btn" id="detailModeBtn" type="button"
+          aria-haspopup="listbox" aria-expanded="false" aria-label="Detail page organ">
+    <b id="detailModeCurrent">Heart rhythm</b>
+    <svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+  </button>
+  <ul class="mode-switch-list" id="detailModeList" role="listbox"
+      aria-label="Detail page organ" tabindex="-1">
+    <li role="option" data-mode="heart" aria-selected="true">
+      <b>Heart rhythm</b><small>Conduction intervals</small></li>
+    <li role="option" data-mode="kidney" aria-selected="false">
+      <b>Kidneys</b><small>Filtration and pressure</small></li>
+  </ul>
 </div>
 
 <!-- Host for the tab bar's displacement filter. It has to be in the document
@@ -3721,7 +3829,7 @@ function bindProvenance(){
    would mean three contexts building the same joint map off the same mesh. */
 var VIEWS={scan:'viewScan',lab:'viewLab',heart:'viewHeart',kidney:'viewKidney',
            pose:'viewPose',debug:'viewPose',map:'viewPose',spec:'viewSpec'};
-var TABS ={scan:'tabScan', lab:'tabLab', heart:'tabHeart', kidney:'tabKidney',
+var TABS ={scan:'tabScan', lab:'tabLab', heart:'tabDetail', kidney:'tabDetail',
            pose:'tabPose', debug:'tabPose', map:'tabPose', spec:'tabSpec'};
 function show(which){
   /* Compare IDS, not keys, and touch each element once — on both maps, for the
@@ -3763,8 +3871,11 @@ function show(which){
 window.__showView = show;
 document.getElementById('tabScan').addEventListener('click',function(){show('scan');});
 document.getElementById('tabLab').addEventListener('click',function(){show('lab');});
-document.getElementById('tabHeart').addEventListener('click',function(){show('heart');});
-document.getElementById('tabKidney').addEventListener('click',function(){show('kidney');});
+/* Same as the pose tab below: the detail tab returns to whichever organ the
+   switcher last had, rather than always reopening on the heart. */
+document.getElementById('tabDetail').addEventListener('click',function(){
+  show(window.__detailMode || 'heart');
+});
 /* The tab returns to whichever mode the switcher last had, so leaving the view
    and coming back does not silently reset a debug session to the lab. */
 document.getElementById('tabPose').addEventListener('click',function(){
@@ -7028,14 +7139,14 @@ window.__kidneyView = organView({
            page currently is, directly over a title that changes with it.
            .pose-intro is pointer-events:none so the copy cannot eat drags on
            the model; this one control puts them back. -->
-      <div class="pose-mode" id="poseMode">
-        <button class="pose-mode-btn" id="poseModeBtn" type="button"
+      <div class="mode-switch pose-mode" id="poseMode">
+        <button class="mode-switch-btn" id="poseModeBtn" type="button"
                 aria-haspopup="listbox" aria-expanded="false"
                 aria-label="Pose view mode">
           <b id="poseModeCurrent">Pose lab</b>
           <svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
         </button>
-        <ul class="pose-mode-list" id="poseModeList" role="listbox"
+        <ul class="mode-switch-list" id="poseModeList" role="listbox"
             aria-label="Pose view mode" tabindex="-1">
           <li role="option" data-mode="pose" aria-selected="true">
             <b>Pose lab</b><small>Eleven authored poses</small></li>
@@ -7254,67 +7365,6 @@ window.__kidneyView = organView({
 
   .pose-intro{position:absolute;z-index:3;left:40px;top:48px;width:275px;pointer-events:none}
 
-  /* ---------- the mode switcher ----------
-     A dropdown and not a segmented control, which is worth a line because the
-     tab bar downstairs is the segmented one and the two now sit on the same
-     page. The bar switches PAGES and shows them all, because you should be
-     able to see what else there is. This switches which of three readings of
-     one page you are looking at, and two of the three are instrument panels
-     rather than places — a trough with "Pose debug" permanently on display
-     next to the title would make a debug surface look like a destination.
-     Closed, it states the current mode and nothing else. */
-  .pose-mode{position:relative;z-index:7;margin-bottom:14px;pointer-events:auto;
-    width:max-content;font-family:var(--font-sans)}
-  .pose-mode-btn{display:flex;align-items:center;gap:9px;
-    padding:7px 11px 7px 13px;border:0;border-radius:999px;
-    background-image:var(--gl-grain);background-color:var(--gl-tint);
-    -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin);
-    box-shadow:0 0 0 1px var(--border-strong),var(--gl-shadow),var(--gl-inner);
-    font-size:var(--text-micro);color:var(--ink-900);cursor:pointer;
-    transition:box-shadow .18s var(--ease-frosted-out)}
-  .pose-mode-btn b{font-weight:var(--w-module);letter-spacing:var(--tracking-overline)}
-  .pose-mode-btn svg{width:10px;height:6px;flex:none;fill:none;
-    stroke:var(--ink-400);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
-    transition:transform .2s var(--ease-frosted-out)}
-  .pose-mode-btn:hover{box-shadow:0 0 0 1px var(--phenome-blue-400),var(--gl-shadow-lift),var(--gl-inner)}
-  .pose-mode-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
-
-  /* The list is a card, not glass: it stands over a moving model and a credit
-     you cannot read is worse than one that does not float. Same reasoning as
-     .prov-panel, and the same fill — <body>'s own ground at fixed attachment,
-     so it reads as page rather than as a box. */
-  .pose-mode-list{position:absolute;left:0;top:calc(100% + 7px);z-index:1;
-    min-width:212px;margin:0;padding:5px;list-style:none;
-    border:1px solid var(--border-strong);border-radius:var(--radius-lg);
-    background:
-      radial-gradient(1200px 800px at 85% -10%,#30b0cd1a,transparent 60%),
-      radial-gradient(1000px 700px at -10% 90%,#203a8512,transparent 55%),
-      radial-gradient(760px 760px at -170px -170px,#c4daf773,#c4daf700 68%),
-      radial-gradient(700px 700px at calc(100% + 170px) calc(100% + 200px),#d2e2f866,#d2e2f800 70%),
-      linear-gradient(150deg,var(--stage-field-1) 0%,var(--stage-field-2) 46%,var(--stage-field-3) 100%);
-    background-attachment:fixed;
-    box-shadow:var(--gl-shadow-lift);
-    opacity:0;visibility:hidden;transform:translateY(-4px);
-    transition:opacity .16s var(--ease-frosted-out),transform .16s var(--ease-frosted-out),
-               visibility 0s linear .16s}
-  .pose-mode[data-open="true"] .pose-mode-list{opacity:1;visibility:visible;transform:none;
-    transition-delay:0s,0s,0s}
-  .pose-mode-list li{display:flex;flex-direction:column;gap:1px;
-    padding:8px 11px;border-radius:8px;cursor:pointer;
-    transition:background-color .14s var(--ease-frosted-out)}
-  .pose-mode-list b{font-size:var(--text-micro);font-weight:var(--w-module);color:var(--ink-900)}
-  .pose-mode-list small{font-size:12px;color:var(--ink-400);letter-spacing:.01em}
-  .pose-mode-list li:hover,.pose-mode-list li.cursor{background-color:var(--gl-tint-sunk)}
-  /* The selected row is marked on the label, not with a tick in a gutter: three
-     rows do not earn a column that is empty on two of them. */
-  .pose-mode-list li[aria-selected="true"] b{color:var(--phenome-blue-500)}
-  .pose-mode-list li[aria-selected="true"]{background-color:var(--gl-tint-sunk)}
-
-  @media(max-width:720px){
-    .pose-mode-list{min-width:196px}
-    .pose-mode-list small{display:none}
-  }
-
   .pose-intro .overline{margin-bottom:17px;color:var(--ink-400)}
   .pose-intro h1{font:400 46px/.96 var(--font-serif-big);letter-spacing:var(--tracking-display);
     color:var(--ink-900)}
@@ -7516,80 +7566,85 @@ window.__kidneyView = organView({
 
 <script>
 /* ============================================================
-   The pose view's mode switcher.
-   Classic script, not a module, because it drives show() — which is a global
-   in the wiring block near the top — and it sits here rather than up there
-   because the markup it binds is parsed at this point in the document.
+   The mode switchers. Two of them now, over one implementation.
 
-   It owns no view logic of its own. Picking a mode calls show('pose'|'debug'|
-   'map'), exactly what the three tabs used to call, and the pose module reads
-   the route off the same viewchange event it always did. window.__poseMode is
-   the one piece of shared state: the merged tab reads it to return to the mode
-   you left, and the module's late-boot recovery reads it in place of the
-   aria-pressed sniffing it used to do on the two deleted tabs.
+   Classic script, not a module, because it drives show() — which lives inside
+   the wiring IIFE and is handed out as window.__showView — and it sits here
+   rather than up there because both markups are parsed by this point.
+
+   Neither switcher owns any view logic. Picking a row calls show() with the
+   route the deleted tab used to call, and each view's own module reacts to the
+   same viewchange event it always did. What each switcher owns is one piece of
+   shared state, window.__poseMode / window.__detailMode, which its merged tab
+   reads so that returning to the tab reopens the mode you left rather than
+   snapping back to the first row. The pose module's late-boot recovery reads
+   __poseMode too, in place of the aria-pressed sniffing it did on the two
+   tabs that no longer exist.
+
+   Labels follow the ROUTE and not the click, which is why sync() is wired to
+   viewchange rather than called from choose(): a ?view=kidney deep link, or
+   the tab restoring a remembered mode, must land with the switcher already
+   showing the right row.
    ============================================================ */
 (function(){
-  var root=document.getElementById('poseMode');
-  if(!root) return;
-  var btn=document.getElementById('poseModeBtn'),
-      list=document.getElementById('poseModeList'),
-      current=document.getElementById('poseModeCurrent'),
-      opts=[].slice.call(list.querySelectorAll('[role="option"]'));
+  function bindSwitch(rootId, btnId, listId, currentId, routes, stateKey){
+    var root=document.getElementById(rootId);
+    if(!root) return;
+    var btn=document.getElementById(btnId),
+        list=document.getElementById(listId),
+        current=document.getElementById(currentId),
+        opts=[].slice.call(list.querySelectorAll('[role="option"]')),
+        cursor=0;
 
-  window.__poseMode=window.__poseMode||'pose';
+    window[stateKey]=window[stateKey]||routes[0];
 
-  function open(on){
-    root.dataset.open=on?'true':'false';
-    btn.setAttribute('aria-expanded',on?'true':'false');
-    if(on){ cursorTo(Math.max(0,opts.indexOf(sel()))); list.focus(); }
+    function sel(){ return opts.filter(function(o){return o.getAttribute('aria-selected')==='true';})[0]; }
+    function cursorTo(i){ opts.forEach(function(o,j){ o.classList.toggle('cursor', j===i); }); cursor=i; }
+    function open(on){
+      root.dataset.open=on?'true':'false';
+      btn.setAttribute('aria-expanded',on?'true':'false');
+      if(on){ cursorTo(Math.max(0,opts.indexOf(sel()))); list.focus(); }
+    }
+    function sync(mode){
+      var hit=opts.filter(function(o){return o.dataset.mode===mode;})[0];
+      if(!hit) return;
+      opts.forEach(function(o){ o.setAttribute('aria-selected', String(o===hit)); });
+      current.textContent=hit.querySelector('b').textContent;
+      window[stateKey]=mode;
+    }
+    function choose(mode){
+      sync(mode); open(false);
+      if(typeof window.__showView==='function') window.__showView(mode);
+    }
+
+    btn.addEventListener('click',function(){ open(root.dataset.open!=='true'); });
+    opts.forEach(function(o){ o.addEventListener('click',function(){ choose(o.dataset.mode); }); });
+
+    /* Keyboard on the listbox rather than on each row: arrows move a cursor,
+       Enter commits it, Escape abandons it and hands focus back to the button
+       so the next Tab goes somewhere sensible. */
+    list.addEventListener('keydown',function(e){
+      if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+        e.preventDefault(); cursorTo((cursor+(e.key==='ArrowDown'?1:opts.length-1))%opts.length);
+      }else if(e.key==='Home'){ e.preventDefault(); cursorTo(0); }
+      else if(e.key==='End'){ e.preventDefault(); cursorTo(opts.length-1); }
+      else if(e.key==='Enter'||e.key===' '){ e.preventDefault(); choose(opts[cursor].dataset.mode); btn.focus(); }
+      else if(e.key==='Escape'){ e.preventDefault(); open(false); btn.focus(); }
+    });
+    btn.addEventListener('keydown',function(e){
+      if(e.key==='ArrowDown'||e.key==='Enter'||e.key===' '){ e.preventDefault(); open(true); }
+    });
+    document.addEventListener('pointerdown',function(e){ if(!root.contains(e.target)) open(false); });
+
+    window.addEventListener('viewchange',function(e){
+      if(routes.indexOf(e.detail)>-1) sync(e.detail); else open(false);
+    });
   }
-  function sel(){ return opts.filter(function(o){return o.getAttribute('aria-selected')==='true';})[0]; }
-  function cursorTo(i){
-    opts.forEach(function(o,j){ o.classList.toggle('cursor', j===i); });
-    cursor=i;
-  }
-  var cursor=0;
 
-  /* Label and marker follow the ROUTE, not the click, so a ?view=debug deep
-     link or a return through the tab lands with the switcher already correct.
-     This is why it listens instead of just setting state on selection. */
-  function sync(mode){
-    var hit=opts.filter(function(o){return o.dataset.mode===mode;})[0];
-    if(!hit) return;
-    opts.forEach(function(o){ o.setAttribute('aria-selected', String(o===hit)); });
-    current.textContent=hit.querySelector('b').textContent;
-    window.__poseMode=mode;
-  }
-  function choose(mode){
-    sync(mode); open(false);
-    if(typeof window.__showView==='function') window.__showView(mode);
-  }
-
-  btn.addEventListener('click',function(){ open(root.dataset.open!=='true'); });
-  opts.forEach(function(o){
-    o.addEventListener('click',function(){ choose(o.dataset.mode); });
-  });
-
-  /* Keyboard, on the listbox rather than on each row: arrows move a cursor,
-     Enter commits it, Escape abandons it and hands focus back to the button so
-     the next Tab goes somewhere sensible. */
-  list.addEventListener('keydown',function(e){
-    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
-      e.preventDefault(); cursorTo((cursor+(e.key==='ArrowDown'?1:opts.length-1))%opts.length);
-    }else if(e.key==='Home'){ e.preventDefault(); cursorTo(0); }
-    else if(e.key==='End'){ e.preventDefault(); cursorTo(opts.length-1); }
-    else if(e.key==='Enter'||e.key===' '){ e.preventDefault(); choose(opts[cursor].dataset.mode); btn.focus(); }
-    else if(e.key==='Escape'){ e.preventDefault(); open(false); btn.focus(); }
-  });
-  btn.addEventListener('keydown',function(e){
-    if(e.key==='ArrowDown'||e.key==='Enter'||e.key===' '){ e.preventDefault(); open(true); }
-  });
-  document.addEventListener('pointerdown',function(e){ if(!root.contains(e.target)) open(false); });
-
-  window.addEventListener('viewchange',function(e){
-    if(e.detail==='pose'||e.detail==='debug'||e.detail==='map') sync(e.detail);
-    else open(false);
-  });
+  bindSwitch('poseMode','poseModeBtn','poseModeList','poseModeCurrent',
+             ['pose','debug','map'],'__poseMode');
+  bindSwitch('detailMode','detailModeBtn','detailModeList','detailModeCurrent',
+             ['heart','kidney'],'__detailMode');
 })();
 </script>
 

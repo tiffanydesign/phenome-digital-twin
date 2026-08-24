@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Phenome · Digital Twin</title>
+
+<!-- Contralto, served. Until now the family was licensed and installed locally
+     and nothing carried it to a visitor, so the type note below was describing
+     a fallback that fired for everyone except the two people with the fonts on
+     their machines. This is an Adobe Fonts web project holding exactly four
+     fonts — the four optical sizes at 400, upright — because that is all the
+     file asks for: --w-serif-title is 400 and no serif rule anywhere requests
+     an italic. Contralto ships 40 styles; sending the other 36 would be paying
+     first-paint for glyphs nothing sets.
+     The kit is also where New Science Mono belongs. Add its Mono Thin and Mono
+     Light to THIS project and the numerals light up with no change here — same
+     kit, same URL, one more family in --font-numeral. -->
+<link rel="preconnect" href="https://use.typekit.net">
+<link rel="preconnect" href="https://p.typekit.net" crossorigin>
+<link rel="stylesheet" href="https://use.typekit.net/omf6kcr.css">
 <style>
 /* ============================================================
    TYPE
@@ -334,10 +349,21 @@
      and Trebuchet are flatter but still humanist and still sans. The chain
      ends on the generic rather than on an embedded face — see the note where
      Gentium Plus used to be embedded, above. */
-  --font-serif-big:"Contralto Big",Optima,Candara,"Gill Sans MT","Gill Sans","Trebuchet MS",sans-serif;
-  --font-serif-medium:"Contralto",Optima,Candara,"Gill Sans MT","Gill Sans","Trebuchet MS",sans-serif;
-  --font-serif-small:"Contralto Small",Optima,Candara,"Gill Sans MT","Gill Sans","Trebuchet MS",sans-serif;
-  --font-serif-xsmall:"Contralto Xsmall",Optima,Candara,"Gill Sans MT","Gill Sans","Trebuchet MS",sans-serif;
+  /* Three tiers, and the order is the point. The kit name comes FIRST so that
+     the machine with the fonts installed renders what a visitor renders — a
+     designer checking a change should be looking at the served face, not at a
+     local twin of it. The installed desktop name comes second, which is what
+     keeps the page right when the kit cannot load: offline, behind a firewall,
+     or in a region where typekit.net is unreliable. Then the humanist-sans
+     chain below, unchanged, for everyone else.
+     The kit names are Adobe's, lifted from the published CSS rather than
+     guessed — the desktop family for the medium size is "Contralto" with no
+     suffix while its web name is "contralto-medium", and that asymmetry is
+     exactly the kind of thing worth not inventing. */
+  --font-serif-big:"contralto-big","Contralto Big",Optima,Candara,"Gill Sans MT","Gill Sans","Trebuchet MS",sans-serif;
+  --font-serif-medium:"contralto-medium","Contralto",Optima,Candara,"Gill Sans MT","Gill Sans","Trebuchet MS",sans-serif;
+  --font-serif-small:"contralto-small","Contralto Small",Optima,Candara,"Gill Sans MT","Gill Sans","Trebuchet MS",sans-serif;
+  --font-serif-xsmall:"contralto-xsmall","Contralto Xsmall",Optima,Candara,"Gill Sans MT","Gill Sans","Trebuchet MS",sans-serif;
   /* Numerals split off from Contralto entirely and are no longer a serif:
      one monospaced face for every number in the system, from the 80px hero
      down to the 33px KPI value. Names and titles stay on Contralto. A mono

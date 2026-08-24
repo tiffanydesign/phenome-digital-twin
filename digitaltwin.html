@@ -892,9 +892,12 @@ body{
   transition:box-shadow .18s var(--ease-frosted-out),color .18s var(--ease-frosted-out)}
 .mode-switch-btn > *{position:relative;z-index:1}
 .mode-switch-btn b{font-weight:var(--w-module);letter-spacing:var(--tracking-overline)}
+/* currentColor at full strength, so the chevron travels ink-600 -> ink-900 with
+   the label instead of sitting at a dimmed fourth value the palette does not
+   have. Section 02 is explicit: three inks and no more. */
 .mode-switch-btn svg{width:10px;height:6px;flex:none;fill:none;
   stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
-  opacity:.55;transition:transform .2s var(--ease-frosted-out)}
+  transition:transform .2s var(--ease-frosted-out)}
 .mode-switch-btn:hover,.mode-switch-btn[aria-expanded="true"]{
   box-shadow:var(--gl-shadow-lift),var(--gl-inner);color:var(--ink-900)}
 .mode-switch-btn:active{box-shadow:var(--gl-inner-sunk)}
@@ -916,8 +919,20 @@ body{
   display:flex;flex-direction:column;gap:2px;
   padding:10px 13px;border-radius:15px;cursor:pointer;
   transition:background-color .14s var(--ease-frosted-out)}
-.mode-switch-list b{font-size:var(--text-micro);font-weight:var(--w-module);color:var(--ink-900)}
-.mode-switch-list small{font-size:12px;color:var(--ink-400);letter-spacing:.01em}
+/* TYPE, to section 02's rule rather than to eyeball. That rule is stated four
+   times in this file and is not a preference: "Three inks and no more —
+   ink-900 for what you are meant to read, ink-label for supporting prose and
+   units, ink-600 for meta. ink-400 is not a text ink at these sizes", because
+   it measures about 2.9:1 on the page's ground and only a little better through
+   a 42% pane. The sub-label was ink-400 at a hardcoded 12px: an ink the system
+   forbids for text, at a size that is not on the seven-step scale at all.
+   It is now ink-600 at --text-micro, the scale's smallest step, and the
+   hierarchy is carried by WEIGHT and INK rather than by inventing an eighth
+   size — which is how the rest of the file separates a title from its meta. */
+.mode-switch-list b{font-size:var(--text-micro);font-weight:var(--w-module);
+  letter-spacing:var(--tracking-body);color:var(--ink-900)}
+.mode-switch-list small{font-size:var(--text-micro);font-weight:var(--w-data);
+  letter-spacing:var(--tracking-body);color:var(--ink-600)}
 /* A row is a recess in the pane, not a pane of its own — .gl-sunk's tint, which
    is the one flat blue-grey wash the system uses for "set into". */
 .mode-switch-list li:hover,.mode-switch-list li.cursor{background-color:var(--gl-tint-sunk)}
@@ -1448,7 +1463,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    rather than by the viewport; it stays click-through, only the ring and
    the panel itself take the pointer */
 .prov{position:absolute;left:14px;right:14px;bottom:14px;z-index:3;
-  display:flex;pointer-events:none}
+  display:flex;justify-content:flex-end;pointer-events:none}
 .prov-btn,.prov-panel{pointer-events:auto}
 /* outline, frosted, no shadow: the same logic as .tag — an outline in
    this system means "not a status" */
@@ -1491,7 +1506,10 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    It is still not glass and still has no blur: over a dark organ this reads
    as the page's own ground rather than as the organ seen through frost, and
    that is the legibility the original note is protecting. */
-.prov-panel{position:absolute;left:0;bottom:calc(100% + 9px);
+/* Right-anchored, because the ring is now at the right edge of its field and
+   this panel's whole job is to be bounded BY that field. Anchored left it would
+   start at the ring and run off the frame. */
+.prov-panel{position:absolute;right:0;left:auto;bottom:calc(100% + 9px);
   width:302px;max-width:100%;
   padding:15px 17px 14px;
   background:
@@ -1561,6 +1579,20 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    remembered 74: the bar is --seg * 3.2 tall plus its own 1.85 of inset, and
    5.2 puts the mark one comfortable step above it at any size. Same left as
    the bar, so the two read as one stack in the corner. */
+/* BOTTOM-RIGHT WAS TRIED AGAIN AND REVERTED AGAIN. Writing the measurement
+   down so the next person does not spend the afternoon on it.
+   The note above says a credit may cover the page's own furniture but never its
+   readings, and that bottom-right drove the panel through Visceral fat / Bone
+   T-score. Anchored bottom-right opening upward, that reproduces exactly: the
+   panel runs 933-1004 and Skin lesions sits 906-953.
+   Opening SIDEWAYS from the ring instead is the obvious salvage and it is not
+   enough. The home page's KPI values — 3, -0.8, 12 — reach down to y=1003 in a
+   1065 frame. That leaves a 62px band under them; this panel is 71px. It misses
+   by 9, and the band only shrinks on a shorter window. The heart rail loses its
+   High band label the same way.
+   So the corner stays LEFT, where the readings are not. The demo marks in
+   section 11 did move right, and that is not a contradiction: they sit inside a
+   specimen field that contains no readings at all. */
 .prov.on-stage{position:fixed;left:calc(var(--seg-size)*1.85);right:auto;
   bottom:calc(var(--seg-size)*5.2);z-index:58;display:block}
 .prov.on-stage .prov-panel{left:0;right:auto;width:340px;max-width:calc(100vw - 48px)}
@@ -7345,13 +7377,9 @@ window.__kidneyView = organView({
 
       <footer>
         <button type="button" id="poseResetView">Reset view</button>
-        <small>Drag to orbit · Shift-drag to pan<br>Scroll to zoom · Double-click to focus</small>
       </footer>
     </aside>
 
-    <div class="pose-camera-hint" aria-hidden="true">
-      <span>Drag orbit</span><i></i><span>Shift-drag pan</span><i></i><span>Scroll zoom</span><i></i><span>Double-click focus</span>
-    </div>
 
     <div class="anatomy-pin-layer" id="anatomyPinLayer" aria-hidden="true"></div>
 
@@ -7515,19 +7543,11 @@ window.__kidneyView = organView({
   #poseWrap.hand-map .anatomy-arm-guide{display:none}
   #poseWrap.hand-map .anatomy-hand-guide{display:flex}
   #poseWrap.anatomy-on .pose-intro h1{font-size:42px}
-  #poseWrap.anatomy-on .pose-camera-hint{display:none}
   #poseWrap.debug-on .pose-sidebar{width:360px}
   #poseWrap.debug-on .pose-list,#poseWrap.debug-on .anatomy-review{display:none}
   #poseWrap.debug-on .pose-debug{display:flex}
   #poseWrap.debug-on .pose-sidebar>footer{display:none}
-  #poseWrap.debug-on .pose-camera-hint{left:calc(50% - 65px)}
 
-  .pose-camera-hint{position:absolute;z-index:3;left:calc(50% + 56px);bottom:34px;transform:translateX(-50%);
-    display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;
-    color:var(--ink-400);background:#f8fbff9c;border:1px solid #ffffffb8;
-    box-shadow:var(--gl-shadow-rest);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-    font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;pointer-events:none}
-  .pose-camera-hint i{width:2px;height:2px;border-radius:50%;background:var(--ink-300)}
 
   /* The pose credit used to be pushed to left:108 / bottom:99 to dodge the
      bottom-left readout's 50px numeral disc. That readout is gone, so the
@@ -7553,7 +7573,6 @@ window.__kidneyView = organView({
     .pose-choice>span:nth-child(2){gap:2px}
     .pose-sidebar>footer{padding-top:10px}
   }
-  @media(max-width:1220px){.pose-camera-hint{display:none}}
   @media(max-width:720px){
     .pose-intro{left:22px;top:26px;width:220px}
     .pose-intro h1{font-size:38px}
@@ -7561,8 +7580,7 @@ window.__kidneyView = organView({
     .pose-sidebar{right:12px;top:12px;bottom:84px;width:220px;padding:16px 10px 12px}
     #poseWrap.debug-on .pose-sidebar{width:min(360px,calc(100vw - 24px))}
     .pose-choice{grid-template-columns:24px 1fr 15px;min-height:54px;padding:6px 9px}
-    .pose-choice small,.pose-sidebar>footer small{display:none}
-    .pose-camera-hint{display:none}
+    .pose-choice small{display:none}
     .pose-prov{display:none}
   }
 

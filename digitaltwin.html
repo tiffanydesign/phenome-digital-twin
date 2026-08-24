@@ -2537,15 +2537,18 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   <!-- Fourth, beside the page it is a sibling of: the two single-organ
        reports sit together, in the order the body page lists their organs. -->
   <button id="tabKidney" aria-pressed="false">Kidneys</button>
-  <!-- Fifth through seventh, after the reports and before the document. They
-       are studies of the same figure the body page draws rather than readings
-       taken from it, so they do not belong among the organ reports; and the
-       rule the third tab states — the design system is a document and goes at
-       the end — puts them here rather than after it. All three drive one view;
-       see the VIEWS map. -->
+  <!-- Fifth, after the reports and before the document. A study of the same
+       figure the body page draws rather than a reading taken from it, so it
+       does not belong among the organ reports; and the rule the third tab
+       states — the design system is a document and goes at the end — puts it
+       here rather than after it.
+       ONE tab, where there were three. Pose lab, Pose debug and Anatomy map
+       were always one view with three panels on it, and putting all three in
+       this bar spent three of its eight slots on modes of a single page while
+       every other tab was a page. They now hang off the mode switcher at the
+       top of the view; the three routes still exist in the VIEWS map, so
+       ?view=debug and ?view=map keep working. -->
   <button id="tabPose" aria-pressed="false">Pose lab</button>
-  <button id="tabDebug" aria-pressed="false">Pose debug</button>
-  <button id="tabMap" aria-pressed="false">Anatomy map</button>
   <button id="tabSpec" aria-pressed="false">Design system</button>
 </div>
 
@@ -3686,7 +3689,19 @@ function bindProvenance(){
       panel.addEventListener('pointerenter',hold);
       panel.addEventListener('pointerleave',release);
     }
-    btn.addEventListener('click',function(){ set(m, m.dataset.open!=='true'); });
+    /* Toggle on click only where there is NO hover, which is what the note at
+       the top of this function always said the design was: hover for a fine
+       pointer, tap for a coarse one, focus for a keyboard. It was bound for
+       everyone, so on a mouse the two fought: pointerenter opened the panel,
+       and the click that naturally follows toggled it straight back shut. The
+       panel is filled with <body>'s own wash, so what that looked like was a
+       pale blue rectangle appearing and vanishing under the cursor — measured
+       at 0 to full opacity by 145ms, then back to 0 by 295ms.
+       With a fine pointer the panel is already open by the time a click can
+       land, so there is nothing for a click to usefully do; leaving is what
+       closes it. Escape, outside-press and focusout still close it for
+       everyone. */
+    if(!fine) btn.addEventListener('click',function(){ set(m, m.dataset.open!=='true'); });
     btn.addEventListener('focus',function(){ set(m,true); });
     m.addEventListener('focusout',function(e){
       if(!m.contains(e.relatedTarget)) set(m,false);
@@ -3707,14 +3722,15 @@ function bindProvenance(){
 var VIEWS={scan:'viewScan',lab:'viewLab',heart:'viewHeart',kidney:'viewKidney',
            pose:'viewPose',debug:'viewPose',map:'viewPose',spec:'viewSpec'};
 var TABS ={scan:'tabScan', lab:'tabLab', heart:'tabHeart', kidney:'tabKidney',
-           pose:'tabPose', debug:'tabDebug', map:'tabMap', spec:'tabSpec'};
+           pose:'tabPose', debug:'tabPose', map:'tabPose', spec:'tabSpec'};
 function show(which){
-  /* Compare view ids, not keys, and touch each view once. Both halves matter
-     now that the map is not one-to-one: keyed on k, the two pose keys that are
-     not `which` would each toggle viewPose back off after the one that is
-     turned it on, and the tab would light with nothing behind it. Which panel
-     the view then shows is the pose module's business, off the same event. */
-  var targetView=VIEWS[which],seenViews={};
+  /* Compare IDS, not keys, and touch each element once — on both maps, for the
+     same reason. Neither is one-to-one: three pose routes share one view and,
+     since the three tabs became one, the same tab. Keyed on k, the two pose
+     routes that are not `which` would undo the one that is — blanking the view
+     in the first loop and un-pressing the tab in the second. Which panel the
+     view then shows is the pose module's business, off the same event. */
+  var targetView=VIEWS[which],targetTab=TABS[which],seenViews={},seenTabs={};
   for(var k in VIEWS){
     var viewId=VIEWS[k];
     if(!seenViews[viewId]){
@@ -3722,7 +3738,12 @@ function show(which){
       if(v) v.classList.toggle('is-on', viewId===targetView);
       seenViews[viewId]=true;
     }
-    document.getElementById(TABS[k]).setAttribute('aria-pressed', String(k===which));
+    var tabId=TABS[k];
+    if(!seenTabs[tabId]){
+      var b=document.getElementById(tabId);
+      if(b) b.setAttribute('aria-pressed', String(tabId===targetTab));
+      seenTabs[tabId]=true;
+    }
   }
   document.body.style.overflowY = (which==='spec') ? 'auto' : 'hidden';
   if(which==='scan'){ fit(); playReveal(); }
@@ -3734,13 +3755,21 @@ function show(which){
   /* the second experience is heavy, so it only wakes up when it is on screen */
   window.dispatchEvent(new CustomEvent('viewchange',{detail:which}));
 }
+/* This whole block is inside an IIFE, so show() is not a global — which is
+   right, and it is also why the pose view's mode switcher cannot simply call
+   it. The switcher is bound further down the document, where its own markup
+   has been parsed, and needs one way in. Handed over the same way this file
+   already hands over window.__glb and window.__kidneyView. */
+window.__showView = show;
 document.getElementById('tabScan').addEventListener('click',function(){show('scan');});
 document.getElementById('tabLab').addEventListener('click',function(){show('lab');});
 document.getElementById('tabHeart').addEventListener('click',function(){show('heart');});
 document.getElementById('tabKidney').addEventListener('click',function(){show('kidney');});
-document.getElementById('tabPose').addEventListener('click',function(){show('pose');});
-document.getElementById('tabDebug').addEventListener('click',function(){show('debug');});
-document.getElementById('tabMap').addEventListener('click',function(){show('map');});
+/* The tab returns to whichever mode the switcher last had, so leaving the view
+   and coming back does not silently reset a debug session to the lab. */
+document.getElementById('tabPose').addEventListener('click',function(){
+  show(window.__poseMode || 'pose');
+});
 document.getElementById('tabSpec').addEventListener('click',function(){show('spec');});
 /* A direct view URL is useful for reviews and lets the heavy views keep their
    normal lazy boot: wait until every module has registered its viewchange
@@ -6990,6 +7019,32 @@ window.__kidneyView = organView({
     <canvas id="poseGL" aria-label="Interactive male body shown in the selected pose"></canvas>
 
     <header class="pose-intro">
+      <!-- The mode switcher, and it lives INSIDE the intro rather than floating
+           at the top centre of the stage. Two reasons. It inherits the intro's
+           three breakpoints for free, so it can never drift into the sidebar —
+           a centred control would have collided below about 884px, where the
+           sidebar's left edge crosses the middle of the frame. And it reads as
+           what it is: the line above the title saying which of the three this
+           page currently is, directly over a title that changes with it.
+           .pose-intro is pointer-events:none so the copy cannot eat drags on
+           the model; this one control puts them back. -->
+      <div class="pose-mode" id="poseMode">
+        <button class="pose-mode-btn" id="poseModeBtn" type="button"
+                aria-haspopup="listbox" aria-expanded="false"
+                aria-label="Pose view mode">
+          <b id="poseModeCurrent">Pose lab</b>
+          <svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+        </button>
+        <ul class="pose-mode-list" id="poseModeList" role="listbox"
+            aria-label="Pose view mode" tabindex="-1">
+          <li role="option" data-mode="pose" aria-selected="true">
+            <b>Pose lab</b><small>Eleven authored poses</small></li>
+          <li role="option" data-mode="debug" aria-selected="false">
+            <b>Pose debug</b><small>Live coordinate editor</small></li>
+          <li role="option" data-mode="map" aria-selected="false">
+            <b>Anatomy map</b><small>Weights and landmarks</small></li>
+        </ul>
+      </div>
       <div class="overline">Phenome motion study</div>
       <h1>The body,<br>in motion.</h1>
       <p>One digital twin. Eleven studies of posture, balance and range.</p>
@@ -7198,6 +7253,68 @@ window.__kidneyView = organView({
   #poseGL.drag{cursor:grabbing}
 
   .pose-intro{position:absolute;z-index:3;left:40px;top:48px;width:275px;pointer-events:none}
+
+  /* ---------- the mode switcher ----------
+     A dropdown and not a segmented control, which is worth a line because the
+     tab bar downstairs is the segmented one and the two now sit on the same
+     page. The bar switches PAGES and shows them all, because you should be
+     able to see what else there is. This switches which of three readings of
+     one page you are looking at, and two of the three are instrument panels
+     rather than places — a trough with "Pose debug" permanently on display
+     next to the title would make a debug surface look like a destination.
+     Closed, it states the current mode and nothing else. */
+  .pose-mode{position:relative;z-index:7;margin-bottom:14px;pointer-events:auto;
+    width:max-content;font-family:var(--font-sans)}
+  .pose-mode-btn{display:flex;align-items:center;gap:9px;
+    padding:7px 11px 7px 13px;border:0;border-radius:999px;
+    background-image:var(--gl-grain);background-color:var(--gl-tint);
+    -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin);
+    box-shadow:0 0 0 1px var(--border-strong),var(--gl-shadow),var(--gl-inner);
+    font-size:var(--text-micro);color:var(--ink-900);cursor:pointer;
+    transition:box-shadow .18s var(--ease-frosted-out)}
+  .pose-mode-btn b{font-weight:var(--w-module);letter-spacing:var(--tracking-overline)}
+  .pose-mode-btn svg{width:10px;height:6px;flex:none;fill:none;
+    stroke:var(--ink-400);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+    transition:transform .2s var(--ease-frosted-out)}
+  .pose-mode-btn:hover{box-shadow:0 0 0 1px var(--phenome-blue-400),var(--gl-shadow-lift),var(--gl-inner)}
+  .pose-mode-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+
+  /* The list is a card, not glass: it stands over a moving model and a credit
+     you cannot read is worse than one that does not float. Same reasoning as
+     .prov-panel, and the same fill — <body>'s own ground at fixed attachment,
+     so it reads as page rather than as a box. */
+  .pose-mode-list{position:absolute;left:0;top:calc(100% + 7px);z-index:1;
+    min-width:212px;margin:0;padding:5px;list-style:none;
+    border:1px solid var(--border-strong);border-radius:var(--radius-lg);
+    background:
+      radial-gradient(1200px 800px at 85% -10%,#30b0cd1a,transparent 60%),
+      radial-gradient(1000px 700px at -10% 90%,#203a8512,transparent 55%),
+      radial-gradient(760px 760px at -170px -170px,#c4daf773,#c4daf700 68%),
+      radial-gradient(700px 700px at calc(100% + 170px) calc(100% + 200px),#d2e2f866,#d2e2f800 70%),
+      linear-gradient(150deg,var(--stage-field-1) 0%,var(--stage-field-2) 46%,var(--stage-field-3) 100%);
+    background-attachment:fixed;
+    box-shadow:var(--gl-shadow-lift);
+    opacity:0;visibility:hidden;transform:translateY(-4px);
+    transition:opacity .16s var(--ease-frosted-out),transform .16s var(--ease-frosted-out),
+               visibility 0s linear .16s}
+  .pose-mode[data-open="true"] .pose-mode-list{opacity:1;visibility:visible;transform:none;
+    transition-delay:0s,0s,0s}
+  .pose-mode-list li{display:flex;flex-direction:column;gap:1px;
+    padding:8px 11px;border-radius:8px;cursor:pointer;
+    transition:background-color .14s var(--ease-frosted-out)}
+  .pose-mode-list b{font-size:var(--text-micro);font-weight:var(--w-module);color:var(--ink-900)}
+  .pose-mode-list small{font-size:12px;color:var(--ink-400);letter-spacing:.01em}
+  .pose-mode-list li:hover,.pose-mode-list li.cursor{background-color:var(--gl-tint-sunk)}
+  /* The selected row is marked on the label, not with a tick in a gutter: three
+     rows do not earn a column that is empty on two of them. */
+  .pose-mode-list li[aria-selected="true"] b{color:var(--phenome-blue-500)}
+  .pose-mode-list li[aria-selected="true"]{background-color:var(--gl-tint-sunk)}
+
+  @media(max-width:720px){
+    .pose-mode-list{min-width:196px}
+    .pose-mode-list small{display:none}
+  }
+
   .pose-intro .overline{margin-bottom:17px;color:var(--ink-400)}
   .pose-intro h1{font:400 46px/.96 var(--font-serif-big);letter-spacing:var(--tracking-display);
     color:var(--ink-900)}
@@ -7396,6 +7513,86 @@ window.__kidneyView = organView({
   body:has(#viewPose.is-on) #rig,
   body:has(#viewPose.is-on) #rigOpen{display:none!important}
 </style>
+
+<script>
+/* ============================================================
+   The pose view's mode switcher.
+   Classic script, not a module, because it drives show() — which is a global
+   in the wiring block near the top — and it sits here rather than up there
+   because the markup it binds is parsed at this point in the document.
+
+   It owns no view logic of its own. Picking a mode calls show('pose'|'debug'|
+   'map'), exactly what the three tabs used to call, and the pose module reads
+   the route off the same viewchange event it always did. window.__poseMode is
+   the one piece of shared state: the merged tab reads it to return to the mode
+   you left, and the module's late-boot recovery reads it in place of the
+   aria-pressed sniffing it used to do on the two deleted tabs.
+   ============================================================ */
+(function(){
+  var root=document.getElementById('poseMode');
+  if(!root) return;
+  var btn=document.getElementById('poseModeBtn'),
+      list=document.getElementById('poseModeList'),
+      current=document.getElementById('poseModeCurrent'),
+      opts=[].slice.call(list.querySelectorAll('[role="option"]'));
+
+  window.__poseMode=window.__poseMode||'pose';
+
+  function open(on){
+    root.dataset.open=on?'true':'false';
+    btn.setAttribute('aria-expanded',on?'true':'false');
+    if(on){ cursorTo(Math.max(0,opts.indexOf(sel()))); list.focus(); }
+  }
+  function sel(){ return opts.filter(function(o){return o.getAttribute('aria-selected')==='true';})[0]; }
+  function cursorTo(i){
+    opts.forEach(function(o,j){ o.classList.toggle('cursor', j===i); });
+    cursor=i;
+  }
+  var cursor=0;
+
+  /* Label and marker follow the ROUTE, not the click, so a ?view=debug deep
+     link or a return through the tab lands with the switcher already correct.
+     This is why it listens instead of just setting state on selection. */
+  function sync(mode){
+    var hit=opts.filter(function(o){return o.dataset.mode===mode;})[0];
+    if(!hit) return;
+    opts.forEach(function(o){ o.setAttribute('aria-selected', String(o===hit)); });
+    current.textContent=hit.querySelector('b').textContent;
+    window.__poseMode=mode;
+  }
+  function choose(mode){
+    sync(mode); open(false);
+    if(typeof window.__showView==='function') window.__showView(mode);
+  }
+
+  btn.addEventListener('click',function(){ open(root.dataset.open!=='true'); });
+  opts.forEach(function(o){
+    o.addEventListener('click',function(){ choose(o.dataset.mode); });
+  });
+
+  /* Keyboard, on the listbox rather than on each row: arrows move a cursor,
+     Enter commits it, Escape abandons it and hands focus back to the button so
+     the next Tab goes somewhere sensible. */
+  list.addEventListener('keydown',function(e){
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault(); cursorTo((cursor+(e.key==='ArrowDown'?1:opts.length-1))%opts.length);
+    }else if(e.key==='Home'){ e.preventDefault(); cursorTo(0); }
+    else if(e.key==='End'){ e.preventDefault(); cursorTo(opts.length-1); }
+    else if(e.key==='Enter'||e.key===' '){ e.preventDefault(); choose(opts[cursor].dataset.mode); btn.focus(); }
+    else if(e.key==='Escape'){ e.preventDefault(); open(false); btn.focus(); }
+  });
+  btn.addEventListener('keydown',function(e){
+    if(e.key==='ArrowDown'||e.key==='Enter'||e.key===' '){ e.preventDefault(); open(true); }
+  });
+  document.addEventListener('pointerdown',function(e){ if(!root.contains(e.target)) open(false); });
+
+  window.addEventListener('viewchange',function(e){
+    if(e.detail==='pose'||e.detail==='debug'||e.detail==='map') sync(e.detail);
+    else open(false);
+  });
+})();
+</script>
+
 
 <script type="module">
 /* ---------------------------------------------------------------------------
@@ -9293,8 +9490,10 @@ addEventListener('resize',()=>{if(live)resizePose();});
    waiting for Three.js. Recover that already-selected state once setup lands. */
 if(document.getElementById('viewPose').classList.contains('is-on')){
   for(const id of ['rig','rigOpen']){const el=document.getElementById(id);if(el)el.style.display='none';}
-  poseRoute=document.getElementById('tabMap').getAttribute('aria-pressed')==='true'?'map':
-    document.getElementById('tabDebug').getAttribute('aria-pressed')==='true'?'debug':'pose';
+  /* The route used to be read back off tabMap/tabDebug's aria-pressed. Those
+     two tabs are gone — merged into one — so it comes off the mode switcher,
+     which show() sets before this module can run. */
+  poseRoute=window.__poseMode||'pose';
   live=true;bootPose();
 }
 </script>

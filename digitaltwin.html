@@ -777,9 +777,28 @@ body{
 
    The offset still scales with the bar, so the inset grows with the type
    rather than staying at a constant 24 while the control gets larger. */
+/* A right bound, and the reason it is needed now.
+   The bar is fixed, left-anchored, and has never had a right edge of its own:
+   its width is whatever the labels come to, and the fluid --seg-size was the
+   whole of its responsive behaviour. That was sound at five tabs — it came to
+   643px in an 860px frame, with 191px still to spare. At eight it reaches the
+   right inset at about 1110px and keeps going, and because <body> is
+   overflow-x:hidden what it does past that is not overflow but SILENT LOSS:
+   at 760px the last tab is 7px short of its label and there is no scrollbar to
+   say so, because the clip happens on an ancestor.
+   So: a right bound at the same inset as the left, and the bar scrolls inside
+   itself when the labels cannot fit. The trough still reads as one pill, and
+   nothing becomes unreachable. The scrollbar is hidden because a 15px platform
+   bar inside a 45px pill is worse than none, and it costs no access — the
+   buttons are focusable and focus scrolls them into view.
+   If the tab count keeps climbing, this is a floor and not a solution; the
+   answer at that point is fewer things in the bar, not a longer trough. */
 .toggle{position:fixed;left:calc(var(--seg)*1.85);bottom:calc(var(--seg)*1.85);z-index:50;
   --seg:var(--seg-size);
+  max-width:calc(100% - var(--seg)*3.7);
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;
   -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin)}
+.toggle::-webkit-scrollbar{display:none}
 
 /* ------------------------------------------------------------------
    The tab bar as a refractive lens — DORMANT. Read this before putting
@@ -875,28 +894,45 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
 .sw span{display:block;padding:9px 11px;font-size:var(--text-micro);color:var(--ink-600);line-height:1.5}
 .sw span b{display:block;color:var(--ink-900);font-size:var(--text-label);font-weight:700}
 
-/* page background · where the atmospheric wash lives versus plain white */
-.bgsplit{display:grid;grid-template-columns:1fr 1fr;height:170px;border-radius:var(--radius-lg);
-  overflow:hidden;border:1px solid var(--divider)}
+/* page background · ONE GROUND, and this specimen was the last place still
+   teaching the other thing.
+   It used to be the rule stated literally: a box-scale copy of the wash on the
+   left, --surface-card white on the right, and a glow bleeding across the
+   division to stop the two reading as separate screens. That was section 03's
+   original rule and it was honest when it was written — the information half
+   was opaque so long readouts stayed high-contrast.
+   Both report pages have since departed from it on purpose. A pane needs the
+   page to have structure under it now that the graduated rim is gone, so the
+   Kidneys and Heart rhythm rails are glass over the same five-layer ground the
+   organ half stands on. Pattern 01 was brought over to that a while ago; this
+   swatch was not, which left section 03 documenting a page the product no
+   longer draws. A page-background swatch that disagrees with the page
+   background is worse than no swatch.
+   So it takes pattern 01's treatment exactly, by the same means .prov-panel
+   and .split take it: the identical layer stack at background-attachment:fixed,
+   positioned against the viewport, so the box paints the pixels the page would
+   have painted at that spot. Not a copy of the ground — the ground. Which is
+   also why the halves no longer carry backgrounds of their own; there is one
+   surface here and the labels only say which part of it is which.
+   The division is the report pages' seam rather than a grid edge: one hairline
+   that fades out at both ends. That is what the old glow bleed was reaching
+   for, done the way the pages actually do it. */
+.bgsplit{position:relative;display:grid;grid-template-columns:1fr 1fr;height:170px;
+  border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--divider);
+  background:
+    radial-gradient(1200px 800px at 85% -10%,#30b0cd1a,transparent 60%),
+    radial-gradient(1000px 700px at -10% 90%,#203a8512,transparent 55%),
+    radial-gradient(760px 760px at -170px -170px,#c4daf773,#c4daf700 68%),
+    radial-gradient(700px 700px at calc(100% + 170px) calc(100% + 200px),#d2e2f866,#d2e2f800 70%),
+    linear-gradient(150deg,var(--stage-field-1) 0%,var(--stage-field-2) 46%,var(--stage-field-3) 100%);
+  background-attachment:fixed}
 .bgsplit-half{position:relative;display:flex;align-items:flex-end;padding:14px 18px}
 .bgsplit-half span{position:relative;z-index:1;font-size:var(--text-micro);font-weight:700;
   letter-spacing:var(--tracking-overline);color:var(--ink-400)}
-/* The swatch follows the page. It is drawn at box scale rather than viewport
-   scale — same layers, smaller and a little stronger, which is the same
-   compensation it always made — but the layer STACK is now the one <body>
-   actually paints, corner lobes and 150deg field included. A page-background
-   swatch that disagrees with the page background is worse than no swatch. */
-.bgsplit-organ{background:
-  radial-gradient(640px 460px at 88% -25%,#30b0cd26,transparent 60%),
-  radial-gradient(560px 420px at -10% 125%,#203a851f,transparent 55%),
-  radial-gradient(300px 300px at -60px -60px,#c4daf78c,#c4daf700 68%),
-  radial-gradient(280px 280px at calc(100% + 60px) calc(100% + 70px),#d2e2f87a,#d2e2f800 70%),
-  linear-gradient(150deg,var(--stage-field-1) 0%,var(--stage-field-2) 46%,var(--stage-field-3) 100%)}
-.bgsplit-info{background:#fff}
-/* the seam carries a trace of the same glow across, so the two halves read
-   as one page rather than two screens stitched together */
-.bgsplit-info::before{content:"";position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(420px 320px at -8% 60%,#30b0cd1c,transparent 68%)}
+/* the seam, at the same fade the two report pages draw it with */
+.bgsplit-info::before{content:"";position:absolute;left:0;top:0;bottom:0;width:1px;
+  pointer-events:none;
+  background:linear-gradient(to bottom,transparent,var(--divider) 13%,var(--divider) 87%,transparent)}
 
 /* charts */
 .charts{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
@@ -1202,16 +1238,49 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    manifest wants 448. Matching them would leave the single-work field 335px
    empty, which reads as a mistake rather than as a statement; the captions
    already say the two are different cases. */
+/* The ground is the page's own, and nothing else is on it.
+   Two things were here and both have gone. The background was
+   --surface-sunken under a top-centred white glow, a pairing that exists
+   nowhere in the product — the mark's whole job is to hold its edge over a
+   live field, and it was being shown standing on paper. Over it sat a dotted
+   blob on a ::before, masked to a rough torso, standing in for the halftone
+   figure.
+   The stand-in was the part that misread. Its intent was "this is the kind of
+   ground the mark sits on", but a specimen frame gives the eye no reason to
+   read a shape as a placeholder: a soft dotted lozenge in a bordered box
+   looks like a thing the component draws, or like a texture the mark is
+   specified against. It described the home page to someone already looking at
+   a diagram of it.
+   So the field takes the five layers <body> paints — the two brand pools, the
+   two corner lobes, the 150deg three-stop wash — and stops there. Not at the
+   viewport's radii, which is the mistake that stack invites: a 200px frame
+   handed a 1200px lobe gets a slice of one, and a slice of a lobe is a flat
+   tint. So: the same layers at smaller radii and alphas a step up, which is the
+   same compensation the file has always made for a box rather than a viewport.
+   These numbers came from section 03's page swatch, which carried them first
+   and has since gone over to the fixed-attachment ground. That leaves this
+   rule as the only box-scale copy of the wash in the file — there is nothing
+   left to keep it in sync with, and nothing else to check when it changes.
+   Fixed attachment — .prov-panel's and .split's trick, and the better one where
+   it fits — is deliberately not used here, and NOT for any reason to do with
+   scrolling: <body>'s own ground is fixed too, so the two stay in register as
+   the page moves. The reason is the size of the frame. Fixed hands the box the
+   pixels the page would paint at that spot, which is right for a full-width
+   specimen that spans enough viewport to show the wash turn over, and wrong
+   for a field this narrow — it would get one near-flat slice of a single lobe,
+   which is the problem this comment opens with, arrived at from the other
+   direction.
+   No bloom either. #homeGlow is a light for the figure, not part of the
+   ground, and with the figure gone there is nothing for it to light — it
+   would be one more gradient in a box, which is the reading being fixed. */
 .prov-field{position:relative;height:200px;border-radius:var(--radius-lg);
   border:1px solid var(--divider);
-  background:radial-gradient(120% 90% at 50% 6%,#fff,transparent 62%),var(--surface-sunken)}
-/* a stand-in for the halftone field, dotted and masked to a torso-ish
-   blob, so the mark is shown against the kind of ground it really sits
-   on rather than against flat paper */
-.prov-field::before{content:"";position:absolute;inset:0;border-radius:inherit;
-  background-image:radial-gradient(#203a8526 1px,transparent 1.6px);background-size:7px 7px;
-  -webkit-mask-image:radial-gradient(42% 60% at 50% 48%,#000 26%,transparent 74%);
-  mask-image:radial-gradient(42% 60% at 50% 48%,#000 26%,transparent 74%)}
+  background:
+    radial-gradient(640px 460px at 88% -25%,#30b0cd26,transparent 60%),
+    radial-gradient(560px 420px at -10% 125%,#203a851f,transparent 55%),
+    radial-gradient(300px 300px at -60px -60px,#c4daf78c,#c4daf700 68%),
+    radial-gradient(280px 280px at calc(100% + 60px) calc(100% + 70px),#d2e2f87a,#d2e2f800 70%),
+    linear-gradient(150deg,var(--stage-field-1) 0%,var(--stage-field-2) 46%,var(--stage-field-3) 100%)}
 .prov-field.tall{height:448px}
 .prov-demo{align-items:start}
 
@@ -1381,13 +1450,17 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
    ============================================================ */
 
 /* ---------- the stage ----------
-   The section's own ground is the page's ground: section 03's Page
-   background, scaled into a box the way section 03's own swatch already
-   scales it. The wash on <body> is sized to a viewport, so a box this
-   tall needs the same two pools drawn smaller and a little stronger to
-   read as the same surface — the numbers are lifted off .bgsplit-organ
-   rather than invented, which is why the stage now disappears into the
-   page instead of sitting on it as a blue rectangle.
+   The section's own ground is the page's ground, by having none of its own.
+   Read the last paragraph first if you are here to change something: the rule
+   below is one line and carries no background, deliberately.
+   This opening used to say the ground was "redrawn at box scale", with the
+   numbers lifted off .bgsplit-organ. Both halves of that are now wrong and the
+   second one no longer exists: section 03's swatch has gone over to the
+   fixed-attachment ground .prov-panel and .split use, so it has no box-scale
+   values left to cite, and .prov-field is the only box-scale copy left in the
+   file. Nor was the description still true here even before that — the stage
+   stopped painting anything a while ago, and the paragraph at the end of this
+   comment is the one that says why. The opening simply outlived it.
 
    This replaces a stage built specifically to be photographed through: a
    deeper blue-grey wash, five pools out of register in hue as well as in
@@ -2016,14 +2089,16 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
         <div class="swatches" id="swatches"></div>
 
         <div class="tmeta" style="margin:28px 0 10px"><b>Page background</b></div>
+        <!-- The two labels are the whole caption now. The prose that used to
+             sit under this ran to two paragraphs and spent both of them on the
+             rule the specimen no longer draws: which half is washed, which is
+             plain white, and why the seam carries a glow across. The swatch
+             says the surviving part of that in one look — one ground, a seam,
+             and which half is which. -->
         <div class="bgsplit">
           <div class="bgsplit-half bgsplit-organ"><span>Organ half &amp; homepage</span></div>
           <div class="bgsplit-half bgsplit-info"><span>Information half</span></div>
         </div>
-        <ol style="margin-top:14px;padding-left:20px;font-size:var(--text-label);line-height:1.65;color:var(--ink-600);max-width:640px">
-          <li>This fixed, low-contrast radial wash is the main background. It runs in full on the homepage, and on the organ half of the organ-highlight page, the side carrying the 3D visual.</li>
-          <li style="margin-top:10px">The information half of that same page is plain white instead, so long readouts stay high-contrast, but the seam where the two halves meet still carries a trace of the same glow bleeding in from the organ side, so the page reads as one surface rather than two screens pushed together.</li>
-        </ol>
       </div>
     </section>
 
@@ -2403,6 +2478,15 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   <!-- Fourth, beside the page it is a sibling of: the two single-organ
        reports sit together, in the order the body page lists their organs. -->
   <button id="tabKidney" aria-pressed="false">Kidneys</button>
+  <!-- Fifth through seventh, after the reports and before the document. They
+       are studies of the same figure the body page draws rather than readings
+       taken from it, so they do not belong among the organ reports; and the
+       rule the third tab states — the design system is a document and goes at
+       the end — puts them here rather than after it. All three drive one view;
+       see the VIEWS map. -->
+  <button id="tabPose" aria-pressed="false">Pose lab</button>
+  <button id="tabDebug" aria-pressed="false">Pose debug</button>
+  <button id="tabMap" aria-pressed="false">Anatomy map</button>
   <button id="tabSpec" aria-pressed="false">Design system</button>
 </div>
 
@@ -3558,12 +3642,27 @@ function bindProvenance(){
 }
 
 /* ────────────────────────── wiring ────────────────────────── */
-var VIEWS={scan:'viewScan',lab:'viewLab',heart:'viewHeart',kidney:'viewKidney',spec:'viewSpec'};
-var TABS ={scan:'tabScan', lab:'tabLab', heart:'tabHeart', kidney:'tabKidney', spec:'tabSpec'};
+/* pose, debug and map are three tabs over ONE view. The pose study is a single
+   WebGL context with three panels on it, and splitting it into three views
+   would mean three contexts building the same joint map off the same mesh. */
+var VIEWS={scan:'viewScan',lab:'viewLab',heart:'viewHeart',kidney:'viewKidney',
+           pose:'viewPose',debug:'viewPose',map:'viewPose',spec:'viewSpec'};
+var TABS ={scan:'tabScan', lab:'tabLab', heart:'tabHeart', kidney:'tabKidney',
+           pose:'tabPose', debug:'tabDebug', map:'tabMap', spec:'tabSpec'};
 function show(which){
+  /* Compare view ids, not keys, and touch each view once. Both halves matter
+     now that the map is not one-to-one: keyed on k, the two pose keys that are
+     not `which` would each toggle viewPose back off after the one that is
+     turned it on, and the tab would light with nothing behind it. Which panel
+     the view then shows is the pose module's business, off the same event. */
+  var targetView=VIEWS[which],seenViews={};
   for(var k in VIEWS){
-    var v=document.getElementById(VIEWS[k]);
-    if(v) v.classList.toggle('is-on', k===which);
+    var viewId=VIEWS[k];
+    if(!seenViews[viewId]){
+      var v=document.getElementById(viewId);
+      if(v) v.classList.toggle('is-on', viewId===targetView);
+      seenViews[viewId]=true;
+    }
     document.getElementById(TABS[k]).setAttribute('aria-pressed', String(k===which));
   }
   document.body.style.overflowY = (which==='spec') ? 'auto' : 'hidden';
@@ -3580,7 +3679,17 @@ document.getElementById('tabScan').addEventListener('click',function(){show('sca
 document.getElementById('tabLab').addEventListener('click',function(){show('lab');});
 document.getElementById('tabHeart').addEventListener('click',function(){show('heart');});
 document.getElementById('tabKidney').addEventListener('click',function(){show('kidney');});
+document.getElementById('tabPose').addEventListener('click',function(){show('pose');});
+document.getElementById('tabDebug').addEventListener('click',function(){show('debug');});
+document.getElementById('tabMap').addEventListener('click',function(){show('map');});
 document.getElementById('tabSpec').addEventListener('click',function(){show('spec');});
+/* A direct view URL is useful for reviews and lets the heavy views keep their
+   normal lazy boot: wait until every module has registered its viewchange
+   listener, then take the same path as a real tab press. */
+window.addEventListener('DOMContentLoaded',function(){
+  var requested=new URLSearchParams(location.search).get('view');
+  if(Object.prototype.hasOwnProperty.call(VIEWS,requested)) show(requested);
+});
 window.addEventListener('resize',function(){
   if(document.getElementById('viewScan').classList.contains('is-on')) fit();
   if(document.getElementById('viewHeart').classList.contains('is-on')) fitHeart();
@@ -6806,6 +6915,2329 @@ window.__kidneyView = organView({
     { match: ':blue',   weight: 0.30, gamma: 0.55 },
   ],
 });
+</script>
+<!-- ============================================================
+     VIEW 4 · POSE LAB
+
+     The source GLB is a single static mesh, not a skinned character. This
+     view builds a small anatomical joint map from that mesh at runtime so
+     the original model can be shown in a set of authored poses without
+     replacing it or changing the home page's screen-space halftone look.
+     Selecting another study blends the generated joint transforms once while
+     a lightweight holographic arm readout remains alive around the model.
+     ============================================================ -->
+<div class="view" id="viewPose">
+  <div id="poseWrap">
+    <canvas id="poseGL" aria-label="Interactive male body shown in the selected pose"></canvas>
+
+    <header class="pose-intro">
+      <div class="overline">Phenome motion study</div>
+      <h1>The body,<br>in motion.</h1>
+      <p>One digital twin. Eleven studies of posture, balance and range.</p>
+    </header>
+
+    <div class="pose-readout" aria-live="polite">
+      <span id="poseNumber">02 / 11</span>
+      <div>
+        <b id="poseName">Natural A</b>
+        <small id="poseNote">Gaze follows the instrumented hand</small>
+      </div>
+    </div>
+
+    <aside class="pose-sidebar" aria-label="Pose library">
+      <header>
+        <div>
+          <span>Pose library</span>
+          <small>Male digital twin</small>
+        </div>
+        <i>11</i>
+      </header>
+
+      <div class="pose-list" role="group" aria-label="Choose a pose">
+        <button class="pose-choice" type="button" data-pose="apose" aria-pressed="false">
+          <span class="pose-choice-num">01</span><span><b>A-pose</b><small>Source stance</small></span><i></i>
+        </button>
+        <button class="pose-choice on" type="button" data-pose="natural" aria-pressed="true">
+          <span class="pose-choice-num">02</span><span><b>Natural A</b><small>Straight-arm hand focus</small></span><i></i>
+        </button>
+        <button class="pose-choice" type="button" data-pose="relaxed" aria-pressed="false">
+          <span class="pose-choice-num">03</span><span><b>Relaxed</b><small>Arms at rest</small></span><i></i>
+        </button>
+        <button class="pose-choice" type="button" data-pose="reach" aria-pressed="false">
+          <span class="pose-choice-num">04</span><span><b>Reach</b><small>Overhead extension</small></span><i></i>
+        </button>
+        <button class="pose-choice" type="button" data-pose="runner" aria-pressed="false">
+          <span class="pose-choice-num">05</span><span><b>Runner</b><small>Forward stride</small></span><i></i>
+        </button>
+        <button class="pose-choice" type="button" data-pose="squat" aria-pressed="false">
+          <span class="pose-choice-num">06</span><span><b>Squat</b><small>Loaded stance</small></span><i></i>
+        </button>
+        <button class="pose-choice" type="button" data-pose="balance" aria-pressed="false">
+          <span class="pose-choice-num">07</span><span><b>Balance</b><small>Single-leg control</small></span><i></i>
+        </button>
+        <button class="pose-choice" type="button" data-pose="stretch" aria-pressed="false">
+          <span class="pose-choice-num">08</span><span><b>Side stretch</b><small>Lateral reach</small></span><i></i>
+        </button>
+        <button class="pose-choice" type="button" data-pose="lunge" aria-pressed="false">
+          <span class="pose-choice-num">09</span><span><b>High lunge</b><small>Split stance reach</small></span><i></i>
+        </button>
+        <button class="pose-choice" type="button" data-pose="guard" aria-pressed="false">
+          <span class="pose-choice-num">10</span><span><b>Open guard</b><small>Defensive ready stance</small></span><i></i>
+        </button>
+        <button class="pose-choice" type="button" data-pose="twist" aria-pressed="false">
+          <span class="pose-choice-num">11</span><span><b>Open twist</b><small>Rotational mobility</small></span><i></i>
+        </button>
+      </div>
+
+      <div class="anatomy-review" id="anatomyReview" aria-hidden="true">
+        <div class="anatomy-review-copy">
+          <b>My current interpretation</b>
+          <p>Colors show vertex ownership. Cross-section rings are the fixed-radius deformation cage; numbered circles mark anatomical landmarks.</p>
+        </div>
+        <div class="anatomy-views" role="group" aria-label="Anatomy map camera">
+          <button type="button" data-anatomy-view="front">Front</button>
+          <button type="button" data-anatomy-view="angle">Front three-quarter</button>
+          <button type="button" data-anatomy-view="side">Side</button>
+          <button type="button" data-anatomy-view="angleBack">Rear three-quarter</button>
+          <button type="button" data-anatomy-view="back">Back</button>
+          <button type="button" data-anatomy-view="armDetail">Arm controls close-up</button>
+          <button type="button" data-anatomy-view="palm">Palm close-up</button>
+          <button type="button" data-anatomy-view="dorsal">Back of hand</button>
+          <button type="button" data-anatomy-view="handSide">Hand edge</button>
+        </div>
+        <div class="anatomy-arm-guide">
+          <div class="anatomy-legend" aria-label="Proposed arm control centers">
+            <span><i style="--region:#c87938">SC</i><b>Clavicle root</b></span>
+            <span><i style="--region:#e2a04d">TR</i><b>Trapezius driver</b></span>
+            <span><i style="--region:#efb86a">AC</i><b>Acromion / scapula</b></span>
+            <span><i style="--region:#ed8a49">GH</i><b>Shoulder ball</b></span>
+            <span><i style="--region:#ef665e">UA</i><b>Humeral roll</b></span>
+            <span><i style="--region:#e9c64b">EH</i><b>Elbow hinge</b></span>
+            <span><i style="--region:#35a7a2">PR</i><b>Proximal rotation</b></span>
+            <span><i style="--region:#55cbd1">DR</i><b>Distal rotation</b></span>
+            <span><i style="--region:#2da68f">RA</i><b>Radius rail</b></span>
+            <span><i style="--region:#4aa7d3">UL</i><b>Ulna rail</b></span>
+            <span><i style="--region:#294b7b">W</i><b>Wrist / carpals</b></span>
+            <span><i style="--region:#557db3">C</i><b>Palm center</b></span>
+            <span><i style="--region:#84a7d2">U</i><b>Upper-palm arch</b></span>
+          </div>
+          <p class="anatomy-review-note">Every arm ring keeps its original radial coordinates while its center and orientation move. Paired radius/ulna rails and shoulder-girdle points drive the ring path.</p>
+        </div>
+        <div class="anatomy-hand-guide" aria-label="Detailed hand regions">
+          <b>Detailed hand controls</b>
+          <p>Every digit has its own centerline and joints. Shade changes divide the moving segments.</p>
+          <div class="anatomy-center-inspector" aria-label="Exact joint center inspector">
+            <header><span>Exact center</span><b id="anatomyInspectName">Index MCP</b></header>
+            <div class="anatomy-digit-select" role="group" aria-label="Choose a digit">
+              <button type="button" data-anatomy-digit="thumb">T</button>
+              <button class="on" type="button" data-anatomy-digit="index">I</button>
+              <button type="button" data-anatomy-digit="middle">M</button>
+              <button type="button" data-anatomy-digit="ring">R</button>
+              <button type="button" data-anatomy-digit="pinky">P</button>
+            </div>
+            <div class="anatomy-joint-sequence" role="group" aria-label="Choose a joint">
+              <button class="on" type="button" data-anatomy-joint="0"><i>1</i><span>MCP</span></button>
+              <button type="button" data-anatomy-joint="1"><i>2</i><span>PIP</span></button>
+              <button type="button" data-anatomy-joint="2"><i>3</i><span>DIP</span></button>
+              <button type="button" data-anatomy-joint="3"><i>4</i><span>TIP</span></button>
+            </div>
+            <div class="anatomy-inspect-views" role="group" aria-label="View the selected joint from five sides">
+              <button class="on" type="button" data-anatomy-inspect-view="front">Front</button>
+              <button type="button" data-anatomy-inspect-view="frontLeft">45°</button>
+              <button type="button" data-anatomy-inspect-view="outer">Outer</button>
+              <button type="button" data-anatomy-inspect-view="rearLeft">Rear 45°</button>
+              <button type="button" data-anatomy-inspect-view="back">Back</button>
+            </div>
+          </div>
+          <div class="anatomy-palm-sequence">
+            <span>Wrist pair</span><i>→</i><span>Carpal arch</span><i>→</i><span>Metacarpal bases</span><i>→</i><span>MCP joints</span>
+          </div>
+          <div class="anatomy-hand-legend">
+            <span><i style="--region:#294b7b">W</i><b>Wrist crease</b></span>
+            <span><i style="--region:#557db3">C</i><b>Inner palm</b></span>
+            <span><i style="--region:#84a7d2">U</i><b>Upper palm</b></span>
+            <span><i style="--region:#687996">D</i><b>Back of hand</b></span>
+            <span><i style="--region:#f1bc7c">TH</i><b>Thenar pad</b></span>
+            <span><i style="--region:#e79abc">HY</i><b>Hypothenar pad</b></span>
+            <span><i style="--region:#e8a05c">T</i><b>Thumb</b></span>
+            <span><i style="--region:#3db8a0">I</i><b>Index</b></span>
+            <span><i style="--region:#3c91cb">M</i><b>Middle</b></span>
+            <span><i style="--region:#8869cf">R</i><b>Ring</b></span>
+            <span><i style="--region:#d9689b">P</i><b>Pinky</b></span>
+          </div>
+          <p class="anatomy-review-note">Thumb uses CMC → MCP → IP → tip. The palm, dorsal and edge views isolate every center from orthogonal cameras.</p>
+        </div>
+      </div>
+
+      <div class="pose-debug" id="poseDebug" aria-hidden="true">
+        <div class="pose-debug-copy">
+          <b>Natural A · live editor</b>
+          <p>Move the sliders or type exact values. The model updates immediately; copy the coordinate block when the shot feels right.</p>
+        </div>
+
+        <div class="pose-debug-view" role="group" aria-label="Debug camera view">
+          <button class="on" type="button" id="poseDebugShot">Shot view</button>
+          <button type="button" id="poseDebugFull">Full body</button>
+        </div>
+
+        <details open>
+          <summary>Body coordinates</summary>
+          <div class="pose-debug-controls" id="poseDebugBody"></div>
+        </details>
+        <details>
+          <summary>Left arm coordinates</summary>
+          <div class="pose-debug-controls" id="poseDebugArm"></div>
+        </details>
+        <details open>
+          <summary>Camera coordinates</summary>
+          <div class="pose-debug-controls" id="poseDebugCamera"></div>
+          <button class="pose-debug-capture" type="button" id="poseDebugCapture">Capture current mouse camera</button>
+        </details>
+
+        <pre class="pose-debug-output" id="poseDebugOutput" aria-label="Current Natural A coordinates"></pre>
+        <div class="pose-debug-actions">
+          <button type="button" id="poseDebugCopy">Copy coordinates</button>
+          <button type="button" id="poseDebugReset">Reset debug values</button>
+        </div>
+      </div>
+
+      <footer>
+        <button type="button" id="poseResetView">Reset view</button>
+        <small>Drag to orbit · Shift-drag to pan<br>Scroll to zoom · Double-click to focus</small>
+      </footer>
+    </aside>
+
+    <div class="pose-camera-hint" aria-hidden="true">
+      <span>Drag orbit</span><i></i><span>Shift-drag pan</span><i></i><span>Scroll zoom</span><i></i><span>Double-click focus</span>
+    </div>
+
+    <div class="anatomy-pin-layer" id="anatomyPinLayer" aria-hidden="true"></div>
+
+    <div class="prov on-stage pose-prov" data-open="false">
+      <button class="prov-btn" type="button" aria-expanded="false" aria-controls="provPose"
+              aria-label="Model credit for this figure">i</button>
+      <div class="prov-panel solo" id="provPose" role="group" aria-label="Model credit">
+        <p class="prov-head"><b>Male &amp; Female Base Mesh Pack</b> by FormForge3D<br><a href="https://creativecommons.org/licenses/by/4.0/" rel="noreferrer">CC BY 4.0</a>, modified by Phenome Longevity.</p>
+      </div>
+    </div>
+
+    <div class="pose-load" id="poseLoad"><i></i><span>Building pose study</span></div>
+  </div>
+</div>
+
+<style>
+  #poseWrap{position:fixed;inset:0;overflow:hidden;isolation:isolate}
+  #poseWrap::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(620px 720px at 48% 48%,#ffffff7d,transparent 68%),
+      radial-gradient(440px 440px at 51% 52%,#8acced18,transparent 72%)}
+  #poseWrap::after{content:"";position:absolute;z-index:0;left:27%;right:31%;bottom:3.5%;height:8%;
+    border-radius:50%;background:radial-gradient(ellipse,#31589818 0%,#31589808 42%,transparent 72%);
+    filter:blur(9px);pointer-events:none}
+  #poseGL{position:absolute;inset:0;z-index:1;width:100%;height:100%;display:block;
+    touch-action:none;cursor:grab}
+  #poseGL.drag{cursor:grabbing}
+
+  .pose-intro{position:absolute;z-index:3;left:40px;top:48px;width:275px;pointer-events:none}
+  .pose-intro .overline{margin-bottom:17px;color:var(--ink-400)}
+  .pose-intro h1{font:400 46px/.96 var(--font-serif-big);letter-spacing:var(--tracking-display);
+    color:var(--ink-900)}
+  .pose-intro p{margin-top:18px;max-width:245px;font-size:15px;line-height:1.55;color:var(--ink-600)}
+
+  .pose-readout{position:absolute;z-index:3;left:40px;bottom:92px;display:flex;align-items:center;
+    gap:16px;pointer-events:none}
+  .pose-readout>span{display:grid;place-items:center;width:50px;height:50px;border-radius:50%;
+    color:var(--phenome-blue-500);font-size:11px;font-weight:700;letter-spacing:.08em;
+    background:#ffffff70;border:1px solid #fff9;box-shadow:var(--gl-shadow-rest),var(--gl-inner);
+    -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin)}
+  .pose-readout div{display:flex;flex-direction:column;gap:3px}
+  .pose-readout b{font:400 24px/1.1 var(--font-serif-small);color:var(--ink-900)}
+  .pose-readout small{font-size:12px;color:var(--ink-400);letter-spacing:.02em}
+
+  .pose-sidebar{position:absolute;z-index:4;right:24px;top:24px;bottom:24px;width:318px;
+    display:flex;flex-direction:column;padding:22px 18px 18px;border-radius:22px;
+    border:1px solid #ffffffa8;background:#f7fbffb8;
+    box-shadow:0 22px 60px -28px #1d3d715c,inset 0 1px 0 #fff;
+    -webkit-backdrop-filter:blur(24px) saturate(140%);backdrop-filter:blur(24px) saturate(140%)}
+  .pose-sidebar>header{display:flex;align-items:flex-start;justify-content:space-between;padding:2px 8px 20px;
+    border-bottom:1px solid var(--border-soft)}
+  .pose-sidebar>header div{display:flex;flex-direction:column;gap:4px}
+  .pose-sidebar>header span{font:400 24px/1 var(--font-serif-small);color:var(--ink-900)}
+  .pose-sidebar>header small{font-size:11px;color:var(--ink-400);letter-spacing:.06em;text-transform:uppercase}
+  .pose-sidebar>header>i{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;
+    background:#dce7f5;color:var(--phenome-blue-500);font:700 11px/1 var(--font-sans);font-style:normal}
+  .pose-list{display:flex;flex-direction:column;gap:5px;padding:13px 0;overflow:auto;scrollbar-width:none}
+  .pose-list::-webkit-scrollbar{display:none}
+  .pose-choice{display:grid;grid-template-columns:30px 1fr 18px;align-items:center;gap:10px;width:100%;
+    min-height:62px;padding:8px 12px;border:0;border-radius:14px;background:transparent;text-align:left;
+    color:var(--ink-600);cursor:pointer;transition:background-color .18s var(--ease-frosted-out),
+    box-shadow .18s var(--ease-frosted-out),color .18s var(--ease-frosted-out)}
+  .pose-choice:hover{background:#ffffff7d;color:var(--ink-900)}
+  .pose-choice.on{color:#fff;background:linear-gradient(135deg,#294896ed,#1d377ee8);
+    box-shadow:0 10px 24px -16px #102b6ba6,inset 0 1px 0 #ffffff42}
+  .pose-choice-num{font-size:10px;font-weight:700;letter-spacing:.09em;color:var(--ink-400)}
+  .pose-choice.on .pose-choice-num{color:#bfdaff}
+  .pose-choice>span:nth-child(2){display:flex;min-width:0;flex-direction:column;gap:4px}
+  .pose-choice b{font-size:14px;font-weight:600;letter-spacing:.01em}
+  .pose-choice small{font-size:11px;color:var(--ink-400);white-space:nowrap}
+  .pose-choice.on small{color:#c9d9fa}
+  .pose-choice>i{position:relative;width:17px;height:17px;border:1px solid #94a5be66;border-radius:50%}
+  .pose-choice.on>i{border-color:#fff8}
+  .pose-choice.on>i::after{content:"";position:absolute;inset:4px;border-radius:50%;background:#fff}
+  .anatomy-review{display:none;min-height:0;flex:1;flex-direction:column;padding:17px 8px 10px;overflow:auto}
+  .anatomy-review-copy>b{font-size:14px;color:var(--ink-900)}
+  .anatomy-review-copy p{margin-top:7px;font-size:11px;line-height:1.5;color:var(--ink-500)}
+  .anatomy-views{display:grid;grid-template-columns:1fr 1fr;margin-top:15px;padding:3px;gap:3px;
+    border-radius:12px;background:#dce7f2a8;border:1px solid #fff9}
+  .anatomy-views button{min-height:32px;border:0;border-radius:9px;background:transparent;color:var(--ink-500);
+    padding:4px 5px;font:700 9px/1.1 var(--font-sans);letter-spacing:.035em;text-transform:uppercase;cursor:pointer}
+  .anatomy-views button[data-anatomy-view="armDetail"]{grid-column:1/-1}
+  .anatomy-views button.on{color:#fff;background:#2b478c;box-shadow:0 5px 13px -8px #17316f}
+  .anatomy-legend{display:grid;grid-template-columns:1fr 1fr;gap:7px 5px;margin-top:16px}
+  .anatomy-legend span{display:flex;align-items:center;gap:7px;min-width:0;color:var(--ink-700)}
+  .anatomy-legend i{display:grid;place-items:center;flex:0 0 22px;height:22px;border-radius:50%;
+    background:var(--region);border:1px solid #fff9;color:#fff;font:700 9px/1 var(--font-sans);
+    font-style:normal;box-shadow:0 3px 8px -5px #0f255f}
+  .anatomy-legend b{font-size:10px;line-height:1.2;font-weight:600}
+  .anatomy-arm-guide{display:flex;min-height:0;flex:1;flex-direction:column}
+  .anatomy-hand-guide{display:none;min-height:0;flex:1;flex-direction:column;padding-top:15px}
+  .anatomy-hand-guide>b{font-size:12px;color:var(--ink-900)}
+  .anatomy-hand-guide>p:not(.anatomy-review-note){margin-top:5px;font-size:10px;line-height:1.45;color:var(--ink-500)}
+  .anatomy-center-inspector{margin-top:10px;padding:8px;border-radius:12px;background:#e3ebf4a8;border:1px solid #fff9}
+  .anatomy-center-inspector header{display:flex;align-items:center;justify-content:space-between;padding:0 2px 6px}
+  .anatomy-center-inspector header span{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400)}
+  .anatomy-center-inspector header b{font-size:10px;color:var(--ink-800)}
+  .anatomy-digit-select{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+  .anatomy-digit-select button,.anatomy-inspect-views button{border:0;border-radius:7px;background:#ffffff87;color:var(--ink-500);
+    min-height:24px;font:700 8px/1 var(--font-sans);cursor:pointer}
+  .anatomy-digit-select button.on,.anatomy-inspect-views button.on{background:#2b478c;color:#fff;box-shadow:0 4px 9px -6px #17316f}
+  .anatomy-joint-sequence{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-top:4px}
+  .anatomy-joint-sequence button{display:flex;align-items:center;justify-content:center;gap:4px;min-height:27px;padding:2px;
+    border:0;border-radius:7px;background:#ffffff70;color:var(--ink-600);font:700 8px/1 var(--font-sans);cursor:pointer}
+  .anatomy-joint-sequence button.on{background:#cbd9ec;color:var(--phenome-blue-600)}
+  .anatomy-joint-sequence i{display:grid;place-items:center;width:15px;height:15px;border-radius:50%;
+    background:#fff;color:var(--phenome-blue-500);font:700 8px/1 var(--font-sans);font-style:normal}
+  .anatomy-inspect-views{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-top:4px}
+  .anatomy-inspect-views button{padding:2px;font-size:6.5px;letter-spacing:.02em;text-transform:uppercase}
+  .anatomy-palm-sequence{display:flex;align-items:center;justify-content:space-between;gap:3px;margin-top:6px;
+    padding:6px 8px;border-radius:9px;background:#ffffff70;color:var(--ink-500);font-size:7px;font-weight:700}
+  .anatomy-palm-sequence i{font-style:normal;color:var(--ink-300)}
+  .anatomy-hand-legend{display:grid;grid-template-columns:1fr 1fr;gap:7px 5px;margin-top:13px}
+  .anatomy-hand-legend span{display:flex;align-items:center;gap:7px;min-width:0;color:var(--ink-700)}
+  .anatomy-hand-legend i{display:grid;place-items:center;flex:0 0 22px;height:22px;border-radius:7px;
+    background:var(--region);border:1px solid #fff9;color:#fff;font:700 9px/1 var(--font-sans);
+    font-style:normal;box-shadow:0 3px 8px -5px #0f255f}
+  .anatomy-hand-legend b{font-size:10px;line-height:1.2;font-weight:600}
+  .anatomy-review-note{margin-top:auto;padding:14px 1px 0;font-size:10px;line-height:1.5;color:var(--ink-400)}
+  .pose-debug{display:none;min-height:0;flex:1;flex-direction:column;gap:10px;padding:15px 5px 8px;overflow:auto;
+    scrollbar-width:thin;scrollbar-color:#7b95bd66 transparent}
+  .pose-debug-copy{padding:0 4px 3px}
+  .pose-debug-copy>b{font-size:14px;color:var(--ink-900)}
+  .pose-debug-copy p{margin-top:6px;font-size:10.5px;line-height:1.45;color:var(--ink-500)}
+  .pose-debug-view{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;border-radius:11px;
+    background:#dce7f2a8;border:1px solid #fff9}
+  .pose-debug-view button{min-height:30px;border:0;border-radius:8px;background:transparent;color:var(--ink-500);
+    font:700 9px/1 var(--font-sans);letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+  .pose-debug-view button.on{color:#fff;background:#2b478c;box-shadow:0 5px 13px -8px #17316f}
+  .pose-debug details{border:1px solid #ffffffa8;border-radius:12px;background:#e5edf6a3;overflow:hidden}
+  .pose-debug summary{padding:10px 11px;color:var(--ink-700);font-size:10px;font-weight:700;
+    letter-spacing:.065em;text-transform:uppercase;cursor:pointer;user-select:none}
+  .pose-debug details[open] summary{border-bottom:1px solid #ffffffa8}
+  .pose-debug-controls{display:flex;flex-direction:column;gap:10px;padding:10px}
+  .pose-debug-vector{display:flex;flex-direction:column;gap:5px}
+  .pose-debug-vector>strong{font-size:10px;font-weight:650;color:var(--ink-800)}
+  .pose-debug-axis{display:grid;grid-template-columns:14px minmax(80px,1fr) 62px;align-items:center;gap:7px}
+  .pose-debug-axis>span{font:700 8px/1 var(--font-sans);color:var(--ink-400);text-transform:uppercase}
+  .pose-debug-axis input[type="range"]{width:100%;height:14px;margin:0;accent-color:var(--phenome-blue-500);cursor:pointer}
+  .pose-debug-axis input[type="number"]{width:62px;height:27px;padding:0 6px;border:1px solid #ffffffd1;
+    border-radius:7px;outline:0;background:#ffffffa8;color:var(--ink-800);font:600 10px/1 var(--font-numeral)}
+  .pose-debug-axis input[type="number"]:focus{border-color:#6b8fc9;box-shadow:0 0 0 2px #5f86c326}
+  .pose-debug-capture{width:calc(100% - 20px);min-height:30px;margin:0 10px 10px;border:0;border-radius:8px;
+    background:#ffffffa8;color:var(--phenome-blue-600);font:700 9px/1 var(--font-sans);letter-spacing:.045em;
+    text-transform:uppercase;cursor:pointer}
+  .pose-debug-output{flex:0 0 auto;max-height:146px;margin:0;padding:10px;overflow:auto;border-radius:11px;
+    background:#162b56ec;color:#d8e8ff;font:500 9px/1.48 var(--font-numeral);white-space:pre-wrap;user-select:text}
+  .pose-debug-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .pose-debug-actions button{min-height:34px;border:0;border-radius:9px;background:#dce7f2;color:var(--ink-600);
+    font:700 9px/1 var(--font-sans);letter-spacing:.045em;text-transform:uppercase;cursor:pointer}
+  .pose-debug-actions button:first-child{background:#29478f;color:#fff}
+  .pose-sidebar>footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto;
+    padding:15px 8px 1px;border-top:1px solid var(--border-soft)}
+  .pose-sidebar>footer button{border:0;background:none;padding:0;color:var(--phenome-blue-500);cursor:pointer;
+    font:700 11px/1 var(--font-sans);letter-spacing:.06em;text-transform:uppercase}
+  .pose-sidebar>footer button:hover{color:var(--ink-900)}
+  .pose-sidebar>footer small{font-size:10px;color:var(--ink-400);text-align:right}
+
+  .anatomy-pin-layer{position:absolute;inset:0;z-index:5;display:none;pointer-events:none}
+  .anatomy-pin{position:absolute;display:grid;place-items:center;width:25px;height:25px;margin:-12.5px 0 0 -12.5px;
+    border-radius:50%;border:2px solid #fff;background:var(--region);color:#fff;
+    box-shadow:0 3px 13px #17315b6b,0 0 0 3px color-mix(in srgb,var(--region) 24%,transparent);
+    font:800 10px/1 var(--font-sans);transform:translate(var(--pin-dx,0),var(--pin-dy,0)) translateZ(0)}
+  .anatomy-pin.minor{width:19px;height:19px;margin:-9.5px 0 0 -9.5px;border-width:1px;
+    font-size:7px;box-shadow:0 2px 9px #17315b57,0 0 0 2px color-mix(in srgb,var(--region) 20%,transparent)}
+  #poseWrap.anatomy-on .pose-list{display:none}
+  #poseWrap.anatomy-on .anatomy-review{display:flex}
+  #poseWrap.anatomy-on .anatomy-pin-layer{display:block}
+  #poseWrap.hand-map .anatomy-arm-guide{display:none}
+  #poseWrap.hand-map .anatomy-hand-guide{display:flex}
+  #poseWrap.anatomy-on .pose-intro h1{font-size:42px}
+  #poseWrap.anatomy-on .pose-camera-hint{display:none}
+  #poseWrap.debug-on .pose-sidebar{width:360px}
+  #poseWrap.debug-on .pose-list,#poseWrap.debug-on .anatomy-review{display:none}
+  #poseWrap.debug-on .pose-debug{display:flex}
+  #poseWrap.debug-on .pose-sidebar>footer{display:none}
+  #poseWrap.debug-on .pose-camera-hint{left:calc(50% - 65px)}
+
+  .pose-camera-hint{position:absolute;z-index:3;left:calc(50% + 56px);bottom:34px;transform:translateX(-50%);
+    display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;
+    color:var(--ink-400);background:#f8fbff9c;border:1px solid #ffffffb8;
+    box-shadow:var(--gl-shadow-rest);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;pointer-events:none}
+  .pose-camera-hint i{width:2px;height:2px;border-radius:50%;background:var(--ink-300)}
+
+  .pose-prov{left:108px!important;bottom:99px!important}
+  .pose-load{position:absolute;z-index:6;left:50%;top:50%;display:flex;align-items:center;gap:11px;
+    transform:translate(-50%,-50%);padding:12px 17px;border-radius:999px;background:#f8fbffdc;
+    border:1px solid #fff;box-shadow:var(--gl-shadow-rest);font-size:12px;color:var(--ink-600);
+    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+  .pose-load i{width:8px;height:8px;border-radius:50%;background:var(--phenome-blue-400);
+    box-shadow:0 0 0 5px #2596cb1c}
+  .pose-load.off{display:none}
+
+  @media(max-width:980px){
+    .pose-sidebar{width:278px}
+    .pose-intro h1{font-size:42px}
+    .pose-intro p{max-width:230px}
+  }
+  @media(max-height:900px) and (min-width:721px){
+    .pose-sidebar{padding:16px 16px 13px}
+    .pose-sidebar>header{padding:1px 8px 12px}
+    .pose-list{gap:2px;padding:8px 0}
+    .pose-choice{min-height:48px;padding:5px 10px}
+    .pose-choice>span:nth-child(2){gap:2px}
+    .pose-sidebar>footer{padding-top:10px}
+  }
+  @media(max-width:1220px){.pose-camera-hint{display:none}}
+  @media(max-width:720px){
+    .pose-intro{left:22px;top:26px;width:220px}
+    .pose-intro h1{font-size:38px}
+    .pose-intro p{display:none}
+    .pose-sidebar{right:12px;top:12px;bottom:84px;width:220px;padding:16px 10px 12px}
+    #poseWrap.debug-on .pose-sidebar{width:min(360px,calc(100vw - 24px))}
+    .pose-choice{grid-template-columns:24px 1fr 15px;min-height:54px;padding:6px 9px}
+    .pose-choice small,.pose-sidebar>footer small{display:none}
+    .pose-readout{left:22px;bottom:86px}
+    .pose-camera-hint{display:none}
+    .pose-prov{display:none}
+  }
+
+  /* The home-page tuning rig is an authoring aid, not product chrome. A direct
+     Pose Lab URL can be selected before the body-page module hears viewchange,
+     so enforce the same parking rule in CSS as well as in the module below. */
+  body:has(#viewPose.is-on) #rig,
+  body:has(#viewPose.is-on) #rigOpen{display:none!important}
+</style>
+
+<script type="module">
+/* ---------------------------------------------------------------------------
+   Pose lab. Male.glb has no skin, joints or clips, so this view gives the
+   existing vertices a small deterministic joint map based on body proportions.
+   Selections ease once from the current joint state to the next; the only idle
+   motion is the arm readout, with no AnimationMixer fighting the camera.
+   --------------------------------------------------------------------------- */
+const poseWrap = document.getElementById('poseWrap');
+const poseCanvas = document.getElementById('poseGL');
+const poseLoad = document.getElementById('poseLoad');
+const poseButtons = [...document.querySelectorAll('.pose-choice')];
+const poseName = document.getElementById('poseName');
+const poseNote = document.getElementById('poseNote');
+const poseNumber = document.getElementById('poseNumber');
+const poseResetView = document.getElementById('poseResetView');
+const anatomyReview = document.getElementById('anatomyReview');
+const anatomyPinLayer = document.getElementById('anatomyPinLayer');
+const anatomyViewButtons = [...document.querySelectorAll('[data-anatomy-view]')];
+const anatomyDigitButtons = [...document.querySelectorAll('[data-anatomy-digit]')];
+const anatomyJointButtons = [...document.querySelectorAll('[data-anatomy-joint]')];
+const anatomyInspectViewButtons = [...document.querySelectorAll('[data-anatomy-inspect-view]')];
+const anatomyInspectName = document.getElementById('anatomyInspectName');
+const poseSidebarTitle = document.querySelector('.pose-sidebar>header span');
+const poseSidebarSubtitle = document.querySelector('.pose-sidebar>header small');
+const poseSidebarCount = document.querySelector('.pose-sidebar>header>i');
+const poseIntroOverline = document.querySelector('.pose-intro .overline');
+const poseIntroTitle = document.querySelector('.pose-intro h1');
+const poseIntroCopy = document.querySelector('.pose-intro p');
+const poseDebug = document.getElementById('poseDebug');
+const poseDebugBody = document.getElementById('poseDebugBody');
+const poseDebugArm = document.getElementById('poseDebugArm');
+const poseDebugCamera = document.getElementById('poseDebugCamera');
+const poseDebugOutput = document.getElementById('poseDebugOutput');
+const poseDebugShot = document.getElementById('poseDebugShot');
+const poseDebugFull = document.getElementById('poseDebugFull');
+const poseDebugCapture = document.getElementById('poseDebugCapture');
+const poseDebugCopy = document.getElementById('poseDebugCopy');
+const poseDebugReset = document.getElementById('poseDebugReset');
+
+async function waitForSharedGLB(){
+  const deadline=performance.now()+10000;
+  while(!window.__glb&&performance.now()<deadline)await new Promise((resolve)=>setTimeout(resolve,25));
+  if(!window.__glb)throw new Error('Pose lab needs the shared GLB reader');
+  return window.__glb;
+}
+const { THREE, loadGLB } = await waitForSharedGLB();
+const rad = (d) => d * Math.PI / 180;
+const BODY_H = 2.6;
+const POSE_ZOOM_MIN = .48;
+const POSE_ZOOM_MAX = 11.5;
+const ANATOMY_HAND_DISTANCE = 1.35;
+
+/* The measured map is the rig's bind-pose source of truth. Pose pivots,
+   finger chains, map pins and inspector controls all resolve these same
+   coordinates; a correction made in the map therefore reaches deformation
+   instead of living in a separate drawing-only table. */
+const ANATOMY_POINTS={
+  SC:[-.10,2.08,-.122],TR:[-.20,2.14,-.135],AC:[-.28,2.10,-.137],
+  GH:[-.35097,2.04138,-.14345],
+  UA:[-.3785165,1.8849546,-.1479272],
+  EH:[-.5360456,1.6917155,-.0969087],
+  PR:[-.5679571,1.6547920,-.0597318],
+  FM:[-.5870199,1.6331625,-.0353101],
+  DR:[-.6060828,1.6115329,-.0108884],
+  W:[-.6677595,1.5407555,.0811055],
+  C:[-.6946578,1.4766872,.1616381],
+  U:[-.7597844,1.4150800,.1931000],
+  D:[-.7032189,1.4470000,.1980000],
+  TH:[-.7209029,1.4500000,.2300000],
+  HY:[-.7140370,1.4500000,.1620000],
+
+  I_BASE:[-.6934802,1.452,.213],
+  M_BASE:[-.7015518,1.452,.190],
+  R_BASE:[-.7106375,1.452,.165],
+  P_BASE:[-.7262928,1.452,.140],
+
+  T_CMC:[-.6910059,1.4554300,.2150700],
+  T_MCP:[-.6807700,1.4595600,.2071800],
+  T_IP:[-.6515618,1.4416632,.2239294],
+  T_TIP:[-.6397535,1.4186774,.2391967],
+
+  I_MCP:[-.7315126,1.409,.2500917],
+  I_PIP:[-.7339061,1.371,.2713469],
+  I_DIP:[-.7297205,1.347,.2799181],
+  I_TIP:[-.7258539,1.324,.2844726],
+  M_MCP:[-.7603622,1.397,.2248986],
+  M_PIP:[-.7595137,1.353,.2435501],
+  M_DIP:[-.7528247,1.325,.2499653],
+  M_TIP:[-.7471690,1.299,.2533965],
+  R_MCP:[-.7771526,1.391,.1899386],
+  R_PIP:[-.7822507,1.348,.2074565],
+  R_DIP:[-.7773147,1.321,.2124152],
+  R_TIP:[-.7717238,1.296,.2152219],
+  P_MCP:[-.7790727,1.391,.1537647],
+  P_PIP:[-.7856831,1.353,.1635514],
+  P_DIP:[-.7829568,1.331,.1672901],
+  P_TIP:[-.7798193,1.311,.1703570],
+};
+const mirrorAnatomyPoint=([x,y,z])=>[-x,y,z];
+const DIGIT_RIG={
+  Thumb:{joints:['CMC','MCP','IP'],points:['T_CMC','T_MCP','T_IP','T_TIP'],color:'#e8a05c'},
+  Index:{joints:['MCP','PIP','DIP'],points:['I_MCP','I_PIP','I_DIP','I_TIP'],color:'#3db8a0'},
+  Middle:{joints:['MCP','PIP','DIP'],points:['M_MCP','M_PIP','M_DIP','M_TIP'],color:'#3c91cb'},
+  Ring:{joints:['MCP','PIP','DIP'],points:['R_MCP','R_PIP','R_DIP','R_TIP'],color:'#8869cf'},
+  Pinky:{joints:['MCP','PIP','DIP'],points:['P_MCP','P_PIP','P_DIP','P_TIP'],color:'#d9689b'},
+};
+const DIGIT_BONE_NAMES=[];
+for(const side of ['left','right'])for(const [digit,data] of Object.entries(DIGIT_RIG))
+  for(const joint of data.joints)DIGIT_BONE_NAMES.push(side+digit+joint);
+
+const ROT_KEYS = [
+  'root','spine','head',
+  'leftClavicle','rightClavicle',
+  'leftUpperArm','leftLowerArm','leftForearmTwist','leftHand','leftFingers',
+  'rightUpperArm','rightLowerArm','rightForearmTwist','rightHand','rightFingers',
+  'leftThigh','leftShin','leftFoot',
+  'rightThigh','rightShin','rightFoot',
+  ...DIGIT_BONE_NAMES,
+];
+const blankPose = () => {
+  const p = { offset:[0,0,0] };
+  ROT_KEYS.forEach((k) => { p[k] = [0,0,0]; });
+  return p;
+};
+const derive = (base, patch) => {
+  const p = { offset:[...base.offset] };
+  ROT_KEYS.forEach((k) => { p[k] = [...base[k]]; });
+  Object.entries(patch).forEach(([k,v]) => { p[k] = Array.isArray(v)?[...v]:v; });
+  return p;
+};
+const fingerShape=({
+  Index=[0,0,0],Middle=[0,0,0],Ring=[0,0,0],Pinky=[0,0,0],
+  spread={Index:0,Middle:0,Ring:0,Pinky:0},thumb=[[0,0],[0,0],[0,0]],sides=['left','right'],
+})=>{
+  const patch={};
+  for(const side of sides){
+    const curlSign=side==='left'?1:-1;
+    for(const digit of ['Index','Middle','Ring','Pinky']){
+      const joints=DIGIT_RIG[digit].joints,curls={Index,Middle,Ring,Pinky}[digit];
+      joints.forEach((joint,index)=>{
+        patch[side+digit+joint]=[index?0:spread[digit],0,curlSign*curls[index]];
+      });
+    }
+    DIGIT_RIG.Thumb.joints.forEach((joint,index)=>{
+      patch[side+'Thumb'+joint]=[thumb[index][0],0,curlSign*thumb[index][1]];
+    });
+  }
+  return patch;
+};
+const NATURAL_DIGITS=fingerShape({
+  Index:[0,1,0],Middle:[18,34,21],Ring:[32,56,36],Pinky:[50,82,54],
+  spread:{Index:-5,Middle:-1,Ring:3,Pinky:6},thumb:[[-7,-5],[0,-7],[0,-4]],sides:['left'],
+});
+const RELAXED_DIGITS=fingerShape({
+  Index:[8,11,7],Middle:[10,13,8],Ring:[12,15,9],Pinky:[15,17,10],
+  spread:{Index:-2,Middle:0,Ring:1,Pinky:3},thumb:[[-7,8],[0,10],[0,7]],
+});
+const OPEN_DIGITS=fingerShape({
+  Index:[1,2,1],Middle:[2,2,1],Ring:[3,3,2],Pinky:[4,4,2],
+  spread:{Index:-4,Middle:-1,Ring:2,Pinky:5},thumb:[[-6,2],[0,3],[0,2]],
+});
+
+const APOSE = blankPose();
+const NATURAL_A = derive(APOSE, {
+  ...NATURAL_DIGITS,
+  offset:[0,.065,0],
+  root:[0,-17,0],
+  spine:[-1,0,0], head:[16,-38,-4],
+  leftClavicle:[1,-2,-12],
+  leftUpperArm:[1,-3,-7],
+  leftLowerArm:[24,-8.4,10.2],
+  leftForearmTwist:[75,0,0],
+  leftHand:[1,-3,-8],
+  leftFingers:[-4,-1,5],
+});
+const RELAXED = derive(APOSE, {
+  ...RELAXED_DIGITS,
+  leftClavicle:[0,0,3], rightClavicle:[0,0,-3],
+  leftUpperArm:[0,0,28], rightUpperArm:[0,0,-28],
+  leftLowerArm:[0,0,5], rightLowerArm:[0,0,-5],
+  spine:[-2,0,0], head:[2,0,0],
+});
+const REACH = derive(APOSE, {
+  ...OPEN_DIGITS,
+  leftClavicle:[0,0,-18], rightClavicle:[0,0,18],
+  leftUpperArm:[0,0,-78], rightUpperArm:[0,0,78],
+  leftLowerArm:[0,0,8], rightLowerArm:[0,0,-8],
+  leftHand:[0,0,5], rightHand:[0,0,-5], spine:[-3,0,0],
+});
+const RUNNER = derive(RELAXED, {
+  offset:[0,.045,0], spine:[8,-3,0], head:[-5,3,0],
+  leftClavicle:[6,-3,3], rightClavicle:[-6,3,-3],
+  leftUpperArm:[32,0,27], rightUpperArm:[-34,0,-27],
+  leftLowerArm:[-62,0,0], rightLowerArm:[-58,0,0],
+  leftThigh:[-45,0,2], rightThigh:[34,0,-2],
+  leftShin:[72,0,0], rightShin:[-30,0,0],
+  leftFoot:[-20,0,0], rightFoot:[8,0,0],
+});
+const SQUAT = derive(RELAXED, {
+  offset:[0,-.16,.04], spine:[12,0,0], head:[-9,0,0],
+  leftClavicle:[-8,0,3], rightClavicle:[-8,0,-3],
+  leftUpperArm:[-30,0,28], rightUpperArm:[-30,0,-28],
+  leftLowerArm:[-16,0,0], rightLowerArm:[-16,0,0],
+  leftThigh:[-43,0,4], rightThigh:[-43,0,-4],
+  leftShin:[76,0,0], rightShin:[76,0,0],
+  leftFoot:[-28,0,0], rightFoot:[-28,0,0],
+});
+const BALANCE = derive(RELAXED, {
+  offset:[0,.015,0], root:[0,0,-3], spine:[0,0,4], head:[0,0,-1],
+  leftClavicle:[0,0,-10], rightClavicle:[0,0,10],
+  leftUpperArm:[0,0,-46], rightUpperArm:[0,0,46],
+  leftThigh:[0,0,-108], leftShin:[0,0,106], leftFoot:[0,0,4],
+  rightThigh:[0,0,2],
+});
+const STRETCH = derive(APOSE, {
+  ...OPEN_DIGITS,
+  root:[0,0,-4], spine:[0,0,-14], head:[0,0,9],
+  leftClavicle:[0,0,-18], leftUpperArm:[0,0,-73], leftLowerArm:[0,0,-5],
+  rightClavicle:[0,0,10], rightUpperArm:[0,0,54], rightLowerArm:[0,0,18],
+  leftThigh:[0,0,3], rightThigh:[0,0,4],
+});
+const LUNGE = derive(REACH, {
+  offset:[0,-.08,.035], root:[0,-3,0], spine:[7,4,0], head:[-5,-2,0],
+  leftClavicle:[0,0,-14], rightClavicle:[0,0,14],
+  leftUpperArm:[-5,0,-66], rightUpperArm:[-5,0,66],
+  leftLowerArm:[2,0,7], rightLowerArm:[2,0,-7],
+  leftHand:[4,-2,3], rightHand:[4,2,-3],
+  leftFingers:[8,0,2], rightFingers:[8,0,-2],
+  leftThigh:[-52,0,4], leftShin:[76,0,0], leftFoot:[-18,0,0],
+  rightThigh:[22,0,-3], rightShin:[12,0,0], rightFoot:[6,0,0],
+});
+const GUARD = derive(RELAXED, {
+  offset:[0,-.025,.025], spine:[4,0,0], head:[-3,0,0],
+  leftClavicle:[-7,-5,-5], rightClavicle:[-7,5,5],
+  leftUpperArm:[-24,0,-20], rightUpperArm:[-24,0,20],
+  leftLowerArm:[7,0,-155], rightLowerArm:[7,0,155],
+  leftHand:[-8,-4,0], rightHand:[-8,4,0],
+  leftFingers:[20,0,2], rightFingers:[20,0,-2],
+  leftThigh:[-9,0,5], rightThigh:[-9,0,-5],
+  leftShin:[18,0,0], rightShin:[18,0,0],
+});
+const TWIST = derive(NATURAL_A, {
+  root:[0,-8,-3], spine:[0,25,7], head:[0,-14,-3],
+  leftClavicle:[5,-6,-7], rightClavicle:[-5,6,7],
+  leftUpperArm:[8,0,-27], rightUpperArm:[-8,0,29],
+  leftLowerArm:[-24,0,-12], rightLowerArm:[-20,0,14],
+  leftHand:[5,-5,5], rightHand:[5,5,-5],
+  leftFingers:[10,0,3], rightFingers:[10,0,-3],
+  leftThigh:[0,0,-4], rightThigh:[0,0,4],
+});
+
+const POSES = {
+  apose:   { number:'01 / 11', name:'A-pose', note:'The source stance', yaw:12, pitch:0, distance:6.65, targetY:1.36, pose:APOSE },
+  natural: {
+    number:'02 / 11',name:'Natural A',note:'Gaze follows the instrumented hand',
+    yaw:8,pitch:0,distance:6.75,targetY:1.36,pose:NATURAL_A,cameraDuration:1800,
+    cameraPath:[
+      {at:1,positionJoint:'leftMiddlePIP',positionOffset:[-1.008574,-.401967,.768524],targetJoint:'head',targetOffset:[-.088111,-.161412,-.109386],roll:0},
+    ],
+  },
+  relaxed: { number:'03 / 11', name:'Relaxed', note:'Arms at rest', yaw:10, pitch:0, distance:6.65, targetY:1.36, pose:RELAXED },
+  reach:   { number:'04 / 11', name:'Reach', note:'Overhead extension', yaw:8, pitch:0, distance:8.35, targetY:1.55, pose:REACH },
+  runner:  { number:'05 / 11', name:'Runner', note:'Forward stride', yaw:45, pitch:0, distance:7, targetY:1.4, pose:RUNNER },
+  squat:   { number:'06 / 11', name:'Squat', note:'Loaded stance', yaw:70, pitch:-2, distance:6.55, targetY:1.22, pose:SQUAT },
+  balance: { number:'07 / 11', name:'Balance', note:'Single-leg control', yaw:16, pitch:0, distance:7.5, targetY:1.43, pose:BALANCE },
+  stretch: { number:'08 / 11', name:'Side stretch', note:'Lateral reach', yaw:10, pitch:0, distance:8.85, targetY:1.5, pose:STRETCH },
+  lunge:   { number:'09 / 11', name:'High lunge', note:'Split stance reach', yaw:42, pitch:-1, distance:7.55, targetY:1.36, pose:LUNGE },
+  guard:   { number:'10 / 11', name:'Open guard', note:'Defensive ready stance', yaw:25, pitch:0, distance:6.4, targetY:1.34, pose:GUARD },
+  twist:   { number:'11 / 11', name:'Open twist', note:'Rotational mobility', yaw:35, pitch:0, distance:7.1, targetY:1.38, pose:TWIST },
+};
+
+const copyPose = (source) => {
+  const p={offset:[...source.offset]};
+  ROT_KEYS.forEach((k)=>{p[k]=[...source[k]];});
+  return p;
+};
+const NATURAL_DEBUG_DEFAULT={
+  pose:copyPose(NATURAL_A),
+  positionOffset:[...POSES.natural.cameraPath[0].positionOffset],
+  targetOffset:[...POSES.natural.cameraPath[0].targetOffset],
+  roll:POSES.natural.cameraPath[0].roll||0,
+};
+const mixPose = (from,to,t) => {
+  const p={offset:from.offset.map((v,i)=>v+(to.offset[i]-v)*t)};
+  ROT_KEYS.forEach((k)=>{p[k]=from[k].map((v,i)=>v+(to[k][i]-v)*t);});
+  return p;
+};
+const easePose = (t) => t*t*t*(t*(t*6-15)+10);
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let currentPose=copyPose(APOSE),poseTransition=null,poseFrame=0;
+let poseDebugActive=false,poseDebugViewMode='shot';
+const poseDebugBindings=[];
+
+const renderer = new THREE.WebGLRenderer({ canvas:poseCanvas, antialias:true, alpha:true });
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+renderer.setPixelRatio(DPR);
+renderer.setClearColor(0x000000, 0);
+renderer.autoClear = false;
+if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+const stage = new THREE.Group();
+scene.add(stage);
+const camera = new THREE.PerspectiveCamera(27, 1, .05, 100);
+const cameraState={yaw:rad(12),pitch:0,roll:0,distance:6.65,targetX:0,targetY:1.36,targetZ:0,touched:false};
+function setCameraPreset(item,force=false){
+  if(cameraState.touched&&!force)return;
+  cameraState.yaw=rad(item.yaw);cameraState.pitch=rad(item.pitch||0);cameraState.roll=rad(item.roll||0);
+  cameraState.distance=item.distance;cameraState.targetX=0;cameraState.targetY=item.targetY;cameraState.targetZ=0;
+}
+function updatePoseCamera(){
+  const cp=Math.cos(cameraState.pitch),sp=Math.sin(cameraState.pitch);
+  camera.position.set(
+    cameraState.targetX+Math.sin(cameraState.yaw)*cp*cameraState.distance,
+    cameraState.targetY+sp*cameraState.distance,
+    cameraState.targetZ+Math.cos(cameraState.yaw)*cp*cameraState.distance
+  );
+  camera.lookAt(cameraState.targetX,cameraState.targetY,cameraState.targetZ);
+  camera.rotateZ(cameraState.roll);
+  camera.updateMatrixWorld();
+  if(poseDebugActive)updatePoseDebugOutput();
+}
+function resetPoseCamera(){
+  if(poseTransition)poseTransition.moveCamera=false;
+  if(anatomyMode){setAnatomyView(anatomyView);return;}
+  cameraState.touched=false;setCameraPreset(POSES[current],true);updatePoseCamera();renderPose();
+}
+const hex2vec = (h) => {
+  const v = parseInt(h.slice(1),16);
+  return new THREE.Vector3(((v>>16)&255)/255,((v>>8)&255)/255,(v&255)/255);
+};
+
+/* The exact two-pass Contour Fade screen used on the home page, without the
+   home page's waist crop: poses need their feet and support leg to remain. */
+const matTone = new THREE.ShaderMaterial({
+  side:THREE.DoubleSide, blending:THREE.NoBlending,
+  vertexShader:`
+    varying vec3 vN; varying vec3 vV;
+    void main(){
+      vec4 mv=modelViewMatrix*vec4(position,1.0);
+      vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz);
+      gl_Position=projectionMatrix*mv;
+    }`,
+  fragmentShader:`
+    varying vec3 vN; varying vec3 vV;
+    void main(){
+      float facing=clamp(abs(dot(normalize(vN),normalize(vV))),0.0,1.0);
+      gl_FragColor=vec4(facing,facing,facing,1.0);
+  }`,
+});
+/* The visible body is a full-screen halftone composite, so it cannot leave
+   useful geometry in the default framebuffer's depth buffer. Render the same
+   posed mesh once more with colour disabled before the hologram pass: the arm
+   then hides the rear half of every ring exactly like opaque geometry would,
+   while the halftone remains the only visible body treatment. */
+const matHologramOccluder = new THREE.MeshBasicMaterial({
+  colorWrite:false,depthTest:true,depthWrite:true,side:THREE.DoubleSide,
+  toneMapped:false,
+});
+const matAnatomy = new THREE.MeshStandardMaterial({
+  vertexColors:true,roughness:.82,metalness:0,side:THREE.DoubleSide,toneMapped:false,
+});
+const anatomySky = new THREE.HemisphereLight(0xffffff,0xb7c8dc,2.15);
+const anatomyKey = new THREE.DirectionalLight(0xffffff,2.7);
+anatomyKey.position.set(3.5,5.5,4.5);
+scene.add(anatomySky,anatomyKey);
+const matHalftone = new THREE.ShaderMaterial({
+  uniforms:{
+    uTone:{value:null},uRes:{value:new THREE.Vector2(2,2)},uPitch:{value:5*DPR},
+    uFill:{value:.95},uSoft:{value:.1},uContrast:{value:1.8},uFloor:{value:.190},
+    uColor:{value:hex2vec('#c8d9ef')},uTip:{value:hex2vec('#33518f')},
+  },
+  transparent:true,depthTest:false,depthWrite:false,
+  vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.0,1.0);}`,
+  fragmentShader:`
+    varying vec2 vUv; uniform sampler2D uTone; uniform vec2 uRes;
+    uniform vec3 uColor,uTip; uniform float uPitch,uFill,uSoft,uContrast,uFloor;
+    void main(){
+      vec2 px=vUv*uRes; vec2 g=px/uPitch; vec2 id=floor(g)+.5; vec2 cpx=id*uPitch;
+      float tsum=0.0,asum=0.0;
+      for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){
+        vec2 o=vec2(float(i),float(j))*uPitch*.34;
+        vec4 sm=texture2D(uTone,(cpx+o)/uRes); tsum+=sm.r*sm.a; asum+=sm.a;
+      }
+      float av=asum/9.0; float tv=asum>.0001?tsum/asum:0.0; float bright=1.0-tv;
+      float cov=av*(uFloor+(1.0-uFloor)*pow(clamp(bright,0.0,1.0),uContrast));
+      if(cov<=.0008)discard;
+      float r=.5*uFill*sqrt(cov),d=length(g-id),aa=max(.8/uPitch,.0005);
+      float a=1.0-smoothstep(max(r-aa-uSoft*r,0.0),r+aa,d); if(a<=.003)discard;
+      gl_FragColor=vec4(mix(uColor,uTip,clamp(bright,0.0,1.0)),a);
+    }`,
+});
+const quadScene = new THREE.Scene();
+const quadCamera = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),matHalftone));
+const toneRT = new THREE.WebGLRenderTarget(2,2,{
+  minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,
+  wrapS:THREE.ClampToEdgeWrapping,wrapT:THREE.ClampToEdgeWrapping,
+  depthBuffer:true,stencilBuffer:false,
+});
+
+const BONE_NAMES = [...ROT_KEYS];
+const BI = Object.fromEntries(BONE_NAMES.map((n,i)=>[n,i]));
+const ANATOMY_COLORS = {
+  root:'#d7dee9',spine:'#aebdd0',head:'#d8e0eb',
+  leftClavicle:'#ed9b50',rightClavicle:'#ed9b50',
+  leftUpperArm:'#ef665e',rightUpperArm:'#ef665e',
+  leftLowerArm:'#35a7a2',rightLowerArm:'#35a7a2',
+  leftForearmTwist:'#55cbd1',rightForearmTwist:'#55cbd1',
+  leftHand:'#9a6bd7',rightHand:'#9a6bd7',
+  leftFingers:'#e978aa',rightFingers:'#e978aa',
+  leftThigh:'#bac5d4',rightThigh:'#bac5d4',leftShin:'#c6cfdb',rightShin:'#c6cfdb',
+  leftFoot:'#d2d9e2',rightFoot:'#d2d9e2',
+};
+for(const side of ['left','right'])for(const [digit,data] of Object.entries(DIGIT_RIG))
+  for(const joint of data.joints)ANATOMY_COLORS[side+digit+joint]=data.color;
+const anatomyBoneColors=BONE_NAMES.map((name)=>new THREE.Color(ANATOMY_COLORS[name]||'#ccd4df'));
+const PARENT = {
+  root:null,spine:'root',head:'spine',
+  leftClavicle:'spine',rightClavicle:'spine',
+  leftUpperArm:'leftClavicle',leftLowerArm:'leftUpperArm',leftForearmTwist:'leftLowerArm',
+  leftHand:'leftForearmTwist',leftFingers:'leftHand',
+  rightUpperArm:'rightClavicle',rightLowerArm:'rightUpperArm',rightForearmTwist:'rightLowerArm',
+  rightHand:'rightForearmTwist',rightFingers:'rightHand',
+  leftThigh:'root',leftShin:'leftThigh',leftFoot:'leftShin',
+  rightThigh:'root',rightShin:'rightThigh',rightFoot:'rightShin',
+};
+for(const side of ['left','right'])for(const [digit,data] of Object.entries(DIGIT_RIG)){
+  data.joints.forEach((joint,index)=>{
+    const name=side+digit+joint;
+    PARENT[name]=index?side+digit+data.joints[index-1]:digit==='Thumb'?side+'Hand':side+'Fingers';
+  });
+}
+const J = {
+  root:[0,.49*BODY_H,0], spine:[0,.50*BODY_H,0], head:[0,.84*BODY_H,-.01*BODY_H],
+  leftClavicle:[...ANATOMY_POINTS.SC], rightClavicle:mirrorAnatomyPoint(ANATOMY_POINTS.SC),
+  leftUpperArm:[...ANATOMY_POINTS.GH], leftLowerArm:[...ANATOMY_POINTS.EH],
+  leftForearmTwist:[...ANATOMY_POINTS.PR],
+  leftHand:[...ANATOMY_POINTS.W], leftFingers:[...ANATOMY_POINTS.U],
+  rightUpperArm:mirrorAnatomyPoint(ANATOMY_POINTS.GH), rightLowerArm:mirrorAnatomyPoint(ANATOMY_POINTS.EH),
+  rightForearmTwist:mirrorAnatomyPoint(ANATOMY_POINTS.PR),
+  rightHand:mirrorAnatomyPoint(ANATOMY_POINTS.W), rightFingers:mirrorAnatomyPoint(ANATOMY_POINTS.U),
+  leftThigh:[-.055*BODY_H,.49*BODY_H,0], leftShin:[-.062*BODY_H,.26*BODY_H,0],
+  leftFoot:[-.068*BODY_H,.065*BODY_H,0],
+  rightThigh:[.055*BODY_H,.49*BODY_H,0], rightShin:[.062*BODY_H,.26*BODY_H,0],
+  rightFoot:[.068*BODY_H,.065*BODY_H,0],
+};
+for(const side of ['left','right'])for(const [digit,data] of Object.entries(DIGIT_RIG))
+  data.joints.forEach((joint,index)=>{
+    const point=ANATOMY_POINTS[data.points[index]];
+    J[side+digit+joint]=side==='left'?[...point]:mirrorAnatomyPoint(point);
+  });
+const boneMatrices = BONE_NAMES.map(()=>new THREE.Matrix4());
+const globals = BONE_NAMES.map(()=>new THREE.Matrix4());
+const euler = new THREE.Euler(0,0,0,'XYZ');
+const local = new THREE.Matrix4(), turn = new THREE.Matrix4(), unbind = new THREE.Matrix4();
+const forearmRollAxis={
+  left:new THREE.Vector3(
+    J.leftHand[0]-J.leftForearmTwist[0],J.leftHand[1]-J.leftForearmTwist[1],J.leftHand[2]-J.leftForearmTwist[2]
+  ).normalize(),
+  right:new THREE.Vector3(
+    J.rightHand[0]-J.rightForearmTwist[0],J.rightHand[1]-J.rightForearmTwist[1],J.rightHand[2]-J.rightForearmTwist[2]
+  ).normalize(),
+};
+
+/* A separate overlay scene keeps the readout crisp instead of feeding it
+   through the body's halftone pass. Five thin partial rings orbit and travel
+   independently along the elbow-to-wrist ring path. Their scale
+   follows the measured local arm radius, and the hidden depth pass occludes
+   every rear-facing piece. */
+const holoScene = new THREE.Scene();
+const holoRoot = new THREE.Group();
+holoScene.add(holoRoot);
+const holoFrameSample={center:new THREE.Vector3(),tangent:new THREE.Vector3(),u:new THREE.Vector3(),v:new THREE.Vector3()};
+const holoBasis=new THREE.Matrix4();
+const holoRings=[];
+[
+  {size:1.03,tube:.027,arc:1.70,speed:1.35,spin:1.80,phase:.15,opacity:.39,color:0x4e78ad},
+  {size:1.07,tube:.024,arc:1.36,speed:1.55,spin:-2.05,phase:1.42,opacity:.39,color:0x4e78ad},
+  {size:1.05,tube:.026,arc:1.82,speed:1.75,spin:2.30,phase:2.69,opacity:.39,color:0x4e78ad},
+  {size:1.09,tube:.022,arc:1.52,speed:1.45,spin:-1.90,phase:3.96,opacity:.39,color:0x4e78ad},
+  {size:1.01,tube:.025,arc:1.12,speed:1.90,spin:2.45,phase:5.23,opacity:.39,color:0x4e78ad},
+].forEach((spec,i)=>{
+  const group=new THREE.Group();
+  const material=new THREE.MeshBasicMaterial({
+    color:spec.color,transparent:true,opacity:spec.opacity,
+    blending:THREE.NormalBlending,depthTest:true,depthWrite:false,
+    toneMapped:false,side:THREE.DoubleSide,
+  });
+  const arcLength=Math.PI*spec.arc;
+  const arc=new THREE.Mesh(
+    new THREE.TorusGeometry(1,spec.tube,5,72,arcLength),
+    material
+  );
+  group.add(arc);holoRoot.add(group);
+  holoRings.push({...spec,group,arc,material,arcLength,index:i});
+});
+let poseGroundOffset=0;
+let naturalEffectStart=Infinity;
+const ORBIT_FADE_DURATION=620,VEIN_FADE_DURATION=820;
+function naturalEffectFade(now,start,duration){
+  if(reducedMotion)return 1;
+  return easePose(clamp01((now-start)/duration));
+}
+
+/* A small x-ray vascular layer for Natural A. The paths are built from the
+   same moving shoulder/arm ring frames as the surface cage, so they cannot be
+   left behind when the arm bends or twists. Two additive passes give each
+   vessel a narrow core and a restrained bloom; depth testing stays off by
+   design because this is an internal readout seen through the halftone body. */
+const veinScene=new THREE.Scene(),veinRoot=new THREE.Group();
+veinScene.add(veinRoot);
+const VEIN_SEGMENT_LIMIT=260;
+const veinSegmentGeometry=new THREE.CylinderGeometry(1,1,1,6,1,false);
+const veinGlowMaterial=new THREE.MeshBasicMaterial({
+  color:0x5aadd2,transparent:true,opacity:.05,depthTest:false,depthWrite:false,
+  blending:THREE.AdditiveBlending,toneMapped:false,
+});
+const veinCoreMaterial=new THREE.MeshBasicMaterial({
+  color:0x2d6fa8,transparent:true,opacity:.34,depthTest:false,depthWrite:false,
+  blending:THREE.NormalBlending,toneMapped:false,
+});
+const veinGlow=new THREE.InstancedMesh(veinSegmentGeometry,veinGlowMaterial,VEIN_SEGMENT_LIMIT);
+const veinCore=new THREE.InstancedMesh(veinSegmentGeometry,veinCoreMaterial,VEIN_SEGMENT_LIMIT);
+for(const layer of [veinGlow,veinCore]){
+  layer.count=0;layer.frustumCulled=false;layer.instanceMatrix.setUsage(THREE.DynamicDrawUsage);veinRoot.add(layer);
+}
+veinGlow.renderOrder=9;veinCore.renderOrder=10;
+const VEIN_FLOW_COUNT=18,veinFlowPositions=new Float32Array(VEIN_FLOW_COUNT*3);
+const veinFlowGeometry=new THREE.BufferGeometry();
+veinFlowGeometry.setAttribute('position',new THREE.BufferAttribute(veinFlowPositions,3).setUsage(THREE.DynamicDrawUsage));
+const veinFlowMaterial=new THREE.PointsMaterial({
+  color:0x8edcf0,size:.012,sizeAttenuation:true,transparent:true,opacity:.72,
+  depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false,
+});
+const veinFlow=new THREE.Points(veinFlowGeometry,veinFlowMaterial);
+veinFlow.frustumCulled=false;veinFlow.renderOrder=11;veinRoot.add(veinFlow);
+const veinFrame={center:new THREE.Vector3(),tangent:new THREE.Vector3(),u:new THREE.Vector3(),v:new THREE.Vector3()};
+const veinSegmentMid=new THREE.Vector3(),veinSegmentDirection=new THREE.Vector3(),veinUp=new THREE.Vector3(0,1,0);
+const veinSegmentMatrix=new THREE.Matrix4(),veinSegmentQuaternion=new THREE.Quaternion(),veinSegmentScale=new THREE.Vector3();
+let liveVeinPaths=[];
+
+function armVeinPoint(q,angle,radialScale){
+  const path=liveArmRingPaths.left,profile=armRingRadiusProfiles.left;
+  sampleRingFrame(path,q,veinFrame);
+  const index=Math.max(0,Math.min(profile.length-2,Math.floor(q))),mix=q-index;
+  const radius=(profile[index]+(profile[index+1]-profile[index])*mix)*radialScale;
+  return veinFrame.center.clone().addScaledVector(veinFrame.u,Math.cos(angle)*radius)
+    .addScaledVector(veinFrame.v,Math.sin(angle)*radius).add(new THREE.Vector3(0,poseGroundOffset,0));
+}
+function smoothVeinPath(points,density=5){
+  return new THREE.CatmullRomCurve3(points,false,'centripetal',.45).getPoints(Math.max(10,(points.length-1)*density));
+}
+function buildLiveVeinPaths(){
+  if(!liveArmRingPaths.left?.length)return [];
+  const along=(values,startAngle,endAngle,scale)=>values.map((q,index)=>{
+    const t=index/Math.max(1,values.length-1);
+    return armVeinPoint(q,startAngle+(endAngle-startAngle)*t,scale);
+  });
+  return [
+    smoothVeinPath(along([9.8,10.8,11.4,12,13,14,16,18,20,22,23.5,25],4.19,3.66,.20),5),
+    smoothVeinPath(along([9.9,10.9,11.5,12,13.2,14.5,16.5,18.5,20.5,22.2,23.5,25],3.66,3.14,.28),5),
+    smoothVeinPath(along([10,11,11.5,12,13.1,14.2,16.2,18.2,20.2,22.4,23.6,25],4.71,4.19,.27),5),
+  ];
+}
+function writeVeinInstances(mesh,paths,radius){
+  let instance=0;
+  for(const points of paths)for(let index=0;index<points.length-1&&instance<VEIN_SEGMENT_LIMIT;index++){
+    const start=points[index],end=points[index+1];
+    veinSegmentDirection.subVectors(end,start);const length=veinSegmentDirection.length();if(length<1e-5)continue;
+    veinSegmentMid.addVectors(start,end).multiplyScalar(.5);
+    veinSegmentQuaternion.setFromUnitVectors(veinUp,veinSegmentDirection.multiplyScalar(1/length));
+    const progress=index/Math.max(1,points.length-2),taper=.32+.68*Math.sin(Math.PI*progress);
+    veinSegmentScale.set(radius*taper,length,radius*taper);
+    veinSegmentMatrix.compose(veinSegmentMid,veinSegmentQuaternion,veinSegmentScale);
+    mesh.setMatrixAt(instance++,veinSegmentMatrix);
+  }
+  mesh.count=instance;mesh.instanceMatrix.needsUpdate=true;
+}
+function updateVeinNetwork(){
+  liveVeinPaths=buildLiveVeinPaths();
+  writeVeinInstances(veinGlow,liveVeinPaths,.007);
+  writeVeinInstances(veinCore,liveVeinPaths,.0025);
+}
+function updateVeinFlow(now,fade){
+  let cursor=0;
+  liveVeinPaths.forEach((points,pathIndex)=>{
+    for(let packet=0;packet<3;packet++)for(let trail=0;trail<2;trail++){
+      const t=(now*.00032+packet/3+pathIndex*.087-trail*.014+1)%1;
+      const q=t*(points.length-1),index=Math.min(points.length-2,Math.floor(q)),mix=q-index;
+      const a=points[index],b=points[index+1];
+      veinFlowPositions[cursor++]=a.x+(b.x-a.x)*mix;
+      veinFlowPositions[cursor++]=a.y+(b.y-a.y)*mix;
+      veinFlowPositions[cursor++]=a.z+(b.z-a.z)*mix;
+    }
+  });
+  veinFlowGeometry.getAttribute('position').needsUpdate=true;
+  veinFlowMaterial.opacity=(.58+.16*(.5+.5*Math.sin(now*.0024)))*fade;
+}
+function updateVeinPulse(now=0){
+  const fade=naturalEffectFade(now,naturalEffectStart+ORBIT_FADE_DURATION+120,VEIN_FADE_DURATION);
+  veinRoot.visible=current==='natural'&&liveVeinPaths.length>0&&fade>.001;
+  if(!veinRoot.visible)return;
+  const pulse=.5+.5*Math.sin(now*.0021);
+  veinGlowMaterial.opacity=(.055+pulse*.035)*fade;veinCoreMaterial.opacity=(.40+pulse*.14)*fade;
+  updateVeinFlow(now,fade);
+}
+
+function jointPoint(name,out){
+  const m=globals[BI[name]].elements;
+  return out.set(m[12],m[13]+poseGroundOffset,m[14]);
+}
+function updateArmHologram(now=0){
+  const path=liveArmRingPaths.left;
+  const fade=naturalEffectFade(now,naturalEffectStart,ORBIT_FADE_DURATION);
+  holoRoot.visible=current==='natural'&&Array.isArray(path)&&path.length>1&&fade>.001;
+  if(!holoRoot.visible)return;
+  const time=now*.001;
+  holoRings.forEach((ring,i)=>{
+    const t=.50+.46*Math.sin(time*ring.speed+ring.phase);
+    const q=12.10+t*12.90;
+    sampleRingFrame(path,q,holoFrameSample);
+    ring.group.position.copy(holoFrameSample.center);ring.group.position.y+=poseGroundOffset;
+    holoBasis.makeBasis(holoFrameSample.u,holoFrameSample.v,holoFrameSample.tangent);
+    ring.group.quaternion.setFromRotationMatrix(holoBasis);
+    const profile=armRingRadiusProfiles.left,index=Math.max(0,Math.min(profile.length-2,Math.floor(q))),mix=q-index;
+    const armRadius=profile[index]+(profile[index+1]-profile[index])*mix;
+    ring.group.scale.setScalar((armRadius+.002)*ring.size*(1+.008*Math.sin(time*1.55+i*1.7)));
+    ring.arc.rotation.z=ring.phase+time*ring.spin;
+    ring.material.opacity=(ring.opacity+.08*Math.sin(time*.92+i*1.9))*fade;
+  });
+}
+
+let anatomyMode=false,anatomySaved=null,anatomyView='front';
+const anatomyMarkerA=new THREE.Vector3(),anatomyMarkerB=new THREE.Vector3(),anatomyMarkerWorld=new THREE.Vector3();
+const ANATOMY_DIGIT_JOINTS={
+  thumb:['T_CMC','T_MCP','T_IP','T_TIP'],
+  index:['I_MCP','I_PIP','I_DIP','I_TIP'],
+  middle:['M_MCP','M_PIP','M_DIP','M_TIP'],
+  ring:['R_MCP','R_PIP','R_DIP','R_TIP'],
+  pinky:['P_MCP','P_PIP','P_DIP','P_TIP'],
+};
+const ANATOMY_DIGIT_NAMES={thumb:'Thumb',index:'Index',middle:'Middle',ring:'Ring',pinky:'Pinky'};
+const ANATOMY_JOINT_LABELS={thumb:['CMC','MCP','IP','TIP'],finger:['MCP','PIP','DIP','TIP']};
+const ANATOMY_INSPECT_YAWS={front:0,frontLeft:rad(-45),outer:rad(-90),rearLeft:rad(-135),back:Math.PI};
+const ANATOMY_INSPECT_VIEW_NAMES={front:'front',frontLeft:'front-left 45°',outer:'outer side',rearLeft:'rear-left 45°',back:'back'};
+let anatomySelectedDigit='index',anatomySelectedJoint=0,anatomyInspectView='front';
+const anatomyMarkers=[
+  {number:'SC',group:'arm',point:ANATOMY_POINTS.SC,color:'#c87938'},
+  {number:'TR',group:'arm',point:ANATOMY_POINTS.TR,color:'#e2a04d',minor:true},
+  {number:'AC',group:'arm',point:ANATOMY_POINTS.AC,color:'#efb86a',minor:true},
+  {number:'GH',group:'arm',point:ANATOMY_POINTS.GH,color:'#ed8a49'},
+  {number:'UA',group:'arm',point:ANATOMY_POINTS.UA,color:'#ef665e'},
+  {number:'EH',group:'arm',point:ANATOMY_POINTS.EH,color:'#e9c64b'},
+  {number:'PR',group:'arm',point:ANATOMY_POINTS.PR,color:'#35a7a2',minor:true},
+  {number:'DR',group:'arm',point:ANATOMY_POINTS.DR,color:'#55cbd1',minor:true},
+  {number:'W',group:'arm',point:ANATOMY_POINTS.W,color:'#294b7b'},
+  {number:'C',group:'arm',point:ANATOMY_POINTS.C,color:'#557db3'},
+  {number:'U',group:'arm',point:ANATOMY_POINTS.U,color:'#84a7d2'},
+  {number:'W',group:'hand',point:ANATOMY_POINTS.W,color:'#294b7b'},
+  {number:'C',group:'hand',point:ANATOMY_POINTS.C,color:'#557db3',views:['palm','handSide']},
+  {number:'U',group:'hand',point:ANATOMY_POINTS.U,color:'#84a7d2',views:['palm','handSide']},
+  {number:'D',group:'hand',point:ANATOMY_POINTS.D,color:'#687996',views:['dorsal']},
+  {number:'TH',group:'hand',point:ANATOMY_POINTS.TH,color:'#f1bc7c',minor:true,views:['palm']},
+  {number:'HY',group:'hand',point:ANATOMY_POINTS.HY,color:'#e79abc',minor:true,views:['palm']},
+  {number:'T',group:'hand',point:ANATOMY_POINTS.T_TIP,color:'#e8a05c'},
+  {number:'I',group:'hand',point:ANATOMY_POINTS.I_TIP,color:'#3db8a0'},
+  {number:'M',group:'hand',point:ANATOMY_POINTS.M_TIP,color:'#3c91cb'},
+  {number:'R',group:'hand',point:ANATOMY_POINTS.R_TIP,color:'#8869cf'},
+  {number:'P',group:'hand',point:ANATOMY_POINTS.P_TIP,color:'#d9689b'},
+];
+anatomyMarkers.forEach((marker)=>{
+  const pin=document.createElement('span');pin.className='anatomy-pin';pin.textContent=marker.number;
+  if(marker.minor)pin.classList.add('minor');
+  pin.style.setProperty('--region',marker.color);pin.dataset.marker=marker.number;
+  anatomyPinLayer.appendChild(pin);marker.element=pin;
+});
+
+/* X-ray control skeleton. These centers were measured from orthogonal mesh
+   cross-sections, so their depth remains meaningful in front, side, back and
+   three-quarter views. The lines are rendered after a depth clear on purpose:
+   this is a rig map, and internal joints must remain inspectable through skin. */
+const anatomyJointScene=new THREE.Scene();
+const anatomyArmSkeleton=new THREE.Group(),anatomyHandSkeleton=new THREE.Group(),anatomyTubeRings=new THREE.Group();
+anatomyJointScene.add(anatomyArmSkeleton,anatomyHandSkeleton,anatomyTubeRings);
+const anatomyUp=new THREE.Vector3(0,1,0),anatomySegmentDirection=new THREE.Vector3();
+const armJointGeometry=new THREE.SphereGeometry(.013,12,8);
+const detailJointGeometry=new THREE.SphereGeometry(.008,10,7);
+const handJointGeometry=new THREE.SphereGeometry(.0075,10,7);
+function anatomyMaterial(color,opacity=1){
+  return new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,depthTest:false,depthWrite:false,toneMapped:false});
+}
+const anatomySelectionGroup=new THREE.Group(),anatomySelectionMaterial=anatomyMaterial('#ffd85f');
+anatomySelectionGroup.add(new THREE.Mesh(new THREE.SphereGeometry(.006,16,11),anatomySelectionMaterial));
+const anatomySelectionRingGeometry=new THREE.TorusGeometry(.0105,.0013,6,34);
+const anatomySelectionXY=new THREE.Mesh(anatomySelectionRingGeometry,anatomySelectionMaterial);
+const anatomySelectionYZ=new THREE.Mesh(anatomySelectionRingGeometry,anatomySelectionMaterial);
+const anatomySelectionXZ=new THREE.Mesh(anatomySelectionRingGeometry,anatomySelectionMaterial);
+anatomySelectionYZ.rotation.y=Math.PI/2;anatomySelectionXZ.rotation.x=Math.PI/2;
+anatomySelectionGroup.add(anatomySelectionXY,anatomySelectionYZ,anatomySelectionXZ);
+anatomySelectionGroup.visible=false;anatomyJointScene.add(anatomySelectionGroup);
+function addControlChain(group,points,color,radius,geometry){
+  const material=anatomyMaterial(color,.94);
+  points.forEach((point)=>{const joint=new THREE.Mesh(geometry,material);joint.position.fromArray(point);group.add(joint);});
+  for(let i=1;i<points.length;i++){
+    const a=new THREE.Vector3().fromArray(points[i-1]),b=new THREE.Vector3().fromArray(points[i]);
+    anatomySegmentDirection.subVectors(b,a);const length=anatomySegmentDirection.length();
+    const segment=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,length,7,1,false),material);
+    segment.position.copy(a).lerp(b,.5);segment.quaternion.setFromUnitVectors(anatomyUp,anatomySegmentDirection.normalize());
+    group.add(segment);
+  }
+}
+const SHOULDER_GIRDLE_CHAIN=[
+  ANATOMY_POINTS.SC,ANATOMY_POINTS.AC,ANATOMY_POINTS.GH,
+];
+const TRAP_SUPPORT_CHAIN=[ANATOMY_POINTS.TR,ANATOMY_POINTS.AC];
+const HUMERUS_CHAIN=[
+  ANATOMY_POINTS.GH,ANATOMY_POINTS.UA,ANATOMY_POINTS.EH,
+];
+const FOREARM_CENTER_CHAIN=[
+  ANATOMY_POINTS.EH,ANATOMY_POINTS.PR,ANATOMY_POINTS.FM,
+  ANATOMY_POINTS.DR,ANATOMY_POINTS.W,
+];
+/* Paired rails stay well inside the measured cross-section extents. They are
+   separate because pronation/supination needs a radius/ulna relationship; one
+   fat forearm line cannot describe that twist cleanly. */
+const RADIUS_CHAIN=[
+  [-.5229656,1.6917155,-.0860487],[-.5509671,1.6547920,-.0457618],[-.5692499,1.6331625,-.0207101],
+  [-.5890828,1.6115329,.0030816],[-.6696732,1.5407555,.0918260],
+];
+const ULNA_CHAIN=[
+  [-.5498956,1.6917155,-.1077687],[-.5849471,1.6547920,-.0737018],[-.6047899,1.6331625,-.0499101],
+  [-.6230828,1.6115329,-.0248584],[-.6651167,1.5407555,.0703860],
+];
+const WRIST_PALM_CHAIN=[
+  ANATOMY_POINTS.W,ANATOMY_POINTS.C,ANATOMY_POINTS.U,
+];
+const FOREARM_PROXIMAL_TIE=[RADIUS_CHAIN[0],ULNA_CHAIN[0]];
+const FOREARM_DISTAL_TIE=[RADIUS_CHAIN.at(-1),ULNA_CHAIN.at(-1)];
+addControlChain(anatomyArmSkeleton,SHOULDER_GIRDLE_CHAIN,'#c87938',.0035,detailJointGeometry);
+addControlChain(anatomyArmSkeleton,TRAP_SUPPORT_CHAIN,'#e2a04d',.0028,detailJointGeometry);
+addControlChain(anatomyArmSkeleton,HUMERUS_CHAIN,'#d95050',.0037,armJointGeometry);
+addControlChain(anatomyArmSkeleton,FOREARM_CENTER_CHAIN,'#173b72',.0022,detailJointGeometry);
+addControlChain(anatomyArmSkeleton,RADIUS_CHAIN,'#2da68f',.0031,detailJointGeometry);
+addControlChain(anatomyArmSkeleton,ULNA_CHAIN,'#4aa7d3',.0031,detailJointGeometry);
+addControlChain(anatomyArmSkeleton,FOREARM_PROXIMAL_TIE,'#9a7b45',.0024,detailJointGeometry);
+addControlChain(anatomyArmSkeleton,FOREARM_DISTAL_TIE,'#355784',.0024,detailJointGeometry);
+addControlChain(anatomyArmSkeleton,WRIST_PALM_CHAIN,'#557db3',.0034,armJointGeometry);
+
+const HAND_CENTER_CHAIN=[ANATOMY_POINTS.W,ANATOMY_POINTS.C,ANATOMY_POINTS.U];
+const HAND_DIGIT_CHAINS={
+  thumb:{color:'#e8a05c',points:[
+    ANATOMY_POINTS.C,ANATOMY_POINTS.T_CMC,ANATOMY_POINTS.T_MCP,
+    ANATOMY_POINTS.T_IP,ANATOMY_POINTS.T_TIP,
+  ]},
+  index:{color:'#3db8a0',points:[
+    ANATOMY_POINTS.C,ANATOMY_POINTS.I_BASE,ANATOMY_POINTS.I_MCP,
+    ANATOMY_POINTS.I_PIP,ANATOMY_POINTS.I_DIP,ANATOMY_POINTS.I_TIP,
+  ]},
+  middle:{color:'#3c91cb',points:[
+    ANATOMY_POINTS.C,ANATOMY_POINTS.M_BASE,ANATOMY_POINTS.M_MCP,
+    ANATOMY_POINTS.M_PIP,ANATOMY_POINTS.M_DIP,ANATOMY_POINTS.M_TIP,
+  ]},
+  ring:{color:'#8869cf',points:[
+    ANATOMY_POINTS.C,ANATOMY_POINTS.R_BASE,ANATOMY_POINTS.R_MCP,
+    ANATOMY_POINTS.R_PIP,ANATOMY_POINTS.R_DIP,ANATOMY_POINTS.R_TIP,
+  ]},
+  pinky:{color:'#d9689b',points:[
+    ANATOMY_POINTS.C,ANATOMY_POINTS.P_BASE,ANATOMY_POINTS.P_MCP,
+    ANATOMY_POINTS.P_PIP,ANATOMY_POINTS.P_DIP,ANATOMY_POINTS.P_TIP,
+  ]},
+};
+addControlChain(anatomyHandSkeleton,HAND_CENTER_CHAIN,'#294b7b',.0027,handJointGeometry);
+Object.values(HAND_DIGIT_CHAINS).forEach((digit)=>
+  addControlChain(anatomyHandSkeleton,digit.points,digit.color,.0024,handJointGeometry)
+);
+const HAND_CARPAL_ARCH=[[-.6696732,1.5407555,.0918260],ANATOMY_POINTS.W,[-.6651167,1.5407555,.0703860]];
+const HAND_BASE_ARCH=[ANATOMY_POINTS.I_BASE,ANATOMY_POINTS.M_BASE,ANATOMY_POINTS.R_BASE,ANATOMY_POINTS.P_BASE];
+const HAND_MCP_POINTS=[
+  ANATOMY_POINTS.I_MCP,ANATOMY_POINTS.M_MCP,
+  ANATOMY_POINTS.R_MCP,ANATOMY_POINTS.P_MCP,
+];
+addControlChain(anatomyHandSkeleton,HAND_CARPAL_ARCH,'#294b7b',.0021,handJointGeometry);
+addControlChain(anatomyHandSkeleton,HAND_BASE_ARCH,'#738aab',.0018,handJointGeometry);
+/* MCP centers are independent joints. Connecting them directly would draw
+   straight controls through the open web spaces between separated fingers. */
+HAND_MCP_POINTS.forEach((point)=>addControlChain(anatomyHandSkeleton,[point],'#687996',.0018,handJointGeometry));
+
+function anatomyMarkerPosition(marker,out){
+  if(marker.point)return out.set(marker.point[0],marker.point[1]+poseGroundOffset,marker.point[2]);
+  if(marker.joint)return jointPoint(marker.joint,out);
+  jointPoint(marker.from,anatomyMarkerA);jointPoint(marker.to,anatomyMarkerB);
+  return out.copy(anatomyMarkerA).lerp(anatomyMarkerB,marker.t);
+}
+const ANATOMY_PIN_OFFSETS={
+  front:{EH:[7,-4],PR:[-2,5],DR:[5,5],C:[7,-3],U:[-5,4]},
+  angle:{EH:[7,-4],PR:[-4,5],DR:[6,5],C:[7,-3],U:[-5,4]},
+  side:{SC:[-20,0],TR:[0,-9],AC:[14,-2],GH:[9,7],EH:[6,-4],PR:[-8,4],DR:[8,8],C:[6,-3],U:[-6,4]},
+  angleBack:{EH:[-8,-5],PR:[8,2],DR:[-8,5],W:[8,2],C:[-7,2],U:[7,4]},
+  back:{EH:[-7,-5],PR:[7,2],DR:[-7,5],C:[-7,1],U:[6,4]},
+};
+const isHandAnatomyView=(view)=>view==='palm'||view==='dorsal'||view==='handSide'||view==='inspect';
+function updateAnatomyInspectorControls(){
+  const labels=ANATOMY_JOINT_LABELS[anatomySelectedDigit==='thumb'?'thumb':'finger'];
+  anatomyDigitButtons.forEach((button)=>button.classList.toggle('on',button.dataset.anatomyDigit===anatomySelectedDigit));
+  anatomyJointButtons.forEach((button,index)=>{
+    button.classList.toggle('on',index===anatomySelectedJoint);
+    button.querySelector('span').textContent=labels[index];
+  });
+  anatomyInspectViewButtons.forEach((button)=>button.classList.toggle('on',button.dataset.anatomyInspectView===anatomyInspectView));
+  anatomyInspectName.textContent=ANATOMY_DIGIT_NAMES[anatomySelectedDigit]+' '+labels[anatomySelectedJoint];
+}
+function focusAnatomySelection(){
+  if(!anatomyMode)return;
+  anatomyView='inspect';applyAnatomyPalette(true);
+  anatomyArmSkeleton.visible=false;anatomyHandSkeleton.visible=false;anatomyTubeRings.visible=false;anatomySelectionGroup.visible=true;
+  anatomyViewButtons.forEach((button)=>button.classList.remove('on'));
+  const key=ANATOMY_DIGIT_JOINTS[anatomySelectedDigit][anatomySelectedJoint],point=ANATOMY_POINTS[key];
+  anatomySelectionGroup.position.set(point[0],point[1]+poseGroundOffset,point[2]);
+  Object.assign(cameraState,{yaw:ANATOMY_INSPECT_YAWS[anatomyInspectView],pitch:0,roll:0,distance:.78,
+    targetX:point[0],targetY:point[1]+poseGroundOffset,targetZ:point[2],touched:true});
+  updateAnatomyInspectorControls();poseWrap.classList.add('hand-map');
+  poseName.textContent=anatomyInspectName.textContent;
+  poseNote.textContent='Exact mesh center · '+ANATOMY_INSPECT_VIEW_NAMES[anatomyInspectView];
+  updatePoseCamera();renderPose();
+}
+function setAnatomySelection(digit,joint){
+  if(digit&&ANATOMY_DIGIT_JOINTS[digit])anatomySelectedDigit=digit;
+  if(Number.isInteger(joint))anatomySelectedJoint=Math.max(0,Math.min(3,joint));
+  focusAnatomySelection();
+}
+function setAnatomyInspectView(view){
+  if(!(view in ANATOMY_INSPECT_YAWS))return;anatomyInspectView=view;focusAnatomySelection();
+}
+function updateAnatomyPins(){
+  if(!anatomyMode)return;
+  const width=poseWrap.clientWidth,height=poseWrap.clientHeight;
+  anatomyMarkers.forEach((marker)=>{
+    anatomyMarkerPosition(marker,anatomyMarkerWorld).project(camera);
+    const handDetail=isHandAnatomyView(anatomyView);
+    const groupVisible=anatomyView==='inspect'?false:handDetail?marker.group==='hand':marker.group==='arm';
+    const viewVisible=!marker.views||marker.views.includes(anatomyView);
+    const visible=groupVisible&&viewVisible&&anatomyMarkerWorld.z>-1&&anatomyMarkerWorld.z<1&&
+      anatomyMarkerWorld.x>-1.08&&anatomyMarkerWorld.x<1.08&&anatomyMarkerWorld.y>-1.08&&anatomyMarkerWorld.y<1.08;
+    marker.element.style.display=visible?'grid':'none';
+    if(visible){
+      const [offsetX,offsetY]=(ANATOMY_PIN_OFFSETS[anatomyView]||{})[marker.number]||[0,0];
+      marker.element.style.setProperty('--pin-dx',offsetX+'px');
+      marker.element.style.setProperty('--pin-dy',offsetY+'px');
+      marker.element.style.left=((anatomyMarkerWorld.x*.5+.5)*width)+'px';
+      marker.element.style.top=((-anatomyMarkerWorld.y*.5+.5)*height)+'px';
+    }
+  });
+}
+function setAnatomyView(view){
+  if(!anatomyMode)return;if(view==='inspect'){focusAnatomySelection();return;}anatomyView=view;
+  cameraState.roll=0;
+  anatomySelectionGroup.visible=false;
+  const handDetail=isHandAnatomyView(view);applyAnatomyPalette(handDetail);
+  anatomyArmSkeleton.visible=!handDetail;anatomyHandSkeleton.visible=handDetail;anatomyTubeRings.visible=!handDetail;
+  anatomyViewButtons.forEach((button)=>button.classList.toggle('on',button.dataset.anatomyView===view));
+  anatomyInspectViewButtons.forEach((button)=>button.classList.remove('on'));
+  poseName.textContent='The map, as I see it';poseNote.textContent='Review the colors, boundaries and numbered pivots';
+  if(handDetail){
+    cameraState.yaw=view==='dorsal'?Math.PI:view==='handSide'?Math.PI/2:0;
+    cameraState.pitch=rad(-2);cameraState.distance=ANATOMY_HAND_DISTANCE;
+    cameraState.targetX=(J.leftHand[0]+J.leftFingers[0])*.5;
+    cameraState.targetY=(J.leftHand[1]+J.leftFingers[1])*.5;
+    cameraState.targetZ=.18;
+  }else if(view==='armDetail'){
+    cameraState.yaw=rad(18);cameraState.pitch=rad(-2);cameraState.distance=2.9;
+    cameraState.targetX=-.48;cameraState.targetY=1.76;cameraState.targetZ=-.04;
+  }else{
+    cameraState.yaw=view==='back'?Math.PI:view==='angleBack'?rad(146):view==='side'?Math.PI/2:view==='angle'?rad(34):0;
+    cameraState.pitch=view==='angle'||view==='angleBack'?rad(-1):0;cameraState.distance=6.35;
+    cameraState.targetX=0;cameraState.targetY=1.35;cameraState.targetZ=0;
+  }
+  cameraState.touched=true;updatePoseCamera();renderPose();
+}
+function setAnatomyMode(on){
+  on=Boolean(on);if(on===anatomyMode||!ready)return;
+  if(on){
+    if(poseFrame)cancelAnimationFrame(poseFrame);poseFrame=0;poseTransition=null;
+    anatomySaved={pose:copyPose(currentPose),camera:{...cameraState}};
+    anatomyMode=true;poseWrap.classList.add('anatomy-on');anatomyReview.setAttribute('aria-hidden','false');
+    poseIntroOverline.textContent='Phenome rig study';poseIntroTitle.innerHTML='Anatomy,<br>mapped.';
+    poseIntroCopy.textContent='A permanent control map for regions, joints, palms and every digit.';
+    poseSidebarTitle.textContent='Anatomy map';poseSidebarSubtitle.textContent='Weights + proposed landmarks';poseSidebarCount.textContent='MAP';
+    poseNumber.textContent='MAP';poseName.textContent='The map, as I see it';
+    poseNote.textContent='Review the colors, boundaries and numbered pivots';
+    currentPose=copyPose(APOSE);deform(currentPose);stopHologram();setAnatomyView('front');
+    return;
+  }
+  anatomyMode=false;anatomySelectionGroup.visible=false;
+  poseWrap.classList.remove('anatomy-on','hand-map');anatomyReview.setAttribute('aria-hidden','true');
+  applyAnatomyPalette(false);
+  poseIntroOverline.textContent='Phenome motion study';poseIntroTitle.innerHTML='The body,<br>in motion.';
+  poseIntroCopy.textContent='One digital twin. Eleven studies of posture, balance and range.';
+  poseSidebarTitle.textContent='Pose library';poseSidebarSubtitle.textContent='Male digital twin';poseSidebarCount.textContent='11';
+  currentPose=copyPose(anatomySaved.pose);deform(currentPose);Object.assign(cameraState,anatomySaved.camera);
+  anatomySaved=null;updatePoseCamera();
+  const item=POSES[current];poseNumber.textContent=item.number;poseName.textContent=item.name;poseNote.textContent=item.note;
+  renderPose();startHologram();
+}
+
+function buildBoneMatrices(pose){
+  BONE_NAMES.forEach((name,i)=>{
+    const r=pose[name],j=J[name],parent=PARENT[name];
+    if(name==='leftForearmTwist'||name==='rightForearmTwist'){
+      const side=name.startsWith('left')?'left':'right';
+      turn.makeRotationAxis(forearmRollAxis[side],rad(r[0]));
+    }else{
+      euler.set(rad(r[0]),rad(r[1]),rad(r[2]));
+      turn.makeRotationFromEuler(euler);
+    }
+    if(!parent){
+      globals[i].makeTranslation(j[0]+pose.offset[0],j[1]+pose.offset[1],j[2]+pose.offset[2]).multiply(turn);
+    }else{
+      const pj=J[parent];
+      local.makeTranslation(j[0]-pj[0],j[1]-pj[1],j[2]-pj[2]).multiply(turn);
+      globals[i].copy(globals[BI[parent]]).multiply(local);
+    }
+    unbind.makeTranslation(-j[0],-j[1],-j[2]);
+    boneMatrices[i].copy(globals[i]).multiply(unbind);
+  });
+}
+
+const clamp01=(x)=>Math.max(0,Math.min(1,x));
+const smooth=(a,b,x)=>{const t=clamp01((x-a)/(b-a));return t*t*(3-2*t);};
+let geometry=null,mesh=null,restPos=null,restNorm=null,skinIndex=null,skinWeight=null;
+let armTubeVertices=[],armRingPaths={},liveArmRingPaths={left:[],right:[]},armRingRadiusProfiles={left:[],right:[]};
+let anatomyArmColors=null,anatomyHandColors=null;
+const HAND_MAP_COLORS={
+  wrist:new THREE.Color('#294b7b'),inner:new THREE.Color('#557db3'),upper:new THREE.Color('#84a7d2'),
+  dorsal:new THREE.Color('#687996'),
+  thenar:new THREE.Color('#e8a05c'),hypothenar:new THREE.Color('#d979a5'),
+  thumb:['#f3b16e','#df7f40','#bd592e'].map((c)=>new THREE.Color(c)),
+  index:['#74d5bf','#3db8a0','#1f8378'].map((c)=>new THREE.Color(c)),
+  middle:['#70b9e1','#3c91cb','#246a9a'].map((c)=>new THREE.Color(c)),
+  ring:['#aa98df','#8869cf','#5f449e'].map((c)=>new THREE.Color(c)),
+  pinky:['#ef94ba','#d9689b','#aa406f'].map((c)=>new THREE.Color(c)),
+};
+const HAND_DIGITS={
+  index:{points:[ANATOMY_POINTS.I_MCP,ANATOMY_POINTS.I_PIP,ANATOMY_POINTS.I_DIP,ANATOMY_POINTS.I_TIP]},
+  middle:{points:[ANATOMY_POINTS.M_MCP,ANATOMY_POINTS.M_PIP,ANATOMY_POINTS.M_DIP,ANATOMY_POINTS.M_TIP]},
+  ring:{points:[ANATOMY_POINTS.R_MCP,ANATOMY_POINTS.R_PIP,ANATOMY_POINTS.R_DIP,ANATOMY_POINTS.R_TIP]},
+  pinky:{points:[ANATOMY_POINTS.P_MCP,ANATOMY_POINTS.P_PIP,ANATOMY_POINTS.P_DIP,ANATOMY_POINTS.P_TIP]},
+};
+
+function digitCenterZ(data,y){
+  const points=data.points;
+  for(let i=1;i<points.length;i++){
+    if(y>=points[i][1]){
+      const t=clamp01((points[i-1][1]-y)/(points[i-1][1]-points[i][1]));
+      return points[i-1][2]+(points[i][2]-points[i-1][2])*t;
+    }
+  }
+  return points.at(-1)[2];
+}
+
+function writeMapColor(colors,index,color){
+  colors[index*3]=color.r;colors[index*3+1]=color.g;colors[index*3+2]=color.b;
+}
+function detailedHandColor(x,y,z,normalZ){
+  const u=Math.abs(x);
+  if(y>1.505||u<.635)return HAND_MAP_COLORS.wrist;
+
+  /* The thumb leaves the palm laterally rather than following the four long
+     digit lanes. Keep its thenar base distinct from its two phalanges. */
+  if(u<.70&&y<1.475&&z>.19){
+    const t=clamp01((.705-u)/.075);
+    if(t<.16)return HAND_MAP_COLORS.thenar;
+    return HAND_MAP_COLORS.thumb[t<.58?0:t<.82?1:2];
+  }
+
+  if(y<1.415&&u>.70){
+    let digit='index',distance=Infinity;
+    Object.entries(HAND_DIGITS).forEach(([name,data])=>{
+      const d=Math.abs(z-digitCenterZ(data,y));if(d<distance){distance=d;digit=name;}
+    });
+    const points=HAND_DIGITS[digit].points;
+    return HAND_MAP_COLORS[digit][y>points[1][1]?0:y>points[2][1]?1:2];
+  }
+
+  /* Surface normal, rather than a guessed depth plane, separates the dorsal
+     shell from the palm while keeping every digit's segment color intact. */
+  if(normalZ<-.20)return HAND_MAP_COLORS.dorsal;
+  if(y<1.445)return HAND_MAP_COLORS.upper;
+  if((z>.245&&u<.72)||u<.675)return HAND_MAP_COLORS.thenar;
+  if(z<.185)return HAND_MAP_COLORS.hypothenar;
+  return HAND_MAP_COLORS.inner;
+}
+
+function buildAnatomyColors(){
+  const count=geometry.getAttribute('position').count,colors=new Float32Array(count*3);
+  for(let i=0;i<count;i++){
+    let r=0,g=0,b=0;
+    for(let k=0;k<4;k++){
+      const weight=skinWeight[i*4+k],color=anatomyBoneColors[skinIndex[i*4+k]];
+      r+=color.r*weight;g+=color.g*weight;b+=color.b*weight;
+    }
+    colors[i*3]=r;colors[i*3+1]=g;colors[i*3+2]=b;
+  }
+  anatomyArmColors=colors;anatomyHandColors=new Float32Array(colors);
+  for(let i=0;i<count;i++){
+    const x=restPos[i*3],y=restPos[i*3+1],z=restPos[i*3+2],normalZ=restNorm[i*3+2];
+    if(Math.abs(x)>.59&&y>1.27&&y<1.57)writeMapColor(anatomyHandColors,i,detailedHandColor(x,y,z,normalZ));
+  }
+  geometry.setAttribute('color',new THREE.BufferAttribute(new Float32Array(anatomyArmColors),3));
+}
+function applyAnatomyPalette(handDetail){
+  if(!geometry||!anatomyArmColors)return;
+  const attribute=geometry.getAttribute('color');
+  attribute.array.set(handDetail?anatomyHandColors:anatomyArmColors);attribute.needsUpdate=true;
+  poseWrap.classList.toggle('hand-map',handDetail);
+}
+
+function putWeights(vertex,list){
+  const merged=new Map();
+  list.forEach(([bone,weight])=>{
+    if(weight>1e-6)merged.set(bone,(merged.get(bone)||0)+weight);
+  });
+  list=[...merged.entries()].sort((a,b)=>b[1]-a[1]).slice(0,4);
+  let total=list.reduce((sum,item)=>sum+item[1],0);
+  if(total<1e-6){list=[[BI.root,1]];total=1;}
+  for(let k=0;k<4;k++){
+    const item=list[k]||[BI.root,0]; skinIndex[vertex*4+k]=item[0]; skinWeight[vertex*4+k]=item[1]/total;
+  }
+}
+
+const RIG_DIGIT_CHAINS={};
+for(const [digit,data] of Object.entries(DIGIT_RIG)){
+  const points=data.points.map((key)=>ANATOMY_POINTS[key]);
+  const jointAlong=[0];
+  for(let i=1;i<points.length;i++)jointAlong.push(jointAlong.at(-1)+Math.hypot(
+    points[i][0]-points[i-1][0],points[i][1]-points[i-1][1],points[i][2]-points[i-1][2]
+  ));
+  RIG_DIGIT_CHAINS[digit]={points,jointAlong};
+}
+function closestChainCoordinate(x,y,z,points){
+  let closestDistance=Infinity,closestAlong=0,travelled=0;
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i],dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2];
+    const length=Math.hypot(dx,dy,dz),length2=length*length;
+    const t=clamp01(((x-a[0])*dx+(y-a[1])*dy+(z-a[2])*dz)/length2);
+    const px=a[0]+dx*t,py=a[1]+dy*t,pz=a[2]+dz*t;
+    const distance=Math.hypot(x-px,y-py,z-pz);
+    if(distance<closestDistance){closestDistance=distance;closestAlong=travelled+length*t;}
+    travelled+=length;
+  }
+  return {distance:closestDistance,along:closestAlong};
+}
+function articulatedDigitWeights(side,x,y,z){
+  const bindX=side==='left'?x:-x,u=Math.abs(x),candidates=[];
+  if(y<1.442&&u>.705)candidates.push('Index','Middle','Ring','Pinky');
+  if(y<1.475&&u<.712&&z>.195)candidates.push('Thumb');
+  if(!candidates.length)return null;
+  let chosen=null,sample=null;
+  for(const digit of candidates){
+    const next=closestChainCoordinate(bindX,y,z,RIG_DIGIT_CHAINS[digit].points);
+    if(!sample||next.distance<sample.distance){chosen=digit;sample=next;}
+  }
+  if(!sample||sample.distance>.045)return null;
+  const data=DIGIT_RIG[chosen],chain=RIG_DIGIT_CHAINS[chosen],bones=data.joints.map((joint)=>BI[side+chosen+joint]);
+  const parent=BI[chosen==='Thumb'?side+'Hand':side+'Fingers'];
+  let baseBlend;
+  if(chosen==='Thumb')baseBlend=Math.max(smooth(.706,.665,u),smooth(0,.014,sample.along));
+  else baseBlend=1-smooth(chain.points[0][1]-.002,chain.points[0][1]+.020,y);
+  let segmentWeights;
+  const firstJoint=chain.jointAlong[1],secondJoint=chain.jointAlong[2];
+  if(sample.along<firstJoint+.007){
+    const next=smooth(firstJoint-.007,firstJoint+.007,sample.along);
+    segmentWeights=[[bones[0],1-next],[bones[1],next]];
+  }else{
+    const next=smooth(secondJoint-.006,secondJoint+.006,sample.along);
+    segmentWeights=[[bones[1],1-next],[bones[2],next]];
+  }
+  return [[parent,1-baseBlend],...segmentWeights.map(([bone,weight])=>[bone,weight*baseBlend])];
+}
+
+function shoulderCoreWeights(ny,ax,clavicle){
+  const height=smooth(.70,.775,ny)*(1-smooth(.835,.88,ny));
+  const lateral=smooth(.025,.135,ax);
+  const clavicleWeight=.82*height*lateral;
+  return [[BI.spine,1-clavicleWeight],[clavicle,clavicleWeight]];
+}
+
+function torsoCoreWeights(ny,ax,clavicle){
+  if(ny>.70)return shoulderCoreWeights(ny,ax,clavicle);
+  const spineWeight=smooth(.48,.59,ny);
+  return [[BI.root,1-spineWeight],[BI.spine,spineWeight]];
+}
+
+function makeJointMap(){
+  const count=geometry.getAttribute('position').count;
+  skinIndex=new Uint8Array(count*4); skinWeight=new Float32Array(count*4);
+  for(let i=0;i<count;i++){
+    const x=restPos[i*3],y=restPos[i*3+1],z=restPos[i*3+2];
+    const nx=x/BODY_H,ny=y/BODY_H,ax=Math.abs(nx);
+    const side=x<0?'left':'right';
+    const clavicle=BI[side+'Clavicle'];
+    const upperArm=BI[side+'UpperArm'],lowerArm=BI[side+'LowerArm'];
+    const forearmTwist=BI[side+'ForearmTwist'],hand=BI[side+'Hand'],fingers=BI[side+'Fingers'];
+    const thigh=BI[side+'Thigh'],shin=BI[side+'Shin'],foot=BI[side+'Foot'];
+
+    /* The source is an A-pose. Its arm centreline travels out as it travels
+       down. Blend across that path instead of switching bones at one edge:
+       connected shoulder triangles otherwise become long armpit spikes. */
+    const armBoundary=.082+Math.max(0,.80-ny)*.56;
+    /* Only the connected shoulder needs a cross-body blend. Lower down, the
+       hand sits beside (but is not joined to) the hip; blending there would
+       tether fingertips to the torso when the arm rises. */
+    const armGate=ny>.60?smooth(armBoundary-.028,armBoundary+.035,ax):(ax>armBoundary?1:0);
+    if(ny>.425&&ny<.86&&armGate>.001){
+      let armWeights;
+      if(ny>.76){const w=1-smooth(.76,.835,ny);armWeights=[[clavicle,1-w],[upperArm,w]];}
+      else if(ny>.69)armWeights=[[upperArm,1]];
+      else if(ny>.63){const w=1-smooth(.63,.69,ny);armWeights=[[upperArm,1-w],[lowerArm,w]];}
+      else if(ny>.57)armWeights=[[lowerArm,1]];
+      else{
+        const wrist=J[side+'Hand'],palm=J[side+'Fingers'];
+        const hx=palm[0]-wrist[0],hy=palm[1]-wrist[1],hz=palm[2]-wrist[2];
+        const handLength=Math.hypot(hx,hy,hz),handAlong=
+          ((x-wrist[0])*hx+(y-wrist[1])*hy+(z-wrist[2])*hz)/handLength;
+        const handWeight=smooth(-.016,.078,handAlong);
+        const tipX=side==='left'?-.756:-(-.756),tipY=1.3075,tipZ=.231;
+        const fx=tipX-palm[0],fy=tipY-palm[1],fz=tipZ-palm[2];
+        const fingerLength=Math.hypot(fx,fy,fz),fingerAlong=
+          ((x-palm[0])*fx+(y-palm[1])*fy+(z-palm[2])*fz)/fingerLength;
+        const fingerWeight=handWeight*smooth(.008,.052,fingerAlong);
+        const digitWeights=articulatedDigitWeights(side,x,y,z);
+        armWeights=digitWeights?
+          [[lowerArm,1-handWeight],...digitWeights.map(([bone,weight])=>[bone,weight*handWeight])]:
+          [[lowerArm,1-handWeight],[hand,handWeight-fingerWeight],[fingers,fingerWeight]];
+      }
+      /* Keep the fallback skin continuous into the fully rolled hand. The
+         swept-surface pass below replaces this blend across the arm itself;
+         here it only supplies a safe shoulder/wrist seam. */
+      const elbow=J[side+'LowerArm'],wristJoint=J[side+'Hand'];
+      const fdx=wristJoint[0]-elbow[0],fdy=wristJoint[1]-elbow[1],fdz=wristJoint[2]-elbow[2];
+      const forearmT=clamp01(((x-elbow[0])*fdx+(y-elbow[1])*fdy+(z-elbow[2])*fdz)/(fdx*fdx+fdy*fdy+fdz*fdz));
+      const twistBlend=smooth(.12,.88,forearmT),distributed=[];
+      armWeights.forEach(([bone,weight])=>{
+        if(bone===lowerArm)distributed.push([lowerArm,weight*(1-twistBlend)],[forearmTwist,weight*twistBlend]);
+        else distributed.push([bone,weight]);
+      });
+      armWeights=distributed;
+      const coreWeights=torsoCoreWeights(ny,ax,clavicle);
+      putWeights(i,[
+        ...coreWeights.map(([bone,weight])=>[bone,weight*(1-armGate)]),
+        ...armWeights.map(([bone,weight])=>[bone,weight*armGate]),
+      ]);
+      continue;
+    }
+
+    if(ny>.82){const w=smooth(.82,.875,ny);putWeights(i,[[BI.spine,1-w],[BI.head,w]]);continue;}
+
+    if(ny>.70){putWeights(i,shoulderCoreWeights(ny,ax,clavicle));continue;}
+
+    if(ny<.52){
+      const legGate=smooth(.012,.052,ax)*(1-smooth(.48,.525,ny));
+      let legWeights;
+      if(ny>.31)legWeights=[[thigh,1]];
+      else if(ny>.22){const w=1-smooth(.22,.31,ny);legWeights=[[thigh,1-w],[shin,w]];}
+      else if(ny>.105)legWeights=[[shin,1]];
+      else{const w=1-smooth(.045,.105,ny);legWeights=[[shin,1-w],[foot,w]];}
+      putWeights(i,[[BI.root,1-legGate],...legWeights.map(([bone,weight])=>[bone,weight*legGate])]);
+      continue;
+    }
+
+    const spineWeight=smooth(.48,.59,ny);
+    putWeights(i,[[BI.root,1-spineWeight],[BI.spine,spineWeight]]);
+  }
+}
+
+/* The model was authored as an unrigged surface, so position rules alone can
+   put two vertices of one small triangle on opposite sides of a joint. Diffuse
+   those provisional weights over the mesh topology before keeping the four
+   strongest influences. Nearby but disconnected surfaces (hand/hip, fingers)
+   remain separate because they share no triangle edges. */
+function smoothJointMap(iterations=5,amount=.42){
+  const count=geometry.getAttribute('position').count,bones=BONE_NAMES.length;
+  const neighbours=Array.from({length:count},()=>new Set());
+  const connect=(a,b)=>{if(a!==b){neighbours[a].add(b);neighbours[b].add(a);}};
+  const index=geometry.index&&geometry.index.array;
+  if(index){
+    for(let i=0;i<index.length;i+=3){
+      const a=index[i],b=index[i+1],c=index[i+2];connect(a,b);connect(b,c);connect(c,a);
+    }
+  }else{
+    for(let i=0;i<count;i+=3){connect(i,i+1);connect(i+1,i+2);connect(i+2,i);}
+  }
+
+  /* UV/material seams duplicate vertices at exactly the same point. Treat each
+     duplicate set as one skinning sample so smoothing cannot pull a seam open. */
+  const weldMap=new Map();
+  for(let i=0;i<count;i++){
+    const key=Math.round(restPos[i*3]*1e5)+','+Math.round(restPos[i*3+1]*1e5)+','+Math.round(restPos[i*3+2]*1e5);
+    if(!weldMap.has(key))weldMap.set(key,[]);weldMap.get(key).push(i);
+  }
+  const weldGroups=[...weldMap.values()].filter((group)=>group.length>1);
+
+  let weights=new Float32Array(count*bones),next=new Float32Array(count*bones);
+  for(let i=0;i<count;i++)for(let k=0;k<4;k++)
+    weights[i*bones+skinIndex[i*4+k]]+=skinWeight[i*4+k];
+
+  for(let pass=0;pass<iterations;pass++){
+    for(let i=0;i<count;i++){
+      const adjacent=neighbours[i],degree=adjacent.size||1,base=i*bones;
+      for(let bone=0;bone<bones;bone++){
+        let average=0;adjacent.forEach((other)=>{average+=weights[other*bones+bone];});
+        next[base+bone]=weights[base+bone]*(1-amount)+(average/degree)*amount;
+      }
+    }
+    weldGroups.forEach((group)=>{
+      for(let bone=0;bone<bones;bone++){
+        let average=0;group.forEach((vertex)=>{average+=next[vertex*bones+bone];});average/=group.length;
+        group.forEach((vertex)=>{next[vertex*bones+bone]=average;});
+      }
+    });
+    [weights,next]=[next,weights];
+  }
+
+  for(let i=0;i<count;i++){
+    const list=[];for(let bone=0;bone<bones;bone++)list.push([bone,weights[i*bones+bone]]);
+    putWeights(i,list);
+  }
+}
+
+/* The arm is a stack of cross-section rings. A surface point is stored in one
+   ring frame as axial, U and V coordinates. Posing moves the ring centres and
+   rotates their orthonormal frames; the radial length hypot(U,V) is invariant. */
+function appendRingSegment(rings,start,end,steps,driver,rollStart=0,rollEnd=0){
+  for(let index=rings.length?1:0;index<=steps;index++){
+    const t=index/steps;
+    rings.push({center:new THREE.Vector3(
+      start[0]+(end[0]-start[0])*t,start[1]+(end[1]-start[1])*t,start[2]+(end[2]-start[2])*t
+    ),driver,roll:rollStart+(rollEnd-rollStart)*t});
+  }
+}
+function frameRingPath(rings,initialU=null){
+  const tangents=rings.map((ring,index)=>{
+    const before=rings[Math.max(0,index-1)].center,after=rings[Math.min(rings.length-1,index+1)].center;
+    return new THREE.Vector3().subVectors(after,before).normalize();
+  });
+  const firstU=(initialU?initialU.clone():new THREE.Vector3(0,0,1));
+  firstU.addScaledVector(tangents[0],-firstU.dot(tangents[0]));
+  if(firstU.lengthSq()<1e-6)firstU.set(0,1,0).addScaledVector(tangents[0],-tangents[0].y);
+  firstU.normalize();
+  const framed=[],transport=new THREE.Quaternion();
+  for(let index=0;index<rings.length;index++){
+    let u;
+    if(index===0)u=firstU.clone();
+    else{
+      transport.setFromUnitVectors(framed[index-1].tangent,tangents[index]);
+      u=framed[index-1].u.clone().applyQuaternion(transport);
+      u.addScaledVector(tangents[index],-u.dot(tangents[index])).normalize();
+    }
+    const v=new THREE.Vector3().crossVectors(tangents[index],u).normalize();
+    framed.push({...rings[index],tangent:tangents[index],u,v});
+  }
+  return framed;
+}
+function buildBindRingPath(side){
+  const rings=[];
+  appendRingSegment(rings,J[side+'UpperArm'],J[side+'LowerArm'],12,'upper');
+  appendRingSegment(rings,J[side+'LowerArm'],J[side+'ForearmTwist'],3,'lower');
+  appendRingSegment(rings,J[side+'ForearmTwist'],J[side+'Hand'],10,'lower',0,1);
+  return frameRingPath(rings);
+}
+function sampleRingFrame(rings,q,out){
+  const index=Math.max(0,Math.min(rings.length-2,Math.floor(q))),t=clamp01(q-index);
+  const a=rings[index],b=rings[index+1];
+  out.center.copy(a.center).lerp(b.center,t);
+  out.tangent.copy(a.tangent).lerp(b.tangent,t).normalize();
+  out.u.copy(a.u).lerp(b.u,t).addScaledVector(out.tangent,-out.u.dot(out.tangent)).normalize();
+  out.v.crossVectors(out.tangent,out.u).normalize();
+  return out;
+}
+function closestRingCoordinate(rings,x,y,z){
+  let bestQ=0,bestDistance=Infinity;
+  for(let index=0;index<rings.length-1;index++){
+    const a=rings[index].center,b=rings[index+1].center;
+    const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,length2=dx*dx+dy*dy+dz*dz;
+    const t=clamp01(((x-a.x)*dx+(y-a.y)*dy+(z-a.z)*dz)/length2);
+    const distance=Math.hypot(x-(a.x+dx*t),y-(a.y+dy*t),z-(a.z+dz*t));
+    if(distance<bestDistance){bestDistance=distance;bestQ=index+t;}
+  }
+  return {q:bestQ,distance:bestDistance};
+}
+function liveRingPath(side,pose){
+  const bind=armRingPaths[side],upper=boneMatrices[BI[side+'UpperArm']].elements;
+  const lower=boneMatrices[BI[side+'LowerArm']].elements;
+  const rings=bind.map((ring)=>{
+    const matrix=ring.driver==='upper'?upper:lower,point=ring.center;
+    return {center:new THREE.Vector3(
+      matrix[0]*point.x+matrix[4]*point.y+matrix[8]*point.z+matrix[12],
+      matrix[1]*point.x+matrix[5]*point.y+matrix[9]*point.z+matrix[13],
+      matrix[2]*point.x+matrix[6]*point.y+matrix[10]*point.z+matrix[14]
+    ),driver:ring.driver,roll:ring.roll};
+  });
+  const bindU=bind[0].u,initialU=new THREE.Vector3(
+    upper[0]*bindU.x+upper[4]*bindU.y+upper[8]*bindU.z,
+    upper[1]*bindU.x+upper[5]*bindU.y+upper[9]*bindU.z,
+    upper[2]*bindU.x+upper[6]*bindU.y+upper[10]*bindU.z
+  );
+  const framed=frameRingPath(rings,initialU),twist=rad(pose[side+'ForearmTwist'][0]),rollTurn=new THREE.Quaternion();
+  framed.forEach((ring)=>{
+    if(!ring.roll||!twist)return;
+    rollTurn.setFromAxisAngle(ring.tangent,twist*smooth(0,1,ring.roll));
+    ring.u.applyQuaternion(rollTurn);ring.v.applyQuaternion(rollTurn);
+  });
+  return framed;
+}
+function buildArmTubeMap(){
+  armRingPaths={left:buildBindRingPath('left'),right:buildBindRingPath('right')};
+  armTubeVertices=[];
+  const bindFrame={center:new THREE.Vector3(),tangent:new THREE.Vector3(),u:new THREE.Vector3(),v:new THREE.Vector3()};
+  const offset=new THREE.Vector3(),sourceNormal=new THREE.Vector3();
+  for(let vertex=0;vertex<restPos.length/3;vertex++){
+    const base=vertex*3,x=restPos[base],y=restPos[base+1],z=restPos[base+2],side=x<0?'left':'right';
+    const armBones=[BI[side+'UpperArm'],BI[side+'LowerArm'],BI[side+'ForearmTwist'],BI[side+'Hand']];
+    let armInfluence=0;
+    for(let slot=0;slot<4;slot++)if(armBones.includes(skinIndex[vertex*4+slot]))armInfluence+=skinWeight[vertex*4+slot];
+    if(armInfluence<.01)continue;
+    const rings=armRingPaths[side],closest=closestRingCoordinate(rings,x,y,z);
+    const upper=closest.q<=12.5;if(closest.distance>(upper ? 0.22 : 0.18))continue;
+    const strength=smooth(.55,3.1,closest.q)*(1-smooth(rings.length-3.0,rings.length-.35,closest.q))*smooth(.01,.62,armInfluence);
+    if(strength<.001)continue;
+    sampleRingFrame(rings,closest.q,bindFrame);
+    offset.set(x,y,z).sub(bindFrame.center);sourceNormal.set(restNorm[base],restNorm[base+1],restNorm[base+2]);
+    armTubeVertices.push({vertex,side,q:closest.q,strength,
+      u:offset.dot(bindFrame.u),v:offset.dot(bindFrame.v),w:offset.dot(bindFrame.tangent),
+      nu:sourceNormal.dot(bindFrame.u),nv:sourceNormal.dot(bindFrame.v),nw:sourceNormal.dot(bindFrame.tangent)});
+  }
+  for(const side of ['left','right']){
+    const samples=armTubeVertices.filter((sample)=>sample.side===side),rings=armRingPaths[side];
+    const profile=rings.map((ring,index)=>{
+      const radii=samples.filter((sample)=>Math.abs(sample.q-index)<.55&&sample.strength>.20)
+        .map((sample)=>Math.hypot(sample.u,sample.v)).filter((radius)=>radius>.015&&radius<.20).sort((a,b)=>a-b);
+      return radii.length?radii[Math.floor((radii.length-1)*.58)]:null;
+    });
+    for(let index=0;index<profile.length;index++)if(profile[index]===null){
+      for(let distance=1;distance<profile.length;distance++){
+        const before=profile[index-distance],after=profile[index+distance];
+        if(before!==undefined&&before!==null){profile[index]=before;break}
+        if(after!==undefined&&after!==null){profile[index]=after;break}
+      }
+    }
+    armRingRadiusProfiles[side]=profile;
+  }
+}
+function buildAnatomyTubeRings(){
+  anatomyTubeRings.clear();
+  const materials={
+    upper:new THREE.LineBasicMaterial({color:'#ff7a68',transparent:true,opacity:.46,depthTest:false,depthWrite:false,toneMapped:false}),
+    forearm:new THREE.LineBasicMaterial({color:'#45d1df',transparent:true,opacity:.50,depthTest:false,depthWrite:false,toneMapped:false}),
+  };
+  for(const side of ['left','right']){
+    const rings=armRingPaths[side],samples=armTubeVertices.filter((sample)=>sample.side===side);
+    rings.forEach((ring,index)=>{
+      if(index===0||index===rings.length-1)return;
+      const radii=samples.filter((sample)=>Math.abs(sample.q-index)<.72)
+        .map((sample)=>Math.hypot(sample.u,sample.v)).filter((radius)=>radius>.015&&radius<.20).sort((a,b)=>a-b);
+      if(!radii.length)return;
+      const radius=radii[Math.floor((radii.length-1)*.58)],points=[];
+      for(let step=0;step<56;step++){
+        const angle=step/56*Math.PI*2;
+        points.push(ring.center.clone().addScaledVector(ring.u,Math.cos(angle)*radius).addScaledVector(ring.v,Math.sin(angle)*radius));
+      }
+      const loop=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points),index<=12?materials.upper:materials.forearm);
+      loop.renderOrder=8;loop.userData={side,ring:index,radius};anatomyTubeRings.add(loop);
+    });
+  }
+}
+function deformArmTubes(pose,position,normal){
+  const live={left:liveRingPath('left',pose),right:liveRingPath('right',pose)};
+  liveArmRingPaths=live;
+  const frame={center:new THREE.Vector3(),tangent:new THREE.Vector3(),u:new THREE.Vector3(),v:new THREE.Vector3()};
+  for(const sample of armTubeVertices){
+    sampleRingFrame(live[sample.side],sample.q,frame);
+    const base=sample.vertex*3;
+    const tubeX=frame.center.x+frame.u.x*sample.u+frame.v.x*sample.v+frame.tangent.x*sample.w;
+    const tubeY=frame.center.y+frame.u.y*sample.u+frame.v.y*sample.v+frame.tangent.y*sample.w;
+    const tubeZ=frame.center.z+frame.u.z*sample.u+frame.v.z*sample.v+frame.tangent.z*sample.w;
+    position[base]+=(tubeX-position[base])*sample.strength;
+    position[base+1]+=(tubeY-position[base+1])*sample.strength;
+    position[base+2]+=(tubeZ-position[base+2])*sample.strength;
+    const tubeNX=frame.u.x*sample.nu+frame.v.x*sample.nv+frame.tangent.x*sample.nw;
+    const tubeNY=frame.u.y*sample.nu+frame.v.y*sample.nv+frame.tangent.y*sample.nw;
+    const tubeNZ=frame.u.z*sample.nu+frame.v.z*sample.nv+frame.tangent.z*sample.nw;
+    let outNX=normal[base]+(tubeNX-normal[base])*sample.strength;
+    let outNY=normal[base+1]+(tubeNY-normal[base+1])*sample.strength;
+    let outNZ=normal[base+2]+(tubeNZ-normal[base+2])*sample.strength;
+    const normalLength=Math.hypot(outNX,outNY,outNZ)||1;
+    normal[base]=outNX/normalLength;normal[base+1]=outNY/normalLength;normal[base+2]=outNZ/normalLength;
+  }
+}
+
+function deform(pose){
+  buildBoneMatrices(pose);
+  const pa=geometry.getAttribute('position').array,na=geometry.getAttribute('normal').array;
+  let floor=Infinity;
+  for(let i=0;i<pa.length/3;i++){
+    const x=restPos[i*3],y=restPos[i*3+1],z=restPos[i*3+2];
+    const nx=restNorm[i*3],ny=restNorm[i*3+1],nz=restNorm[i*3+2];
+    let ox=0,oy=0,oz=0,onx=0,ony=0,onz=0;
+    for(let k=0;k<4;k++){
+      const w=skinWeight[i*4+k]; if(w===0)continue;
+      const matrix=boneMatrices[skinIndex[i*4+k]].elements;
+      ox+=w*(matrix[0]*x+matrix[4]*y+matrix[8]*z+matrix[12]);
+      oy+=w*(matrix[1]*x+matrix[5]*y+matrix[9]*z+matrix[13]);
+      oz+=w*(matrix[2]*x+matrix[6]*y+matrix[10]*z+matrix[14]);
+      onx+=w*(matrix[0]*nx+matrix[4]*ny+matrix[8]*nz);
+      ony+=w*(matrix[1]*nx+matrix[5]*ny+matrix[9]*nz);
+      onz+=w*(matrix[2]*nx+matrix[6]*ny+matrix[10]*nz);
+    }
+    const normalLength=Math.hypot(onx,ony,onz)||1;
+    pa[i*3]=ox;pa[i*3+1]=oy;pa[i*3+2]=oz;floor=Math.min(floor,oy);
+    na[i*3]=onx/normalLength;na[i*3+1]=ony/normalLength;na[i*3+2]=onz/normalLength;
+  }
+  deformArmTubes(pose,pa,na);
+  floor=Infinity;for(let i=1;i<pa.length;i+=3)floor=Math.min(floor,pa[i]);
+  /* Every authored study is ground-based. Keeping its lowest support point on
+     y=0 prevents bent-leg poses from appearing shorter merely because the
+     generated joint chain drifted above or through the presentation floor. */
+  poseGroundOffset=Number.isFinite(floor)?-floor:0;
+  if(Number.isFinite(floor)&&Math.abs(floor)>1e-6)
+    for(let i=1;i<pa.length;i+=3)pa[i]-=floor;
+  updateVeinNetwork();
+  geometry.getAttribute('position').needsUpdate=true;
+  geometry.getAttribute('normal').needsUpdate=true;
+}
+
+let ready=false,booted=false,live=false,current='natural',holoFrame=0,poseRoute='pose';
+
+function resizePose(){
+  if(!ready)return;
+  const w=Math.max(1,poseWrap.clientWidth),h=Math.max(1,poseWrap.clientHeight);
+  renderer.setSize(w,h,false); toneRT.setSize(Math.round(w*DPR),Math.round(h*DPR));
+  matHalftone.uniforms.uRes.value.set(Math.round(w*DPR),Math.round(h*DPR));
+  matHalftone.uniforms.uPitch.value=5*DPR;
+  camera.aspect=w/h;camera.updateProjectionMatrix();updatePoseCamera();
+  renderPose();
+}
+
+function renderPose(now=performance.now()){
+  if(!ready||!live)return;
+  if(anatomyMode){
+    mesh.visible=true;mesh.material=matAnatomy;renderer.setRenderTarget(null);renderer.clear(true,true,true);
+    renderer.render(scene,camera);renderer.clearDepth();renderer.render(anatomyJointScene,camera);
+    mesh.material=matTone;updateAnatomyPins();return;
+  }
+  mesh.visible=true; renderer.setRenderTarget(toneRT); renderer.clear(true,true,true); renderer.render(scene,camera);
+  mesh.visible=false; renderer.setRenderTarget(null); renderer.clear(true,true,true);
+  matHalftone.uniforms.uTone.value=toneRT.texture; renderer.render(quadScene,quadCamera);
+  updateVeinPulse(now);renderer.render(veinScene,camera);
+  mesh.visible=true;mesh.material=matHologramOccluder;
+  renderer.clearDepth();renderer.render(scene,camera);mesh.material=matTone;
+  updateArmHologram(now);renderer.render(holoScene,camera);
+}
+function hologramLoop(now){
+  holoFrame=0;
+  if(!live||!ready||reducedMotion)return;
+  if(!poseTransition)renderPose(now);
+  holoFrame=requestAnimationFrame(hologramLoop);
+}
+function startHologram(){
+  if(!reducedMotion&&!holoFrame&&live&&ready)holoFrame=requestAnimationFrame(hologramLoop);
+}
+function stopHologram(){
+  if(holoFrame)cancelAnimationFrame(holoFrame);holoFrame=0;
+}
+
+const cameraCuePoint=new THREE.Vector3(),cameraPositionPoint=new THREE.Vector3();
+function resolveCameraCue(cue,fallback){
+  if(cue.state)return cue.state;
+  let targetX=fallback.targetX,targetY=fallback.targetY,targetZ=fallback.targetZ;
+  const targetJoint=cue.targetJoint||cue.joint;
+  if(targetJoint){
+    jointPoint(targetJoint,cameraCuePoint);
+    const offset=cue.targetOffset||cue.offset||[0,0,0];
+    targetX=cameraCuePoint.x+offset[0];targetY=cameraCuePoint.y+offset[1];targetZ=cameraCuePoint.z+offset[2];
+  }else{
+    if(cue.targetX!==undefined)targetX=cue.targetX;
+    if(cue.targetY!==undefined)targetY=cue.targetY;
+    if(cue.targetZ!==undefined)targetZ=cue.targetZ;
+  }
+  if(cue.positionJoint){
+    jointPoint(cue.positionJoint,cameraPositionPoint);
+    const offset=cue.positionOffset||[0,0,0];
+    cameraPositionPoint.x+=offset[0];cameraPositionPoint.y+=offset[1];cameraPositionPoint.z+=offset[2];
+    const dx=cameraPositionPoint.x-targetX,dy=cameraPositionPoint.y-targetY,dz=cameraPositionPoint.z-targetZ;
+    const distance=Math.max(.05,Math.hypot(dx,dy,dz));
+    return {yaw:Math.atan2(dx,dz),pitch:Math.asin(Math.max(-1,Math.min(1,dy/distance))),roll:cue.roll===undefined?fallback.roll:rad(cue.roll),distance,targetX,targetY,targetZ};
+  }
+  return {
+    yaw:cue.yaw===undefined?fallback.yaw:rad(cue.yaw),
+    pitch:cue.pitch===undefined?fallback.pitch:rad(cue.pitch),
+    roll:cue.roll===undefined?fallback.roll:rad(cue.roll),
+    distance:cue.distance===undefined?fallback.distance:cue.distance,
+    targetX,targetY,targetZ,
+  };
+}
+function applyCameraTransition(transition,progress){
+  let from=transition.cameraFrom,to=transition.cameraTo,local=progress;
+  if(transition.cameraCues){
+    const cues=transition.cameraCues;
+    let index=0;
+    while(index<cues.length-2&&progress>cues[index+1].at)index++;
+    const a=cues[index],b=cues[index+1],span=Math.max(1e-6,b.at-a.at);
+    local=clamp01((progress-a.at)/span);
+    from=resolveCameraCue(a,transition.cameraTo);to=resolveCameraCue(b,transition.cameraTo);
+  }
+  const eased=easePose(local);
+  const yawDelta=Math.atan2(Math.sin(to.yaw-from.yaw),Math.cos(to.yaw-from.yaw));
+  cameraState.yaw=from.yaw+yawDelta*eased;
+  const rollDelta=Math.atan2(Math.sin(to.roll-from.roll),Math.cos(to.roll-from.roll));
+  cameraState.roll=from.roll+rollDelta*eased;
+  for(const key of ['pitch','distance','targetX','targetY','targetZ'])
+    cameraState[key]=from[key]+(to[key]-from[key])*eased;
+  updatePoseCamera();
+}
+
+const debugCue=()=>POSES.natural.cameraPath[0];
+const debugNumber=(value,places=3)=>{
+  const rounded=Number(Number(value).toFixed(places));
+  return Object.is(rounded,-0)?0:rounded;
+};
+const debugArray=(values,places=3)=>'['+values.map((value)=>debugNumber(value,places)).join(', ')+']';
+function addPoseDebugVector(host,{label,get,min,max,step,places=1,kind='pose',axes=['X','Y','Z']}){
+  const block=document.createElement('div');block.className='pose-debug-vector';
+  const title=document.createElement('strong');title.textContent=label;block.appendChild(title);
+  axes.forEach((axis,index)=>{
+    const row=document.createElement('label');row.className='pose-debug-axis';
+    const axisLabel=document.createElement('span');axisLabel.textContent=axis;
+    const range=document.createElement('input');range.type='range';range.min=min;range.max=max;range.step=step;
+    const number=document.createElement('input');number.type='number';number.min=min;number.max=max;number.step=step;
+    number.setAttribute('aria-label',label+' '+axis);
+    const sync=()=>{
+      const value=get()[index];range.value=value;number.value=debugNumber(value,places);
+    };
+    const change=(raw)=>{
+      const value=Number(raw);if(!Number.isFinite(value))return;
+      get()[index]=value;sync();applyNaturalDebug(kind);
+    };
+    range.addEventListener('input',()=>change(range.value));
+    number.addEventListener('input',()=>change(number.value));
+    row.append(axisLabel,range,number);block.appendChild(row);poseDebugBindings.push({sync});
+  });
+  host.appendChild(block);
+}
+function addPoseDebugScalar(host,{label,get,set,min,max,step,places=1,kind='camera'}){
+  const block=document.createElement('div');block.className='pose-debug-vector';
+  const title=document.createElement('strong');title.textContent=label;block.appendChild(title);
+  const row=document.createElement('label');row.className='pose-debug-axis';
+  const axisLabel=document.createElement('span');axisLabel.textContent='°';
+  const range=document.createElement('input');range.type='range';range.min=min;range.max=max;range.step=step;
+  const number=document.createElement('input');number.type='number';number.min=min;number.max=max;number.step=step;
+  number.setAttribute('aria-label',label);
+  const sync=()=>{const value=get();range.value=value;number.value=debugNumber(value,places);};
+  const change=(raw)=>{const value=Number(raw);if(!Number.isFinite(value))return;set(value);sync();applyNaturalDebug(kind);};
+  range.addEventListener('input',()=>change(range.value));number.addEventListener('input',()=>change(number.value));
+  row.append(axisLabel,range,number);block.appendChild(row);host.appendChild(block);poseDebugBindings.push({sync});
+}
+function syncPoseDebugInputs(){poseDebugBindings.forEach((binding)=>binding.sync());}
+function setPoseDebugViewButtons(){
+  poseDebugShot.classList.toggle('on',poseDebugViewMode==='shot');
+  poseDebugFull.classList.toggle('on',poseDebugViewMode==='full');
+}
+function applyNaturalDebug(kind='pose'){
+  if(!ready)return;
+  if(poseFrame)cancelAnimationFrame(poseFrame);poseFrame=0;poseTransition=null;current='natural';
+  currentPose=copyPose(POSES.natural.pose);deform(currentPose);
+  if(poseDebugViewMode==='full'){
+    setCameraPreset(POSES.natural,true);
+  }else{
+    const item=POSES.natural,fallback={yaw:rad(item.yaw),pitch:rad(item.pitch||0),roll:rad(item.roll||0),
+      distance:item.distance,targetX:0,targetY:item.targetY,targetZ:0};
+    Object.assign(cameraState,resolveCameraCue(debugCue(),fallback),{touched:false});
+  }
+  poseButtons.forEach((button)=>{
+    const on=button.dataset.pose==='natural';button.classList.toggle('on',on);button.setAttribute('aria-pressed',String(on));
+  });
+  poseNumber.textContent='DBG';poseName.textContent='Natural A live';
+  poseNote.textContent=kind==='camera'?'Camera coordinates updated':'Body coordinates updated';
+  updatePoseCamera();renderPose();updatePoseDebugOutput();
+}
+function poseDebugCoordinateText(){
+  const pose=POSES.natural.pose,cue=debugCue();
+  const lines=[
+    'Natural A debug coordinates',
+    'offset: '+debugArray(pose.offset),
+    'root: '+debugArray(pose.root,1),
+    'spine: '+debugArray(pose.spine,1),
+    'head: '+debugArray(pose.head,1),
+    'leftClavicle: '+debugArray(pose.leftClavicle,1),
+    'leftUpperArm: '+debugArray(pose.leftUpperArm,1),
+    'leftLowerArm: '+debugArray(pose.leftLowerArm,1),
+    'leftForearmTwist: '+debugArray(pose.leftForearmTwist,1),
+    'leftHand: '+debugArray(pose.leftHand,1),
+    'leftFingers: '+debugArray(pose.leftFingers,1),
+    'camera.positionOffset: '+debugArray(cue.positionOffset),
+    'camera.targetOffset: '+debugArray(cue.targetOffset),
+    'camera.roll: '+debugNumber(cue.roll||0,1),
+  ];
+  if(ready){
+    lines.push(
+      'live.cameraPosition: '+debugArray(camera.position.toArray()),
+      'live.cameraTarget: '+debugArray([cameraState.targetX,cameraState.targetY,cameraState.targetZ]),
+      'live.yawPitchRoll: '+debugArray([cameraState.yaw*180/Math.PI,cameraState.pitch*180/Math.PI,cameraState.roll*180/Math.PI],1)
+    );
+  }
+  return lines.join('\n');
+}
+function updatePoseDebugOutput(){
+  if(!poseDebugOutput)return;poseDebugOutput.textContent=poseDebugCoordinateText();
+}
+const debugCaptureHand=new THREE.Vector3(),debugCaptureHead=new THREE.Vector3();
+function capturePoseDebugCamera(){
+  if(!ready)return;
+  jointPoint('leftMiddlePIP',debugCaptureHand);jointPoint('head',debugCaptureHead);
+  const cue=debugCue();
+  cue.positionOffset=[camera.position.x-debugCaptureHand.x,camera.position.y-debugCaptureHand.y,camera.position.z-debugCaptureHand.z];
+  cue.targetOffset=[cameraState.targetX-debugCaptureHead.x,cameraState.targetY-debugCaptureHead.y,cameraState.targetZ-debugCaptureHead.z];
+  cue.roll=cameraState.roll*180/Math.PI;poseDebugViewMode='shot';setPoseDebugViewButtons();syncPoseDebugInputs();
+  cameraState.touched=false;updatePoseDebugOutput();poseNote.textContent='Mouse camera captured as relative coordinates';
+}
+function resetPoseDebug(){
+  POSES.natural.pose=copyPose(NATURAL_DEBUG_DEFAULT.pose);
+  const cue=debugCue();cue.positionOffset=[...NATURAL_DEBUG_DEFAULT.positionOffset];
+  cue.targetOffset=[...NATURAL_DEBUG_DEFAULT.targetOffset];cue.roll=NATURAL_DEBUG_DEFAULT.roll;
+  poseDebugViewMode='shot';setPoseDebugViewButtons();syncPoseDebugInputs();applyNaturalDebug('pose');
+}
+function setPoseDebugMode(on){
+  poseDebugActive=Boolean(on);poseWrap.classList.toggle('debug-on',poseDebugActive);
+  poseDebug.setAttribute('aria-hidden',String(!poseDebugActive));
+  if(!poseDebugActive){
+    if(!anatomyMode){
+      const item=POSES[current];poseSidebarTitle.textContent='Pose library';poseSidebarSubtitle.textContent='Male digital twin';poseSidebarCount.textContent='11';
+      poseIntroOverline.textContent='Phenome motion study';poseIntroTitle.innerHTML='The body,<br>in motion.';
+      poseIntroCopy.textContent='One digital twin. Eleven studies of posture, balance and range.';
+      poseNumber.textContent=item.number;poseName.textContent=item.name;poseNote.textContent=item.note;
+    }
+    return;
+  }
+  poseSidebarTitle.textContent='Natural A debug';poseSidebarSubtitle.textContent='Live coordinate editor';poseSidebarCount.textContent='XYZ';
+  poseIntroOverline.textContent='Phenome pose debugger';poseIntroTitle.innerHTML='Move it,<br>then copy it.';
+  poseIntroCopy.textContent='Tune the body and camera directly. Every field below is live.';
+  poseDebugViewMode='shot';naturalEffectStart=performance.now();
+  setPoseDebugViewButtons();syncPoseDebugInputs();applyNaturalDebug('pose');
+}
+function buildPoseDebugControls(){
+  const poseVector=(host,label,key,options={})=>addPoseDebugVector(host,{label,get:()=>POSES.natural.pose[key],
+    min:options.min??-90,max:options.max??90,step:options.step??1,places:options.places??1,kind:'pose'});
+  poseVector(poseDebugBody,'Body position','offset',{min:-.5,max:.5,step:.005,places:3});
+  poseVector(poseDebugBody,'Root rotation','root',{min:-60,max:60});
+  poseVector(poseDebugBody,'Spine rotation','spine',{min:-60,max:60});
+  poseVector(poseDebugBody,'Head rotation','head',{min:-90,max:90});
+  poseVector(poseDebugArm,'Clavicle','leftClavicle',{min:-90,max:90});
+  poseVector(poseDebugArm,'Upper arm','leftUpperArm',{min:-140,max:140});
+  poseVector(poseDebugArm,'Lower arm','leftLowerArm',{min:-180,max:180,step:.1});
+  addPoseDebugVector(poseDebugArm,{label:'Forearm roll',get:()=>POSES.natural.pose.leftForearmTwist,
+    min:-180,max:180,step:1,places:1,kind:'pose',axes:['Roll','Y','Z']});
+  poseVector(poseDebugArm,'Hand','leftHand',{min:-120,max:120});
+  poseVector(poseDebugArm,'Finger block','leftFingers',{min:-90,max:90});
+  addPoseDebugVector(poseDebugCamera,{label:'Position offset from hand',get:()=>debugCue().positionOffset,
+    min:-2,max:2,step:.01,places:3,kind:'camera'});
+  addPoseDebugVector(poseDebugCamera,{label:'Aim offset from head',get:()=>debugCue().targetOffset,
+    min:-1,max:1,step:.01,places:3,kind:'camera'});
+  addPoseDebugScalar(poseDebugCamera,{label:'Camera roll',get:()=>debugCue().roll||0,set:(value)=>{debugCue().roll=value;},
+    min:-30,max:30,step:1,places:1,kind:'camera'});
+  syncPoseDebugInputs();updatePoseDebugOutput();
+}
+buildPoseDebugControls();
+poseDebugShot.addEventListener('click',()=>{poseDebugViewMode='shot';setPoseDebugViewButtons();applyNaturalDebug('camera');});
+poseDebugFull.addEventListener('click',()=>{poseDebugViewMode='full';setPoseDebugViewButtons();applyNaturalDebug('camera');});
+poseDebugCapture.addEventListener('click',capturePoseDebugCamera);
+poseDebugReset.addEventListener('click',resetPoseDebug);
+poseDebugCopy.addEventListener('click',async()=>{
+  const text=poseDebugCoordinateText();
+  try{await navigator.clipboard.writeText(text);}catch(_){
+    const area=document.createElement('textarea');area.value=text;area.style.position='fixed';area.style.opacity='0';
+    document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();
+  }
+  poseDebugCopy.textContent='Copied';setTimeout(()=>{poseDebugCopy.textContent='Copy coordinates';},900);
+});
+
+function runPoseTransition(item,immediate=false){
+  if(poseFrame)cancelAnimationFrame(poseFrame);
+  const poseDuration=900,cameraDuration=item.cameraDuration||1200,isNatural=item===POSES.natural;
+  const moveCamera=true;
+  const cameraFrom={yaw:cameraState.yaw,pitch:cameraState.pitch,roll:cameraState.roll,distance:cameraState.distance,
+    targetX:cameraState.targetX,targetY:cameraState.targetY,targetZ:cameraState.targetZ};
+  const cameraTo={yaw:rad(item.yaw),pitch:rad(item.pitch||0),roll:rad(item.roll||0),distance:item.distance,
+    targetX:0,targetY:item.targetY,targetZ:0};
+  cameraState.touched=false;
+  if(immediate||reducedMotion){
+    naturalEffectStart=isNatural?performance.now():Infinity;
+    poseTransition=null;currentPose=copyPose(item.pose);deform(currentPose);
+    if(item.cameraPath){
+      const instant={cameraFrom,cameraTo,cameraCues:[{at:0,state:cameraFrom},...item.cameraPath]};
+      applyCameraTransition(instant,1);
+    }else{Object.assign(cameraState,cameraTo);updatePoseCamera()}
+    poseNote.textContent=item.note;renderPose();return;
+  }
+  const transitionStart=performance.now();
+  naturalEffectStart=isNatural?transitionStart+Math.max(poseDuration,cameraDuration):Infinity;
+  poseTransition={from:copyPose(currentPose),to:copyPose(item.pose),cameraFrom,cameraTo,moveCamera,
+    cameraCues:item.cameraPath?[{at:0,state:cameraFrom},...item.cameraPath]:null,
+    start:transitionStart,poseDuration,cameraDuration,duration:Math.max(poseDuration,cameraDuration),item};
+  poseNote.textContent='Transitioning · '+item.note;
+  const step=(now)=>{
+    if(!poseTransition)return;
+    const elapsed=now-poseTransition.start;
+    const poseT=clamp01(elapsed/poseTransition.poseDuration);
+    currentPose=mixPose(poseTransition.from,poseTransition.to,easePose(poseT));
+    deform(currentPose);
+    if(poseTransition.moveCamera)
+      applyCameraTransition(poseTransition,clamp01(elapsed/poseTransition.cameraDuration));
+    poseNote.textContent=poseT<1?'Transitioning · '+poseTransition.item.note:poseTransition.item.note;
+    renderPose();
+    const activeDuration=poseTransition.moveCamera?poseTransition.duration:poseTransition.poseDuration;
+    if(elapsed<activeDuration){poseFrame=requestAnimationFrame(step);return;}
+    currentPose=copyPose(poseTransition.to);poseNote.textContent=poseTransition.item.note;
+    poseTransition=null;poseFrame=0;
+  };
+  poseFrame=requestAnimationFrame(step);
+}
+
+function selectPose(id,immediate=false){
+  if(!POSES[id])return; current=id;
+  poseButtons.forEach((b)=>{
+    const on=b.dataset.pose===id;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));
+  });
+  const item=POSES[id];poseName.textContent=item.name;poseNote.textContent=item.note;poseNumber.textContent=item.number;
+  if(ready)runPoseTransition(item,immediate);
+}
+poseButtons.forEach((b)=>b.addEventListener('click',()=>selectPose(b.dataset.pose)));
+poseResetView.addEventListener('click',resetPoseCamera);
+anatomyViewButtons.forEach((button)=>button.addEventListener('click',()=>setAnatomyView(button.dataset.anatomyView)));
+anatomyDigitButtons.forEach((button)=>button.addEventListener('click',()=>setAnatomySelection(button.dataset.anatomyDigit,anatomySelectedJoint)));
+anatomyJointButtons.forEach((button)=>button.addEventListener('click',()=>setAnatomySelection(anatomySelectedDigit,Number(button.dataset.anatomyJoint))));
+anatomyInspectViewButtons.forEach((button)=>button.addEventListener('click',()=>setAnatomyInspectView(button.dataset.anatomyInspectView)));
+
+/* Orbit, pan and zoom are deliberately local to this canvas. The body page has
+   its own drag semantics and the sidebar remains ordinary clickable HTML. */
+const pointers=new Map();let pinchDistance=0;
+const poseRaycaster=new THREE.Raycaster(),posePointerNdc=new THREE.Vector2();
+const poseCameraTarget=new THREE.Vector3(),poseFocusPoint=new THREE.Vector3();
+const poseCameraForward=new THREE.Vector3(),posePanRight=new THREE.Vector3(),posePanUp=new THREE.Vector3();
+const poseFocusPlane=new THREE.Plane();
+const distanceBetween=()=>{
+  const p=[...pointers.values()];return p.length<2?0:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+};
+const targetVector=()=>poseCameraTarget.set(cameraState.targetX,cameraState.targetY,cameraState.targetZ);
+function saveTarget(point){
+  cameraState.targetX=point.x;cameraState.targetY=point.y;cameraState.targetZ=point.z;
+}
+function pointRayFromEvent(e){
+  const rect=poseCanvas.getBoundingClientRect();
+  posePointerNdc.set(
+    ((e.clientX-rect.left)/rect.width)*2-1,
+    -((e.clientY-rect.top)/rect.height)*2+1
+  );
+  poseRaycaster.setFromCamera(posePointerNdc,camera);
+}
+function pointOnFocusPlane(e,out){
+  pointRayFromEvent(e);camera.getWorldDirection(poseCameraForward);
+  poseFocusPlane.setFromNormalAndCoplanarPoint(poseCameraForward,targetVector());
+  return poseRaycaster.ray.intersectPlane(poseFocusPlane,out);
+}
+function focusPoseAt(e){
+  if(!ready)return;
+  pointRayFromEvent(e);
+  /* Bounds change with every procedural pose; refresh only for picking rather
+     than taxing every animation frame. */
+  geometry.computeBoundingBox();geometry.computeBoundingSphere();mesh.updateMatrixWorld(true);
+  const hit=poseRaycaster.intersectObject(mesh,false)[0];
+  if(hit)poseFocusPoint.copy(hit.point);
+  else if(!pointOnFocusPlane(e,poseFocusPoint))return;
+  if(poseTransition)poseTransition.moveCamera=false;
+  saveTarget(poseFocusPoint);cameraState.touched=true;updatePoseCamera();renderPose();
+}
+poseCanvas.addEventListener('pointerdown',(e)=>{
+  poseCanvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,button:e.button});
+  if(pointers.size===2)pinchDistance=distanceBetween();poseCanvas.classList.add('drag');
+});
+poseCanvas.addEventListener('pointermove',(e)=>{
+  const old=pointers.get(e.pointerId);if(!old)return;
+  if(poseTransition)poseTransition.moveCamera=false;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,button:old.button});
+  if(pointers.size===1){
+    const dx=e.clientX-old.x,dy=e.clientY-old.y;
+    if(e.shiftKey||old.button===1||old.button===2){
+      camera.getWorldDirection(poseCameraForward);
+      posePanRight.crossVectors(poseCameraForward,camera.up).normalize();
+      posePanUp.crossVectors(posePanRight,poseCameraForward).normalize();
+      targetVector()
+        .addScaledVector(posePanRight,-dx*.0018*cameraState.distance)
+        .addScaledVector(posePanUp,dy*.0018*cameraState.distance);
+      saveTarget(poseCameraTarget);
+    }else{
+      cameraState.yaw-=dx*.006;
+      cameraState.pitch=Math.max(rad(-78),Math.min(rad(78),cameraState.pitch+dy*.0045));
+    }
+  }else if(pointers.size===2){
+    const d=distanceBetween();if(pinchDistance>0)cameraState.distance=Math.max(POSE_ZOOM_MIN,Math.min(POSE_ZOOM_MAX,pinchDistance/d*cameraState.distance));
+    pinchDistance=d;
+  }
+  cameraState.touched=true;updatePoseCamera();renderPose();
+});
+const endPointer=(e)=>{
+  pointers.delete(e.pointerId);pinchDistance=pointers.size===2?distanceBetween():0;
+  if(!pointers.size)poseCanvas.classList.remove('drag');
+};
+poseCanvas.addEventListener('pointerup',endPointer);poseCanvas.addEventListener('pointercancel',endPointer);
+poseCanvas.addEventListener('wheel',(e)=>{
+  e.preventDefault();if(poseTransition)poseTransition.moveCamera=false;
+  const oldDistance=cameraState.distance;
+  const nextDistance=Math.max(POSE_ZOOM_MIN,Math.min(POSE_ZOOM_MAX,oldDistance*Math.exp(e.deltaY*.001)));
+  if(pointOnFocusPlane(e,poseFocusPoint)&&oldDistance>0){
+    const pull=1-nextDistance/oldDistance;
+    poseFocusPoint.sub(targetVector()).multiplyScalar(pull).add(poseCameraTarget);
+    saveTarget(poseFocusPoint);
+  }
+  cameraState.distance=nextDistance;
+  cameraState.touched=true;updatePoseCamera();renderPose();
+},{passive:false});
+poseCanvas.addEventListener('dblclick',(e)=>{e.preventDefault();focusPoseAt(e);});
+poseCanvas.addEventListener('contextmenu',(e)=>e.preventDefault());
+
+async function bootPose(){
+  if(booted)return;booted=true;
+  try{
+    const root=await loadGLB('GLB/Male.glb');root.updateMatrixWorld(true);
+    let source=null;root.traverse((o)=>{if(!source&&o.isMesh)source=o;});
+    if(!source)throw new Error('Male.glb contains no mesh');
+    geometry=source.geometry.clone();geometry.applyMatrix4(source.matrixWorld);geometry.computeBoundingBox();
+    const box=geometry.boundingBox,size=box.getSize(new THREE.Vector3()),centre=box.getCenter(new THREE.Vector3());
+    geometry.translate(-centre.x,-box.min.y,-centre.z);geometry.scale(BODY_H/size.y,BODY_H/size.y,BODY_H/size.y);
+    geometry.computeBoundingBox();geometry.computeBoundingSphere();
+    restPos=new Float32Array(geometry.getAttribute('position').array);
+    restNorm=new Float32Array(geometry.getAttribute('normal').array);
+    makeJointMap();smoothJointMap();buildArmTubeMap();buildAnatomyTubeRings();buildAnatomyColors();
+    mesh=new THREE.Mesh(geometry,matTone);mesh.frustumCulled=false;stage.add(mesh);
+    ready=true;currentPose=copyPose(POSES[current].pose);deform(currentPose);
+    const bootItem=POSES[current];setCameraPreset(bootItem,true);
+    if(bootItem.cameraPath?.length)
+      Object.assign(cameraState,resolveCameraCue(bootItem.cameraPath[bootItem.cameraPath.length-1],cameraState),{touched:false});
+    naturalEffectStart=bootItem===POSES.natural?performance.now():Infinity;
+    poseLoad.classList.add('off');resizePose();renderPose();startHologram();
+    window.__poses={
+      THREE,POSES,geometry,mesh,camera,renderer,selectPose,joints:J,cameraState,
+      resetPoseCamera,setAnatomyMode,setAnatomyView,setPoseDebugMode,applyNaturalDebug,capturePoseDebugCamera,
+      poseDebugCoordinateText,updatePoseCamera,renderPose,
+      jointWorld:(name)=>{const point=new THREE.Vector3();jointPoint(name,point);return point.toArray();},
+      boneNames:BONE_NAMES,skinIndex,skinWeight,restPosition:restPos,
+      armRingPaths,armTubeVertices,liveRingPath,anatomyTubeRings,hologramRoot:holoRoot,stopHologram,
+      veinRoot,veinCore,veinGlow,veinFlow,veinPaths:()=>liveVeinPaths,
+      armVeinPoint:(q,angle,scale)=>armVeinPoint(q,angle,scale).toArray(),
+      setAnatomySelection,setAnatomyInspectView,
+      anatomyJointScene,anatomyArmSkeleton,anatomyHandSkeleton,anatomySelectionGroup,anatomyMarkers,
+      anatomyPoints:ANATOMY_POINTS,anatomyMcpPoints:HAND_MCP_POINTS,
+      anatomyChains:{SHOULDER_GIRDLE_CHAIN,TRAP_SUPPORT_CHAIN,HUMERUS_CHAIN,FOREARM_CENTER_CHAIN,
+        RADIUS_CHAIN,ULNA_CHAIN,FOREARM_PROXIMAL_TIE,FOREARM_DISTAL_TIE,WRIST_PALM_CHAIN,
+        HAND_CENTER_CHAIN,HAND_DIGIT_CHAINS,HAND_CARPAL_ARCH,HAND_BASE_ARCH},
+    };
+    if(poseRoute==='map')setAnatomyMode(true);
+    else if(poseRoute==='debug')setPoseDebugMode(true);
+  }catch(err){
+    poseLoad.innerHTML='<span>Pose study unavailable · '+err.message+'</span>';throw err;
+  }
+}
+
+addEventListener('viewchange',(e)=>{
+  poseRoute=e.detail;live=poseRoute==='pose'||poseRoute==='debug'||poseRoute==='map';
+  if(live){
+    for(const id of ['rig','rigOpen']){const el=document.getElementById(id);if(el)el.style.display='none';}
+    bootPose().then(()=>{
+      if(!live)return;
+      if(poseRoute==='map'){
+        setPoseDebugMode(false);if(!anatomyMode)setAnatomyMode(true);
+      }else{
+        if(anatomyMode)setAnatomyMode(false);
+        setPoseDebugMode(poseRoute==='debug');
+      }
+      resizePose();renderPose();if(!anatomyMode)startHologram();
+    });
+  }else stopHologram();
+});
+addEventListener('resize',()=>{if(live)resizePose();});
+/* A direct ?view=pose request may switch the DOM while this module is still
+   waiting for Three.js. Recover that already-selected state once setup lands. */
+if(document.getElementById('viewPose').classList.contains('is-on')){
+  for(const id of ['rig','rigOpen']){const el=document.getElementById(id);if(el)el.style.display='none';}
+  poseRoute=document.getElementById('tabMap').getAttribute('aria-pressed')==='true'?'map':
+    document.getElementById('tabDebug').getAttribute('aria-pressed')==='true'?'debug':'pose';
+  live=true;bootPose();
+}
 </script>
 </body>
 </html>

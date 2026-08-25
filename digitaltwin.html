@@ -3528,9 +3528,14 @@ function waveformHTML(o,uid){
     '<defs><clipPath id="'+g+'-c"><rect x="0" y="16" width="'+W+'" height="112"/>'+
     '</clipPath></defs>';
 
+  /* The wash carries a class and an index rather than a baked alpha, so a
+     page with a step rail can say which pane it is currently reading and the
+     strip answers. Its resting alpha is the .11 the flat #30b0cd1c was; the
+     spec sheet's copy never sets a step and therefore never leaves it. */
   for(i=0;i<n;i++){
     p=o.panes[i]; a=span(p,beatFor(i)); b=a[1]; a=a[0];
-    h+='<rect x="'+a.toFixed(2)+'" y="20" width="'+(b-a).toFixed(2)+'" height="84" fill="#30b0cd1c"/>';
+    h+='<rect class="wv-pane" data-i="'+i+'" x="'+a.toFixed(2)+'" y="20" width="'+
+       (b-a).toFixed(2)+'" height="84" fill="#30b0cd" fill-opacity=".11"/>';
     if(i) h+='<line x1="'+(i*pw)+'" y1="16" x2="'+(i*pw)+'" y2="128" stroke="var(--divider)"/>';
   }
 
@@ -3548,7 +3553,8 @@ function waveformHTML(o,uid){
        ladder's meta rung and what every other chart label on the page takes.
        A token written here would have arrived at 13.3px instead, because the
        viewBox would have scaled it down again. */
-  h+='<text x="'+(i*pw+pw/2).toFixed(1)+'" y="13" text-anchor="middle" fill="var(--ink-600)" '+
+  h+='<text class="wv-key" data-i="'+i+'" x="'+(i*pw+pw/2).toFixed(1)+'" y="13" '+
+       'text-anchor="middle" fill="var(--ink-600)" '+
        'style="font-family:var(--font-sans);font-size:19px;font-weight:400;'+
        'letter-spacing:.03em">'+p.key+'</text>'+
        '<path d="M'+a.toFixed(2)+' 111v7H'+b.toFixed(2)+'v-7" fill="none" stroke="#203a8573" stroke-width="1"/>';
@@ -3568,26 +3574,166 @@ var ECG={
   panes:[{key:'P',from:14,to:39},{key:'PR',from:14,to:46},
          {key:'QRS',from:44,to:62},{key:'QTc',from:44,to:98}]
 };
-var HEART_TRACKS=[
-  {name:'Conduction time',meta:'PR interval',value:160,unit:'ms',min:80,max:340,
-   bounds:[120,220,300],zones:[{name:'Shortened'},{name:'Normal'},{name:'Mild'},{name:'High'}],
-   status:['ok','Normal'],tinted:false},
-  {name:'Ventricular contraction',meta:'QRS duration',value:100,unit:'ms',min:60,max:180,
-   bounds:[120,130],zones:[{name:'Normal'},{name:'Mild'},{name:'High'}],
-   status:['ok','Normal'],tinted:false},
-  {name:'Contract and reset time',meta:'QTc interval',value:417,unit:'ms',min:280,max:560,
-   bounds:[330,450,500],zones:[{name:'Shortened'},{name:'Normal'},{name:'Mild'},{name:'High'}],
-   status:['ok','Normal'],tinted:false}
+/* One beat, four steps, in the order the beat runs — and this is the page's
+   spine now. It used to be three tracks stacked in a pane plus four pins on
+   the figure, which laid the whole ECG out at once and left the reader to work
+   out the order. A beat has an order; that is the only thing it has that a
+   list of three numbers does not, and P before PR before QRS before QTc is
+   what the four readings on this page actually mean.
+
+   Four, not three. The strip above has always bracketed four panes and the
+   figure has always carried four pins, but the tracks under them were three:
+   the P wave had a bracket and a pin and no row of its own. A rail that says
+   "1 of 4" and can only score three of them would be the page contradicting
+   itself in the same glance.
+
+   `track` is trackHTML's input unchanged, so the scored reading in each step
+   is the same component section 03 specifies, drawn from the same fields. The
+   three `rows` under it are what that reading was checked against — supporting
+   numbers, at the card-row rung, under one hairline. MOCK DATA: the three
+   supporting rows and the P-wave step's own numbers are plausible values
+   standing in for a real report, in the same shape a real one would take.
+
+   `pin` is which readout on the figure this step is about, by data-step. */
+var HEART_STEPS=[
+  {key:'P', name:'Atrial contraction',
+   note:'The upper chambers squeezing. First thing that happens in a beat, and the shortest.',
+   track:{name:'Atrial contraction',meta:'P wave duration',value:104,unit:'ms',min:60,max:180,
+     bounds:[80,120,150],zones:[{name:'Short'},{name:'Normal'},{name:'Mild'},{name:'High'}],
+     status:['ok','Normal'],tinted:false},
+   rows:[['Height','0.14<em>&nbsp;mV</em>','num'],
+         ['Shape','Single peak',''],
+         ['Origin','Sinus node','']]},
+
+  {key:'PR', name:'Conduction time',
+   note:'How long the signal takes to cross from the upper chambers to the lower ones.',
+   track:{name:'Conduction time',meta:'PR interval',value:160,unit:'ms',min:80,max:340,
+     bounds:[120,220,300],zones:[{name:'Shortened'},{name:'Normal'},{name:'Mild'},{name:'High'}],
+     status:['ok','Normal'],tinted:false},
+   rows:[['Beat-to-beat spread','6<em>&nbsp;ms</em>','num'],
+         ['Dropped beats','None',''],
+         ['Blocked conduction','Not seen','']]},
+
+  {key:'QRS', name:'Ventricular contraction',
+   note:'The main squeeze. The lower chambers emptying, and the largest mark on the strip.',
+   track:{name:'Ventricular contraction',meta:'QRS duration',value:100,unit:'ms',min:60,max:180,
+     bounds:[120,130],zones:[{name:'Normal'},{name:'Mild'},{name:'High'}],
+     status:['ok','Normal'],tinted:false},
+   rows:[['Height','1.32<em>&nbsp;mV</em>','num'],
+         ['Electrical axis','+42<em>&deg;</em>','num'],
+         ['Bundle branch','Both clear','']]},
+
+  {key:'QTc', name:'Contract and reset time',
+   note:'Squeeze plus recovery, corrected for your rate. The part most worth watching over time.',
+   track:{name:'Contract and reset time',meta:'QTc interval',value:417,unit:'ms',min:280,max:560,
+     bounds:[330,450,500],zones:[{name:'Shortened'},{name:'Normal'},{name:'Mild'},{name:'High'}],
+     status:['ok','Normal'],tinted:false},
+   rows:[['Uncorrected','404<em>&nbsp;ms</em>','num'],
+         ['Correction','Bazett, at 61 bpm',''],
+         ['Twelve-month change','&minus;3<em>&nbsp;ms</em>','num']]}
 ];
+/* One place that knows which step is showing, so the rail, the pane, the count
+   and the four pins on the figure cannot disagree about it. */
+var heartStep=0;
+
+/* No eyebrow on this pane, and it is the one pane in the file without one.
+   The track inside it opens with its own name at the label rung and its own
+   clinical alias under that — an h4 above it would print "Conduction time"
+   twice, forty pixels apart, at two different sizes. The other two panes on
+   this rail carry an eyebrow because a rhythm strip and a set of intervals do
+   not name themselves; this one does. */
+function heartStepHTML(st){
+  var h=trackHTML(st.track), i, r;
+  for(i=0;i<st.rows.length;i++){
+    r=st.rows[i];
+    h+='<div class="sg-hair"></div><div class="sg-line"><span>'+r[0]+'</span>'+
+       (r[2]==='num' ? '<b class="num">'+r[1]+'</b>' : '<span class="step-val">'+r[1]+'</span>')+
+       '</div>';
+  }
+  return h;
+}
+
+function heartGo(i){
+  var st=HEART_STEPS[i], n=HEART_STEPS.length, j, d;
+  heartStep=i;
+
+  var rail=document.getElementById('heartSteps');
+  if(rail){
+    /* the fraction of the way along the sequence, which is what the filled
+       part of the connector is measuring — not i/n, which would leave the
+       last step's line stopping short of the last dot */
+    rail.style.setProperty('--k', n>1 ? (i/(n-1)).toFixed(4) : '0');
+    for(j=0;j<rail.children.length;j++){
+      d=rail.children[j];
+      d.classList.toggle('on', j===i);
+      d.classList.toggle('done', j<i);
+      d.setAttribute('aria-selected', String(j===i));
+      d.tabIndex = j===i ? 0 : -1;
+    }
+  }
+
+  var cn=document.getElementById('heartStepN'); if(cn) cn.textContent=(i+1)+' of '+n;
+  var nm=document.getElementById('heartStepName'); if(nm) nm.textContent=st.name;
+  var nt=document.getElementById('heartStepNote'); if(nt) nt.textContent=st.note;
+
+  var pane=document.getElementById('heartDetail');
+  if(pane){
+    pane.innerHTML=heartStepHTML(st);
+    /* reflow between remove and add, or the browser coalesces the two and the
+       animation never restarts on a second press of the same kind */
+    pane.classList.remove('swap'); void pane.offsetWidth; pane.classList.add('swap');
+  }
+
+  var pins=document.querySelectorAll('#heartField .pin');
+  for(j=0;j<pins.length;j++) pins[j].classList.toggle('dim', +pins[j].dataset.step!==i);
+
+  /* The strip is the map and the rail is the position on it, so the strip has
+     to answer or the two are separate controls that happen to share a subject.
+     The current pane's wash comes up and its key goes to full ink; the other
+     three stay exactly where they were. Nothing is hidden — the beat is one
+     signal and the panes are where to look along it. */
+  var host=document.getElementById('heartWave');
+  if(host){
+    var rects=host.querySelectorAll('.wv-pane'), keys=host.querySelectorAll('.wv-key');
+    for(j=0;j<rects.length;j++)
+      rects[j].setAttribute('fill-opacity', +rects[j].dataset.i===i ? '.30' : '.09');
+    for(j=0;j<keys.length;j++)
+      keys[j].setAttribute('fill', +keys[j].dataset.i===i ? 'var(--ink-900)' : 'var(--ink-400)');
+  }
+}
+
 /* The heart page's DOM half. Its markup is parsed after this script, so this
    runs on DOMContentLoaded with bindProvenance rather than in the boot line. */
 function buildHeart(){
   var w=document.getElementById('heartWave');
   if(w) w.innerHTML=waveformHTML(ECG,'page');
-  var t=document.getElementById('heartTracks'); if(!t) return;
+
+  var rail=document.getElementById('heartSteps'); if(!rail) return;
   var out='',i;
-  for(i=0;i<HEART_TRACKS.length;i++) out+=trackHTML(HEART_TRACKS[i]);
-  t.innerHTML=out;
+  for(i=0;i<HEART_STEPS.length;i++)
+    out+='<button class="step-dot" type="button" role="tab" data-i="'+i+'" tabindex="-1" '+
+         'aria-selected="false" aria-label="'+(i+1)+' of '+HEART_STEPS.length+', '+
+         HEART_STEPS[i].name+'"><i></i></button>';
+  rail.innerHTML=out;
+
+  rail.addEventListener('click',function(e){
+    var b=e.target.closest('.step-dot'); if(b) heartGo(+b.dataset.i);
+  });
+  /* Arrows on the rail rather than on each dot, the same shape the mode
+     switcher's listbox uses: one tab stop for the whole sequence, and the
+     arrow keys move along it. A reader should not have to tab past four
+     buttons to reach the pane they open. */
+  rail.addEventListener('keydown',function(e){
+    var n=HEART_STEPS.length, i=heartStep;
+    if(e.key==='ArrowRight'||e.key==='ArrowDown') i=(heartStep+1)%n;
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp') i=(heartStep+n-1)%n;
+    else if(e.key==='Home') i=0;
+    else if(e.key==='End') i=n-1;
+    else return;
+    e.preventDefault(); heartGo(i); rail.children[i].focus();
+  });
+
+  heartGo(0);
 }
 
 /* The kidney page's one chart, and it is section 04's dot meter unmodified —
@@ -5410,7 +5556,13 @@ const CATS = [
      about the organ's own centre swings its posterior corner back, and at
      -0.004 that corner left the body through the spine. At 0.013 the mesh
      clears the back wall by 0.014 and the front by 0.123. */
-  { id:'detox',  name:'Liver & Gallbladder', file:'human_liver_and_gallbladder.glb',
+  /* Named Liver, and the mesh is still the liver AND its gallbladder — the
+     credit below says so, because a credit names the file. The rail does not:
+     it is a list of places in a body a reader can go and look, and every other
+     row on it is one word. "Liver & Gallbladder" was the only row that had to
+     be read rather than recognised, it was the only row that wrapped on a
+     narrow rail, and the gallbladder is not a second destination. */
+  { id:'detox',  name:'Liver', file:'human_liver_and_gallbladder.glb',
     hFrac:0.098, seat:0.620, x:-0.032, z:0.013, yaw:-90, pitch:-14, dist:0.78,
     credit:{ work:'Human liver and gallbladder', author:'ElliotSS' },
     rows:[['Liver markers','6'],['Fat in the liver','None'],['Substances screened','38']],
@@ -6388,10 +6540,20 @@ function frame(now) {
     /* one turn, on the parent. The body and every organ are children, so they
        cannot drift apart no matter what the yaw is. */
     rec.pivot.rotation.y = view.yaw;
+    /* Arriving is eased, leaving is not, and the asymmetry is the point. An
+       organ appears after a fetch, so it needs the ramp — a mesh that pops in
+       at full opacity the instant the bytes land reads as a glitch. An organ
+       LEAVING has nothing to cover: the reader has already asked for a
+       different one, and the half-second of ghost the same ramp gave it going
+       down sat over the incoming organ as a second, fainter body in the same
+       chest. Two organs on the figure at once is exactly what the go() counter
+       above was written to prevent, and this was the last way it still
+       happened. Down is a cut. */
     for (const k in rec.organs) {
       const o = rec.organs[k];
       const want = o.holder.userData.fade || 0;
-      o.mat.opacity += (want - o.mat.opacity) * Math.min(dt * 4, 1);
+      if (want < o.mat.opacity) o.mat.opacity = want;
+      else o.mat.opacity += (want - o.mat.opacity) * Math.min(dt * 4, 1);
       o.holder.visible = o.mat.opacity > 0.01;
     }
   }
@@ -6606,11 +6768,15 @@ addEventListener('viewchange', (e) => {
             <polyline points="632,400 498,400 412,433"/>
             <polyline points="82,512 216,512 280,479"/>
             <polyline points="636,612 498,612 406,580"/>
-            <!-- conduction spreading down through the ventricles -->
-            <path d="M302 660 Q 332 702 362 690"/>
-            <path d="M438 660 Q 410 702 382 690"/>
-            <path d="M362 690 l-10 -5 M362 690 l-5 -10"/>
-            <path d="M382 690 l10 -5 M382 690 l5 -10"/>
+            <!-- There were two curved arrows here, sweeping down and inward
+                 across the ventricles to draw the conduction spreading through
+                 them. They are gone. Every other stroke in this SVG is pattern
+                 02 doing pattern 02's job — pointing at the place a number on
+                 the rail was taken from — and these pointed at nothing
+                 measured. Two arrowheads meeting under the apex read as a
+                 diagram's annotation on a page that is otherwise a reading,
+                 and at this scale they read first, before the four numbers
+                 they were sitting beneath. -->
           </g>
           <g fill="#203a85" fill-opacity=".62">
             <circle cx="312" cy="334" r="4"/>
@@ -6620,26 +6786,62 @@ addEventListener('viewchange', (e) => {
           </g>
         </svg>
 
-        <div class="pin" style="left:100px;top:228px">Atrial<b class="num">118<em>ms</em></b></div>
-        <div class="pin" style="left:536px;top:334px">Conduction<b class="num">160<em>ms</em></b></div>
-        <div class="pin" style="left:82px;top:446px">Reset<b class="num">417<em>ms</em></b></div>
-        <div class="pin" style="left:540px;top:546px">Ventricular<b class="num">100<em>ms</em></b></div>
+        <!-- data-step ties each reading on the figure to the step that
+             explains it, so picking a step on the rail lights the number it is
+             about and steps the other three back. The four are one beat and
+             they all stay on screen: this is a reader's eye being pointed, not
+             three readings being hidden. Note the order — the rail runs in the
+             order the beat runs (P, PR, QRS, QTc), and these four sit in the
+             order the anatomy puts them, so Reset is step 3 on the figure and
+             step 4 on the rail. -->
+        <div class="pin" data-step="0" style="left:100px;top:228px">Atrial<b class="num">118<em>ms</em></b></div>
+        <div class="pin" data-step="1" style="left:536px;top:334px">Conduction<b class="num">160<em>ms</em></b></div>
+        <div class="pin" data-step="3" style="left:82px;top:446px">Reset<b class="num">417<em>ms</em></b></div>
+        <div class="pin" data-step="2" style="left:540px;top:546px">Ventricular<b class="num">100<em>ms</em></b></div>
 
         <div class="lab-load" id="heartLoad"><i></i><span>Loading</span></div>
       </div>
 
       <div id="heartRail">
-        <h1 class="org-title">Heart rhythm</h1>
-        <div class="org-sub">Heart rate: 61 bpm <span class="pill ok">Normal</span></div>
+        <!-- Name and finding, the Kidneys page's head exactly. The verdict was
+             a 14px pill on a sub-line under the title, which said the page's
+             whole conclusion in the smallest type on the page — a reader
+             scanning for "am I all right" had to find it in the caption. It is
+             the finding, so it takes the value rung and the right column, and
+             the rate that produced it becomes its label. -->
+        <div class="org-head">
+          <h1 class="org-title">Heart rhythm</h1>
+          <div class="hrt-vital">
+            <span class="hrt-rate">Heart rate <b class="num">61</b> bpm</span>
+            <b class="hrt-state">Normal</b>
+          </div>
+        </div>
+
+        <!-- One beat, four parts, and the rail is where you are in it. The
+             page used to lay all four out at once as three stacked tracks plus
+             four pins, which is a reader being handed the whole ECG and asked
+             to work out the order — the one thing a beat has that a list does
+             not. Buttons are written by JS off HEART_STEPS so the rail, the
+             pane under it and the pins on the figure cannot disagree about how
+             many steps there are or what they are called. -->
+        <div class="hrt-steps">
+          <div class="step-rail" id="heartSteps" role="tablist"
+               aria-label="Which part of the beat"></div>
+          <div class="step-read">
+            <div class="step-count"><b id="heartStepN">1 of 4</b><i>&middot;</i><span id="heartStepName"></span></div>
+            <p class="step-note" id="heartStepNote"></p>
+          </div>
+        </div>
+
         <div class="org-rule"></div>
         <div class="gl org-pane">
           <h4>Rhythm strip</h4>
           <div id="heartWave"></div>
         </div>
-        <div class="gl org-pane">
-          <h4>Intervals</h4>
-          <div id="heartTracks"></div>
-        </div>
+        <!-- The step's own evidence. Written by JS, and it is the whole reason
+             the rail exists: one reading scored against its band, and the three
+             supporting numbers that reading was checked against. -->
+        <div class="gl org-pane" id="heartDetail"></div>
       </div>
 
     </div>
@@ -6726,10 +6928,154 @@ addEventListener('viewchange', (e) => {
   .org-title{font-family:var(--font-serif-medium);font-size:var(--text-title-lg);
     font-weight:var(--w-serif-title);letter-spacing:-.015em;line-height:1.04;color:var(--ink-900)}
   /* Supporting text under a 44px title, so the supporting rung — and its pill
-     takes the meta rung, the same one the tracks' pills take. */
+     takes the meta rung, the same one the tracks' pills take. Still used by
+     any rail that wants a sub-line; the heart's has become .org-head. */
   .org-sub{display:flex;align-items:center;gap:11px;margin-top:14px;
     font-size:15px;color:#4a5578}
   .org-rule{height:1px;background:var(--divider);margin:14px 0 16px}
+
+  /* .kid-head, generalised, because two rails now do this and the second one
+     copying four rules out of the first is how the two pages start to drift.
+     A report head is the organ's name on the left and the page's finding on
+     the right, on one baseline. */
+  .org-head{display:flex;align-items:baseline;justify-content:space-between;gap:20px}
+
+  /* ── the heart's vital, in the finding's column ──
+     Two things on one baseline, and the ranking between them is the whole
+     point. "Normal" is the finding — the answer to the question the reader
+     brought to the page — so it takes the value rung and the serif, exactly
+     as Kidneys' Monitor does, in the success ink rather than the warning one.
+     The rate is what the finding was made from, so it is the label: the meta
+     rung, sans, ink-600, with only the numeral stepping up in weight and
+     colour because 61 is a measurement and "bpm" is a unit.
+
+     Stacked rather than side by side: the two lines are read down the column
+     from evidence to verdict, and stacking keeps the serif word alone on its
+     own baseline where the 44px title opposite can answer it. Right-aligned
+     so both lines finish on the rail's edge with the panes below. */
+  .hrt-vital{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px;
+    text-align:right}
+  .hrt-rate{font-family:var(--font-sans);font-size:var(--text-micro);
+    font-weight:var(--w-data);letter-spacing:.04em;color:var(--ink-600)}
+  .hrt-rate b{margin:0 2px;font-weight:var(--w-module);color:var(--ink-900)}
+  /* Kidneys' .kid-verdict, to the token: contralto-small at the 33px value
+     rung, 400, -.01em, line-height 1. Only the ink differs, and it differs
+     because the finding differs. */
+  .hrt-state{font-family:var(--font-serif-small);font-size:var(--kpi-value-lg);
+    font-weight:var(--w-serif-title);line-height:1;letter-spacing:-.01em;
+    color:var(--status-success-ink)}
+
+  /* ── the step rail ────────────────────────────────────────────────────
+     Where you are in one heartbeat. Four dots on a line, and the line is not
+     decoration: a beat is a sequence, the four readings on this page are four
+     places along it, and the one thing a stack of three tracks could never
+     show is that P comes before PR comes before QRS comes before QTc.
+
+     The track is drawn by the rail itself rather than by a wrapper, because a
+     connector that belongs to the row cannot fall out of step with the dots
+     sitting on it. It runs between the first and last dot centres — inset by
+     half a hit area at each end — so it never sticks out past the sequence it
+     is connecting.
+
+     Hit areas are 34px and the dot inside is 11. An 11px target is not a
+     target; the button is the size a finger needs and the mark is the size the
+     composition needs, which is the same split .hot uses on the body page. */
+  .hrt-steps{display:flex;align-items:flex-start;justify-content:space-between;
+    gap:26px;margin-top:22px}
+  .step-rail{position:relative;flex:none;display:flex;align-items:center}
+  .step-rail::before{content:"";position:absolute;left:17px;right:17px;top:50%;height:1px;
+    margin-top:-.5px;background:var(--border-strong)}
+  /* The travelled part of the line, under the dots that are behind you. It is
+     the brand blue rather than more of the hairline, so the rail reads as a
+     progress in one glance without a second element to say so. --k is set by
+     JS: the fraction of the way along the sequence the current step sits. */
+  /* Full span, scaled from its left end, rather than a width that grows.
+     Same line either way; this one animates on the compositor and cannot make
+     the browser re-measure anything to draw it. */
+  .step-rail::after{content:"";position:absolute;left:17px;right:17px;top:50%;height:1px;
+    margin-top:-.5px;background:var(--phenome-blue-400);
+    transform-origin:left center;transform:scaleX(var(--k,0));
+    transition:transform .42s var(--ease-frosted-out)}
+  .step-dot{position:relative;z-index:1;flex:none;width:34px;height:34px;padding:0;border:0;
+    background:none;cursor:pointer;display:grid;place-items:center;
+    -webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;border-radius:50%}
+  /* Three states on one mark, and each one is a step of ink rather than a
+     different shape: ahead is a hollow ring on the hairline, behind is the
+     same ring filled at the connector's blue, and current is a filled disc at
+     full brand blue with a ring of ground punched around it so it reads as
+     ON the line rather than as a bead threaded over it. */
+  .step-dot i{width:11px;height:11px;border-radius:50%;
+    border:1.5px solid var(--border-strong);background:var(--stage-field-1);
+    transition:background-color .3s var(--ease-frosted-out),
+               border-color .3s var(--ease-frosted-out),
+               transform .42s var(--ease-frosted-out),
+               box-shadow .3s var(--ease-frosted-out)}
+  .step-dot:hover i{border-color:var(--phenome-blue-400)}
+  .step-dot.done i{border-color:var(--phenome-blue-400);background:var(--phenome-blue-400)}
+  .step-dot.on i{border-color:var(--phenome-blue-500);background:var(--phenome-blue-500);
+    transform:scale(1.42);box-shadow:0 0 0 4px var(--stage-field-1)}
+
+  /* The count and the name, on the rail's own line, and the sentence under
+     them. "2 of 4" is the position and the name is what is at it, so they sit
+     on one line separated by the same middot the file's other pairings use.
+     Right-aligned against the rail for the same reason .hrt-vital is: every
+     line in this column ends on the same edge. */
+  .step-read{flex:1;min-width:0;text-align:right}
+  .step-count{display:flex;align-items:baseline;justify-content:flex-end;gap:7px;
+    font-family:var(--font-sans);font-size:var(--text-micro);letter-spacing:.04em}
+  .step-count b{font-weight:var(--w-module);color:var(--ink-900);font-variant-numeric:tabular-nums}
+  .step-count i{font-style:normal;color:var(--ink-400)}
+  .step-count span{color:var(--ink-600)}
+  /* One sentence, in the product's own voice: what this part of the beat is,
+     in words a reader already has. Two lines at this measure, which is why the
+     rail above it is 34px tall and the block is aligned to the top. */
+  .step-note{margin-top:7px;font-size:var(--text-data);line-height:1.5;color:var(--ink-600)}
+
+  /* The pane's content is replaced wholesale on every step, so the swap gets
+     one authored moment rather than four things easing separately: it comes up
+     8px and in, on the frosted ease, and the reading inside it is the last
+     thing to arrive. Keyed off a class JS re-adds, because re-running an
+     animation on replaced children is the one thing a transition cannot do. */
+  #heartDetail.swap{animation:stepIn .46s var(--ease-frosted-out)}
+  @keyframes stepIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* The pane holds one scored reading and three numbers it was checked
+     against, and the difference between those two things has to be visible or
+     the pane is four readings in a list. The scored one keeps the track's 33px
+     value rung; the supporting rows take the rung under it. This is the same
+     move .sg-line's own note describes from the other end — a component sets
+     its type, and a row may say where its label sits — except here the row IS
+     ranked below the thing above it, which is a fact about this pane and
+     belongs on this pane.
+
+     A row's first hairline also carries the pane's own division, so the gap
+     above the first one is wider: the reading and its evidence are two groups,
+     not four rows. */
+  #heartDetail .sg-line b{font-size:var(--kpi-value-sm)}
+  #heartDetail .sg-line{min-height:28px}
+  #heartDetail .trk + .sg-hair{margin-top:22px}
+  /* a supporting value that is a word rather than a number — same column, same
+     rung, and the sans rather than the numeral face because there is nothing
+     to align */
+  #heartDetail .step-val{font-size:var(--text-label);color:var(--ink-900)}
+
+  /* The figure answers the rail. The reading the current step is about keeps
+     its ink; the other three step back to the weight of a caption, which is
+     what they are while another step is being read. They do not leave: this is
+     one beat, and hiding three quarters of it to look at the fourth would be
+     the page telling a reader the parts are separate. */
+  #heartField .pin{transition:opacity .4s var(--ease-frosted-out)}
+  #heartField .pin.dim{opacity:.34}
+  /* Presentation attributes, eased. The strip's panes and keys are set by
+     attribute rather than by class because the values are computed from an
+     index; a transition on the property still takes them. */
+  #heartWave .wv-pane{transition:fill-opacity .42s var(--ease-frosted-out)}
+  #heartWave .wv-key{transition:fill .42s var(--ease-frosted-out)}
+  @media(prefers-reduced-motion:reduce){
+    #heartDetail.swap{animation:none}
+    .step-rail::after,.step-dot i,#heartField .pin,
+    #heartWave .wv-pane,#heartWave .wv-key{transition:none}}
+
   /* Section 06's card, not the design system document's card. These panes
      were taking --radius-lg, which is 12px and belongs to .card — the white
      paper block the spec sheet itself is built out of. No glass surface in

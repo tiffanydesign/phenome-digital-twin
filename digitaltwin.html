@@ -4746,6 +4746,7 @@ try {
      cursor on a page of prose is a cost with no return. */
   #labWrap .lab-seg button,
   #labWrap .lab-cat,
+  #labWrap .lab-go,
   #labWrap .lab-back,
   #labWrap .lab-bar-nav button,
   #labWrap .hot,
@@ -4809,7 +4810,20 @@ try {
      the type, the hover, the brand selection and the lit edge — all five
      have moved, and re-declaring any of them here would silently win over
      the recipe, since this stylesheet is parsed second. */
-  .lab-seg{margin:0 auto;pointer-events:auto}
+  /* Beside the back disc, and not centred. .lab-back is a 44px disc at
+     left:26 / top:24, so 26 + 44 + 12 = 82 sets this 12px past it and
+     (44 - 42) / 2 = 1 centres its 42px height on it — the same two numbers
+     .mode-switch.dock uses for the detail page's switcher, which sits in this
+     exact slot on that view.
+
+     Centred, it read as the page's title furniture, level with the wordmark
+     opposite and belonging to neither. On the left shelf it reads as what it
+     is: a control on the same rail as the page's own navigation, and the same
+     rail the other view already puts a switcher on. The overview state has no
+     back disc yet, so the slot stands open until there is something to go back
+     from — which is the one place the two views differ here, and it is the
+     back button's own rule that says so, not this one. */
+  .lab-seg{position:absolute;left:82px;top:25px;margin:0;pointer-events:auto}
   .lab-brand{position:absolute;right:26px;top:24px;font-family:var(--font-sans);font-size:19px;
     font-weight:600;letter-spacing:-.01em;color:var(--ink-900)}
   .lab-brand em{font-style:normal;font-weight:300;color:var(--ink-600);margin-left:2px}
@@ -4862,25 +4876,32 @@ try {
      only the pane letting more light through in that one place. It is also
      now the only thing marking a row, which is why it is stronger than it
      was. */
-  .lab-cat{display:flex;align-items:center;gap:14px;width:100%;padding:13px 12px;
+  /* The row is a wrapper, and the tint, the radius and the slide live on it
+     rather than on the button inside it. Two of these organs have a report
+     behind them and the arrow that opens it is a control of its own — a button
+     inside a button is not markup, so the row had to stop being the button.
+     Nothing about how a row looks or moves changed; it is declared one level
+     up, and the button it contains went transparent. */
+  .lab-row{position:relative;display:flex;align-items:center;
+    border-radius:14px;
+    transition:background-color .2s var(--ease-frosted-out),
+               transform .2s var(--ease-frosted-out)}
+  .lab-cat{flex:1;min-width:0;display:flex;align-items:center;gap:14px;padding:13px 12px;
     border-radius:14px;cursor:pointer;
     background-image:none;background-color:transparent;
     -webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;
-    font-family:var(--font-sans);font-size:17px;color:var(--ink-900);text-align:left;
-    transition:background-color .2s var(--ease-frosted-out),
-               transform .2s var(--ease-frosted-out)}
+    font-family:var(--font-sans);font-size:17px;color:var(--ink-900);text-align:left}
   /* .sg-hair, at row scale. It fades at both ends so it reads as a division
      inside one surface rather than as a line drawn across it — the same reason
      the doctrine will not let a pane have a border. The first row goes without,
      because the panel's own top padding already separates it from the header. */
-  .lab-cat + .lab-cat{position:relative}
-  .lab-cat + .lab-cat::after{content:"";position:absolute;left:12px;right:12px;top:-1px;height:1px;
+  .lab-row + .lab-row::after{content:"";position:absolute;left:12px;right:12px;top:-1px;height:1px;
     background:linear-gradient(90deg,transparent,#2a3f6e26,transparent)}
   /* the row comes further off the panel and slides toward the figure it names */
-  .lab-cat:hover{transform:translateX(-3px);background-color:#ffffff7a}
-  .lab-cat:active{transform:translateX(-1px);background-color:#dee6f38f}
+  .lab-row:hover{transform:translateX(-3px);background-color:#ffffff7a}
+  .lab-row:active{transform:translateX(-1px);background-color:#dee6f38f}
   /* the hairline is the row's own edge, so it goes when the row is lit */
-  .lab-cat:hover::after,.lab-cat:hover + .lab-cat::after{opacity:0}
+  .lab-row:hover::after,.lab-row:hover + .lab-row::after{opacity:0}
   /* Flat discs, and the mark weight section 06 settled on: 22px is the size a
      .sg-mark takes in a row, not the 50px a .sg-disc takes when it carries a
      glyph — these carry none, so there is nothing to make room for.
@@ -4897,15 +4918,30 @@ try {
   .lab-cat .ic{flex:none;width:22px;height:22px;border-radius:50%;border:0;
     background:var(--orb);box-shadow:0 0 0 1px #2a3f6e14}
   .lab-cat .nm{flex:1}
-  /* The chevron is the row's only affordance, exactly as .sg-item defines it:
-     ink-400, and nothing else — no border, no shadow, no fill. It is a text
-     glyph rather than .sg-item's SVG because script writes this markup, so it
-     is matched on weight instead: 18px to sit at the 18px SVG's cap height,
-     and it slides with the row rather than staying put, so the arrow leads
-     where the row is going. */
-  .lab-cat .ch{flex:none;color:var(--ink-400);font-size:18px;line-height:1;
+  /* The chevron, and what it names has changed. It used to be the row's only
+     affordance and it pointed at the row's one destination: the organ, seated
+     in the body. Two of these organs now have a written report as well, and
+     this is the way in — so it is a button rather than a glyph, and it is
+     written only onto the rows that have somewhere further to go. A row
+     without one is not a row missing its arrow; it is a row with one
+     destination, and an arrow there would be a promise the demo cannot keep.
+
+     Everything it looks like is .sg-item's chevron unchanged: ink-400, no
+     border, no shadow, no fill, 18px to sit at the 18px SVG's cap height. It
+     slides with the row, so the arrow still leads where the row is going.
+     Padding rather than a width, because the hit area is the point: 13px top
+     and bottom takes the row's full height, and 2px on the left leaves the
+     14px gap the flex row used to give it.
+
+     No colour on hover, here or anywhere on this page: the row's own tint
+     marks the row, and a step of ink marks this. */
+  .lab-go{flex:none;border:0;padding:13px 12px 13px 2px;border-radius:14px;cursor:pointer;
+    background-image:none;background-color:transparent;
+    -webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;
+    font-family:var(--font-sans);color:var(--ink-400);font-size:18px;line-height:1;
     transition:transform .2s var(--ease-frosted-out),color .2s var(--ease-frosted-out)}
-  .lab-cat:hover .ch{color:var(--ink-600);transform:translateX(3px)}
+  .lab-row:hover .lab-go{color:var(--ink-600);transform:translateX(3px)}
+  .lab-go:hover{color:var(--ink-900)}
 
   /* ---------- hotspots ---------- */
   #labHot{position:absolute;inset:0;z-index:5;pointer-events:none}
@@ -5236,7 +5272,14 @@ const CATS = [
     credit:{ work:'pink brain', author:'msurovik' },
     rows:[['Signal chemicals','42'],['Thinking tasks','6'],['Age reading','−3 y']],
     note:'Read from a blood sample and a set of memory and attention tasks. No scan involved.' },
+  /* report names the detail-page route this organ has a written report on,
+     and only two organs have one. It is the route string show() already
+     takes, so the rail's arrow and the organ's own label can hand it straight
+     over without a second table mapping one onto the other. An organ without
+     the field has no report, and the entries that would open one are simply
+     not drawn on it. */
   { id:'cardio', name:'Heart',          file:'realistic_human_heart.glb',
+    report:'heart',
     hFrac:0.069, seat:0.715, x:0.022,  z:0.028, yaw:-12, dist:0.60,
     credit:{ work:'Realistic Human Heart', author:'neshallads' },
     rows:[['Points measured','10'],['Blood pressure','118/76'],['Blood fats','0.74 g/L']],
@@ -5306,7 +5349,11 @@ const CATS = [
     credit:{ work:'Human liver and gallbladder', author:'ElliotSS' },
     rows:[['Liver markers','6'],['Fat in the liver','None'],['Substances screened','38']],
     note:'The blood markers and the scan are read together. Neither settles it alone.' },
+  /* The report is drawn on kidney_with_labels.glb rather than on this file:
+     the report is a cut-away and this one is the whole organ, seated. Two
+     meshes of one kidney, and the route is what ties them together. */
   { id:'horm',   name:'Kidneys',        file:'human_kidney.glb',
+    report:'kidney',
     hFrac:0.083, seat:0.583, x:0,      z:-0.032, yaw:0,   dist:0.72,
     credit:{ work:'Human Kidney', author:'neshallads' },
     rows:[['Hormones measured','24'],['Filtering rate','96'],['Stress hormone','4 readings']],
@@ -5946,6 +5993,13 @@ function buildHotspots() {
     b.innerHTML = `<span class="pin"></span><span class="tag">${c.name}</span>`;
     b.addEventListener('click', (e) => {
       e.stopPropagation();
+      /* Where a report exists, the report IS the next step, so the label goes
+         straight there. The readings card this used to open is the demo's
+         stand-in for a report an organ does not have — three rows and a
+         sentence where there is no page — and putting it in front of the two
+         organs that DO have a page would be a stop on the way to nowhere.
+         So the five without one keep the card, and these two skip it. */
+      if (c.report) { openReport(c); return; }
       if (state === 'category' && current && current.id === c.id) go('closeup', c);
       else go('category', c);
     });
@@ -5954,15 +6008,39 @@ function buildHotspots() {
   }
 }
 
+/* Two destinations per row where there are two, and one where there is one.
+   The row opens the organ in the body, which is this page's whole subject; the
+   arrow at its right opens the organ's written report, and exists only on the
+   rows that have one. They are two buttons in a wrapper rather than one button
+   with two halves, because a button cannot contain a button and because a
+   reader on a keyboard has to be able to reach both. */
 function buildRail() {
   const host = L('#labCatList');
   host.innerHTML = '';
   for (const c of CATS) {
+    const row = document.createElement('div');
+    row.className = 'lab-row';
+
     const b = document.createElement('button');
     b.className = 'lab-cat';
-    b.innerHTML = `<span class="ic" style="--orb:${orbOf(c)}"></span><span class="nm">${c.name}</span><span class="ch">&#8250;</span>`;
+    b.type = 'button';
+    b.innerHTML = `<span class="ic" style="--orb:${orbOf(c)}"></span><span class="nm">${c.name}</span>`;
     b.addEventListener('click', () => go('category', c));
-    host.appendChild(b);
+    row.appendChild(b);
+
+    if (c.report) {
+      const g = document.createElement('button');
+      g.className = 'lab-go';
+      g.type = 'button';
+      /* The name, because "Open the report" seven times over is a screen
+         reader reading the rail rather than the rail's contents. */
+      g.setAttribute('aria-label', `Open the ${c.name} report`);
+      g.innerHTML = '&#8250;';
+      g.addEventListener('click', (e) => { e.stopPropagation(); openReport(c); });
+      row.appendChild(g);
+    }
+
+    host.appendChild(row);
   }
 }
 
@@ -5998,6 +6076,22 @@ function markCredit(id) {
   for (const li of document.querySelectorAll('#provBodyList .prov-item')) {
     li.classList.toggle('is-on', !!id && li.dataset.cat === id);
   }
+}
+
+/* One way out of this page and into an organ's report, shared by the rail's
+   arrow and the organ's own label.
+
+   Nothing here touches the detail page's switcher. Its labels follow the
+   ROUTE rather than the click — sync() is wired to the viewchange this
+   dispatches — so arriving from the body page lands with the dropdown already
+   reading Heart rhythm or Kidneys, and __detailMode set, exactly as a deep
+   link or the tab's own restore does. That is why the arrival keeps the
+   switcher rather than needing one added: there was never a second copy of
+   that state to keep in agreement. */
+function openReport(cat) {
+  if (!cat || !cat.report) return;
+  if (typeof window.__showView !== 'function') return;
+  window.__showView(cat.report);
 }
 
 function cardFor(cat) {

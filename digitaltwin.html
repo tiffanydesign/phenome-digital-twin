@@ -569,7 +569,23 @@ body{
    already right. Display numerals only — in the sans the stop is tight
    already, and doing this there would jam it against the digits. */
 .dp{font-style:normal;font-size:.62em;margin:0 -.06em}
-:focus-visible{outline:2px solid var(--phenome-blue-400);outline-offset:3px;border-radius:4px}
+/* THE border-radius IS GONE FROM HERE, and it was the cause of two separate
+   bug reports. This rule sets border-radius on the ELEMENT, not on the ring, so
+   anything focused was reshaped to a 4px box for as long as it held focus: the
+   provenance mark is an 18px disc at border-radius:50% and became a rounded
+   square, the mode switcher's pane is 22px and became one too — each of them
+   wrapped in a 2px brand-blue outline. Reported as "a blue highlight block
+   flashes" and "you can see a square around the component". Both were this.
+   Outlines already follow an element's own border-radius, so the fix is to stop
+   overriding it and let a disc be ringed as a disc. The ring itself stays: it is
+   the only keyboard affordance in the file. */
+:focus-visible{outline:2px solid var(--phenome-blue-400);outline-offset:3px}
+/* The listbox takes programmatic focus the moment it opens — that is how the
+   arrow keys reach it — so a container ring would draw on every mouse open,
+   around the whole pane, for something the pointer is already pointing at. The
+   focused OPTION is marked instead, by .cursor, which is what a listbox is
+   supposed to indicate anyway. */
+.mode-switch-list:focus,.mode-switch-list:focus-visible{outline:none}
 
 /* ---------- view switching ---------- */
 .view{display:none}
@@ -955,24 +971,21 @@ body{
    Both therefore open UPWARD. A list dropping down from here would leave the
    frame, which is the whole reason the offset below is measured off the bar
    rather than chosen. */
-/* 6.9, and the number is derived rather than picked. The corner is a STACK and
-   .prov.on-stage's comment already set its rhythm: the bar sits at 1.85 and the
-   credit one comfortable step above it at 5.2, same left, "so the two read as
-   one stack in the corner". A first pass put this switcher at 5.15 — which is
-   the credit's own slot, and the two overlapped by 7px. 6.9 is the credit's 5.2
-   plus its own 18px height plus the same kind of gap, in the same seg units, so
-   the three hold their spacing at any size: bar, then credit, then switcher. */
-.mode-switch.dock{position:fixed;z-index:51;left:calc(var(--seg-size)*1.85);
-  bottom:calc(var(--seg-size)*6.9);display:none}
-.mode-switch.dock .mode-switch-list{top:auto;bottom:calc(100% + 9px);
-  transform:translateY(5px)}
-.mode-switch.dock[data-open="true"] .mode-switch-list{transform:none}
-/* Each belongs to its own view and to nothing else, so visibility comes off
-   which view is on rather than a class the JS has to remember. Same :has()
-   idiom the file already uses to hide #rig on the pose view. */
+/* The detail switcher sits beside the back button, top-left, because that is
+   where that page's own navigation already is: .lab-back is a 44px disc at
+   left:26 / top:24, so this starts 12px past it at 82 and is centred on it —
+   (44 - 34) / 2 = 5, hence top:29. It opens DOWNWARD, which is the component's
+   default and the only sane direction from the top of a frame.
+   The pose switcher does not use this: it rides in .pose-intro's flow, beside
+   the overline, so it tracks a line of type rather than a fixed offset. */
+.mode-switch.dock{position:fixed;z-index:51;left:82px;top:29px;display:none}
 body:has(#viewHeart.is-on) #detailMode,
-body:has(#viewKidney.is-on) #detailMode,
-body:has(#viewPose.is-on) #poseMode{display:block}
+body:has(#viewKidney.is-on) #detailMode{display:block}
+
+/* the row that puts the pose switcher to the right of the overline */
+.pose-intro-top{display:flex;align-items:center;gap:14px;
+  width:max-content;margin-bottom:17px}
+.pose-intro .pose-intro-top .overline{margin-bottom:0}
 
 
 /* ------------------------------------------------------------------
@@ -1486,41 +1499,29 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   box-shadow:0 0 0 1px var(--border-strong),var(--gl-shadow-lift),var(--gl-inner);
   color:var(--ink-900)}
 
-/* Not glass, though it floats: glass borrows the luminance of whatever
-   is behind it, and a credit has to stay legible over a dark torso as
-   well as over paper. So it takes the card recipe at popover scale.
-
-   The fill is <body>'s ground, copied exactly — the same five layers in the
-   same order — and it is background-attachment:fixed on both, which is the
-   whole trick. A fixed background is positioned against the viewport rather
-   than against the element, so the panel paints the pixels the page would
-   have painted at that spot: not a colour sampled from the wash, not a
-   near-match, the wash itself, continuing through. What was there instead
-   was flat --surface-card, and a plain white rectangle over a blue-grey wash
-   is the one surface on the page that announced it was a floating box.
-
-   Fixed also means it does not slide when the page scrolls, which matters on
-   the one view that scrolls: on the spec sheet the panel would otherwise
-   carry a frozen crop of the wash past a moving one. It stays registered.
-
-   It is still not glass and still has no blur: over a dark organ this reads
-   as the page's own ground rather than as the organ seen through frost, and
-   that is the legibility the original note is protecting. */
-/* Right-anchored, because the ring is now at the right edge of its field and
-   this panel's whole job is to be bounded BY that field. Anchored left it would
-   start at the ring and run off the frame. */
+/* AN ORDINARY GLASS PANE, and the reason it stopped being clever is worth
+   keeping. It used to fill itself with <body>'s exact five-layer wash at
+   background-attachment:fixed, so that it painted "not a colour sampled from
+   the wash, the wash itself, continuing through". That reads beautifully when
+   it is standing still. It is also a fixed-attachment background on a layer
+   whose opacity is animated, which is a well-known way to get one mispainted
+   frame out of the compositor: the wash is resolved against the viewport, the
+   layer is promoted for the transition, and the first frame can land at the
+   wrong offset — a pale blue rectangle for ~16ms, then correct. Reported twice
+   as "a blue block flashes and goes back to normal".
+   So it takes the pane recipe every other floating surface here takes: one
+   flat tint at the live tier, a real blur, one drop. Nothing to resolve against
+   the viewport means nothing to resolve WRONGLY, and hover now just shows the
+   panel. The original note's point still holds and is still honoured — this is
+   not the default 42% tint, it is --gl-tint-live, because a credit over a dark
+   torso has to stay readable and that is what the live tier is for. */
 .prov-panel{position:absolute;right:0;left:auto;bottom:calc(100% + 9px);
   width:302px;max-width:100%;
   padding:15px 17px 14px;
-  background:
-    radial-gradient(1200px 800px at 85% -10%,#30b0cd1a,transparent 60%),
-    radial-gradient(1000px 700px at -10% 90%,#203a8512,transparent 55%),
-    radial-gradient(760px 760px at -170px -170px,#c4daf773,#c4daf700 68%),
-    radial-gradient(700px 700px at calc(100% + 170px) calc(100% + 200px),#d2e2f866,#d2e2f800 70%),
-    linear-gradient(150deg,var(--stage-field-1) 0%,var(--stage-field-2) 46%,var(--stage-field-3) 100%);
-  background-attachment:fixed;
-  border:1px solid var(--border-strong);border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-card);
+  background-color:var(--gl-tint-live);
+  -webkit-backdrop-filter:var(--gl-blur);backdrop-filter:var(--gl-blur);
+  border:0;border-radius:22px;
+  box-shadow:var(--gl-shadow-lift);
   opacity:0;visibility:hidden;transform:translateY(4px);
   transition:opacity .18s var(--ease-frosted-out),transform .18s var(--ease-frosted-out),
              visibility .18s step-end}
@@ -2697,26 +2698,6 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   <button id="tabSpec" aria-pressed="false">Design system</button>
 </div>
 
-<!-- The pose view's mode switcher, docked bottom-left beside the detail one.
-     It used to sit inside .pose-intro at the top of the view; moving it here
-     puts both switchers in one place and frees the intro to be just the title.
-     Composes class="gl" for the material, the way section 06's specimens do. -->
-<div class="mode-switch dock gl" id="poseMode">
-  <button class="mode-switch-btn gl" id="poseModeBtn" type="button"
-          aria-haspopup="listbox" aria-expanded="false" aria-label="Pose view mode">
-    <b id="poseModeCurrent">Pose lab</b>
-    <svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
-  </button>
-  <ul class="mode-switch-list gl" id="poseModeList" role="listbox"
-      aria-label="Pose view mode" tabindex="-1">
-    <li role="option" data-mode="pose" aria-selected="true">
-      <b>Pose lab</b><small>Eleven authored poses</small></li>
-    <li role="option" data-mode="debug" aria-selected="false">
-      <b>Pose debug</b><small>Live coordinate editor</small></li>
-    <li role="option" data-mode="map" aria-selected="false">
-      <b>Anatomy map</b><small>Weights and landmarks</small></li>
-  </ul>
-</div>
 
 <!-- The detail page's organ switcher. It lives OUT here beside the tab bar
      rather than inside either report, because the two reports are two separate
@@ -2726,7 +2707,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
      Bottom-left, above the tab bar, on the same left inset: it is a switch
      between two readings of one page, so it belongs with the page-level
      furniture rather than floating in the organ half where the pins are. -->
-<div class="mode-switch dock gl" id="detailMode">
+<div class="mode-switch dock" id="detailMode">
   <button class="mode-switch-btn gl" id="detailModeBtn" type="button"
           aria-haspopup="listbox" aria-expanded="false" aria-label="Detail page organ">
     <b id="detailModeCurrent">Heart rhythm</b>
@@ -7211,7 +7192,33 @@ window.__kidneyView = organView({
     <canvas id="poseGL" aria-label="Interactive male body shown in the selected pose"></canvas>
 
     <header class="pose-intro">
-      <div class="overline">Phenome motion study</div>
+      <!-- The overline and the switcher share a row, so the control sits to the
+           RIGHT OF THE OVERLINE whatever that overline currently says — it is
+           rewritten per mode ("Phenome motion study" / "Phenome rig study"),
+           and a measured left offset would have been correct for one of them.
+           The row is width:max-content and .pose-intro has no overflow rule, so
+           it simply runs past the intro's 275px column instead of forcing the
+           title to reflow. .pose-intro is pointer-events:none; .mode-switch puts
+           them back for itself alone. -->
+      <div class="pose-intro-top">
+        <div class="overline">Phenome motion study</div>
+        <div class="mode-switch" id="poseMode">
+          <button class="mode-switch-btn gl" id="poseModeBtn" type="button"
+                  aria-haspopup="listbox" aria-expanded="false" aria-label="Pose view mode">
+            <b id="poseModeCurrent">Pose lab</b>
+            <svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+          </button>
+          <ul class="mode-switch-list gl" id="poseModeList" role="listbox"
+              aria-label="Pose view mode" tabindex="-1">
+            <li role="option" data-mode="pose" aria-selected="true">
+              <b>Pose lab</b><small>Eleven authored poses</small></li>
+            <li role="option" data-mode="debug" aria-selected="false">
+              <b>Pose debug</b><small>Live coordinate editor</small></li>
+            <li role="option" data-mode="map" aria-selected="false">
+              <b>Anatomy map</b><small>Weights and landmarks</small></li>
+          </ul>
+        </div>
+      </div>
       <h1>The body,<br>in motion.</h1>
       <p>One digital twin. Eleven studies of posture, balance and range.</p>
     </header>

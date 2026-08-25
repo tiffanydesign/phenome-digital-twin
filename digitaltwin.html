@@ -4369,10 +4369,40 @@ function buildNode(json, bin, index, cache, seen) {
   seen.delete(index);
   return obj;
 }
-async function loadGLB(url) {
-  const res = await fetch(url);
+/* Read the body in chunks so the caller can be told how far in it is. Only
+   the organ loader asks for this: its files run to 13 MB, and on a slow line
+   the difference between a word that sits there looking hung and the same
+   wait with a number on it is the whole complaint. Falls back to the plain
+   read wherever a stream or a Content-Length is not on offer. */
+async function readWithProgress(res, onProgress) {
+  if (!res.body || !res.body.getReader) return res.arrayBuffer();
+  const total = Number(res.headers.get('content-length')) || 0;
+  const reader = res.body.getReader();
+  const chunks = [];
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    got += value.length;
+    /* clamped: a gzipped response reports its compressed length, which would
+       otherwise run the number past 100 before the file is in */
+    onProgress(total ? Math.min(got / total, 0.99) : 0, got, total);
+  }
+  const out = new Uint8Array(got);
+  let at = 0;
+  for (const c of chunks) { out.set(c, at); at += c.length; }
+  return out.buffer;
+}
+
+/* Both extras are optional; every caller but the organ loader omits them and
+   gets exactly the read it got before. `signal` is what lets a click you have
+   already moved on from stop occupying the line. */
+async function loadGLB(url, onProgress, signal) {
+  const res = await fetch(url, signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
-  const { json, bin } = parseContainer(await res.arrayBuffer(), url);
+  const buf = onProgress ? await readWithProgress(res, onProgress) : await res.arrayBuffer();
+  const { json, bin } = parseContainer(buf, url);
   const root = new THREE.Group(), cache = new Map();
   const sceneDef = json.scenes?.[json.scene ?? 0];
   const roots = sceneDef ? sceneDef.nodes : json.nodes.map((_, i) => i);
@@ -5650,9 +5680,22 @@ function centreAt(cl, y) {
 
    The pivot stays at identity scale, so the centreline sampled through it
    and the seats expressed against it share one set of units. */
-async function loadBodyFor(name) {
-  if (bodies[name]) return bodies[name];
-  const holder = fitToFloor(await loadGLB(`GLB/${name}.glb`), BODY_H);
+/* Two quick taps on the sex switch used to run the builder twice: two fetches
+   of the same 20 MB body, two pivots added to the stage, and the second one
+   overwriting bodies[name] so the first stayed on stage forever with nothing
+   pointing at it. The second tap now joins the fetch the first one started. */
+const bodyPending = {};
+function loadBodyFor(name) {
+  if (bodies[name]) return Promise.resolve(bodies[name]);
+  if (!bodyPending[name]) {
+    bodyPending[name] = buildBody(name).finally(() => { delete bodyPending[name]; });
+  }
+  return bodyPending[name];
+}
+
+async function buildBody(name) {
+  const root = await loadGLB(`GLB/${name}.glb`, (frac) => loadingAt('figure', frac));
+  const holder = fitToFloor(root, BODY_H);
   /* everything goes through matTone now — the pearl is gone, and the visible
      look is produced by the halftone pass that reads this buffer */
   holder.traverse((o) => { if (o.isMesh) { o.material = matTone; o.renderOrder = 20; } });
@@ -5669,12 +5712,86 @@ async function loadBodyFor(name) {
 /* Organs load the first time their category is opened; a 15 MB intestine has
    no business being fetched by someone who only looks at the heart. */
 const loading = L('#labLoad');
-async function organFor(cat) {
-  const rec = bodies[sex];
-  if (rec.organs[cat.id]) return rec.organs[cat.id];
+const loadingWord = loading.querySelector('span');
+
+/* The indicator is shared, so it is counted rather than switched. The body
+   loader and an organ loader can both be up at once, and whichever finished
+   first used to clear the word while the other was still fetching. */
+let loadingDepth = 0;
+function loadingOn(what) {
+  loadingDepth++;
+  if (loadingWord) loadingWord.textContent = what ? `Loading ${what}` : 'Loading';
   loading.classList.add('on');
+}
+function loadingOff() {
+  loadingDepth = Math.max(0, loadingDepth - 1);
+  if (loadingDepth) return;
+  loading.classList.remove('on');
+  if (loadingWord) loadingWord.textContent = 'Loading';
+}
+function loadingAt(what, frac) {
+  if (!loadingWord || !loadingDepth) return;
+  loadingWord.textContent = frac > 0
+    ? `Loading ${what} ${Math.round(frac * 100)}%`
+    : `Loading ${what}`;
+}
+
+/* One organ fetch at a time, and every request queues here for the slot.
+
+   Clicking along the rail quickly used to open a fetch per click. These files
+   run 2 to 13 MB, so five clicks put five of them on the same pipe to fight
+   each other, and the organ you actually wanted arrived last of the five --
+   which is what made switching feel slow. Serialised, the wanted one has the
+   line to itself.
+
+   The queue also drops what is no longer wanted. A request whose click has
+   already been superseded never starts: it is skipped when its turn comes up
+   rather than fetched and thrown away. */
+let organChain = Promise.resolve();
+const organPending = new Map();
+
+function organFor(cat, opt) {
+  const rec = bodies[sex];
+  if (rec.organs[cat.id]) return Promise.resolve(rec.organs[cat.id]);
+  /* One request per file. The cache line above only fills once the model is
+     in, so without this a second click on the same organ mid-fetch started a
+     second download of it; now it joins the first. Keyed by sex because the
+     two figures seat their own copies. */
+  const key = `${sex}:${cat.id}`;
+  const already = organPending.get(key);
+  if (already) return already;
+  const token = opt && opt.token;
+  const job = () => buildOrgan(rec, cat, token);
+  /* .then(job, job) and not .finally: a failed fetch must not stall the queue
+     behind it, and the chain's own value is never read. */
+  const run = organChain.then(job, job);
+  organChain = run.then(() => {}, () => {});
+  run.then(() => organPending.delete(key), () => organPending.delete(key));
+  organPending.set(key, run);
+  return run;
+}
+
+/* Organs load the first time their category is opened; a 15 MB intestine has
+   no business being fetched by someone who only looks at the heart. */
+async function buildOrgan(rec, cat, token) {
+  /* Superseded while it sat in the queue, so spend nothing on it. Returning
+     null rather than a model is what tells go() there is nothing to show; the
+     next click queues it again if it is still wanted. */
+  if (token !== undefined && token !== goSeq) return null;
+  if (rec.organs[cat.id]) return rec.organs[cat.id];
+  /* Registered so go() can drop this one the moment the reader clicks past it.
+     Queueing alone was not enough: the first click's 13 MB still had to finish
+     before the second one could start, so the organ you now want waited out
+     the one you had already left. */
+  const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+  organLive = { token, ctrl };
+  loadingOn(cat.name);
   try {
-    const root = await loadGLB(`GLB/organ/${cat.file}`);
+    const root = await loadGLB(
+      `GLB/organ/${cat.file}`,
+      (frac) => loadingAt(cat.name, frac),
+      ctrl ? ctrl.signal : undefined
+    );
     const holder = fitToFloor(root, organH(cat));
     holder.userData.srcH = BODY_H;
     /* the organ shades into the same tone buffer; its own screen palette is what
@@ -5706,8 +5823,15 @@ async function organFor(cat) {
     holder.visible = false;
     rec.organs[cat.id] = { holder, mat, flankX: b.max.x };
     return rec.organs[cat.id];
+  } catch (err) {
+    /* An abort is this page cancelling its own request, not a fault, so it
+       reads as nothing to show rather than as an error. Anything else still
+       throws for the caller to report. */
+    if (err && (err.name === 'AbortError' || ctrl && ctrl.signal.aborted)) return null;
+    throw err;
   } finally {
-    loading.classList.remove('on');
+    if (organLive && organLive.ctrl === ctrl) organLive = null;
+    loadingOff();
   }
 }
 
@@ -5801,6 +5925,17 @@ let state = 'overview';
 let current = null;
 let glass = 0, glassTo = 0;      // 0 pearl, 1 glass
 
+/* One counter for every move the reader makes. Each call to go() takes the
+   next number and carries it into the load; a model arriving with a stale
+   number is a model the reader has already clicked past, and it is seated but
+   never shown. This is the whole answer to two organs appearing at once:
+   before it, each fetch revealed itself on arrival, so three quick clicks
+   meant three organs in the body, in whatever order the network returned
+   them. `organLive` is the fetch currently on the line, so a superseded one
+   can be dropped rather than waited out. */
+let goSeq = 0;
+let organLive = null;
+
 const hotHost = L('#labHot');
 const hots = {};
 function buildHotspots() {
@@ -5871,6 +6006,10 @@ function cardFor(cat) {
 }
 
 async function go(next, cat) {
+  /* Claim this move, and drop whatever the last one had on the line. */
+  const seq = ++goSeq;
+  if (organLive && organLive.ctrl && organLive.token !== seq) organLive.ctrl.abort();
+
   if (next === 'overview') {
     state = 'overview'; current = null; glassTo = 0;
     flyTo(OVERVIEW.pos, OVERVIEW.tgt, 1.2);
@@ -5905,14 +6044,20 @@ async function go(next, cat) {
 
   const rec = bodies[sex];
   for (const k in rec.organs) rec.organs[k].holder.userData.fade = 0;
-  const o = await organFor(cat);
+
+  if (next === 'closeup') { L('#labCard').innerHTML = cardFor(cat); L('#labCard').classList.add('on'); }
+  else L('#labCard').classList.remove('on');
+
+  const o = await organFor(cat, { token: seq });
+  /* Two ways to arrive too late: the load was dropped in the queue, or it
+     finished after the reader had moved on. Both mean this organ is not the
+     one on screen now, and showing it is exactly the bug. The one that IS
+     current has its own go() in flight and will reveal itself. */
+  if (seq !== goSeq || !o) return;
   o.holder.visible = true;
   o.holder.userData.fade = 1;
   /* the anchor is only exact once the model is in, so re-aim on arrival */
   flyTo(framing(cat, next === 'closeup').pos, framing(cat, next === 'closeup').tgt, 0.9);
-
-  if (next === 'closeup') { L('#labCard').innerHTML = cardFor(cat); L('#labCard').classList.add('on'); }
-  else L('#labCard').classList.remove('on');
 }
 
 function step(dir) {
@@ -5924,21 +6069,31 @@ function step(dir) {
 L('#labBack').addEventListener('click', () => { if (state === 'closeup') go('category', current); else go('overview'); });
 L('#labPrev').addEventListener('click', () => step(-1));
 L('#labNext').addEventListener('click', () => step(1));
+/* Same counter idea as go()'s, for the same reason: the body is a 20 MB fetch,
+   and two taps on the switch used to leave the second one's swap to land
+   whenever it landed -- sometimes before the first's, which put the figure and
+   the highlighted button in disagreement. */
+let sexSeq = 0;
 L('#labSex').addEventListener('click', async (e) => {
   const b = e.target.closest('button'); if (!b) return;
   const want = b.dataset.sex;
   if (want === sex) return;
-  loading.classList.add('on');
-  await loadBodyFor(want);
+  const seq = ++sexSeq;
+  loadingOn('figure');
+  try {
+    await loadBodyFor(want);
+  } finally {
+    loadingOff();
+  }
+  if (seq !== sexSeq) return;
   bodies[sex].holder.visible = false;
   for (const k in bodies[sex].organs) bodies[sex].organs[k].holder.visible = false;
   sex = want;
   bodies[sex].holder.visible = true;
   [...L('#labSex').children].forEach((x) => x.classList.toggle('on', x.dataset.sex === sex));
-  loading.classList.remove('on');
   const keep = current;
   go('overview');
-  if (keep) setTimeout(() => go('category', keep), 260);
+  if (keep) setTimeout(() => { if (seq === sexSeq) go('category', keep); }, 260);
 });
 
 /* drag to turn the figure, which is the one thing a still render cannot do */
@@ -6134,7 +6289,7 @@ let booted = false;
 async function boot() {
   if (booted) return;
   booted = true;
-  loading.classList.add('on');
+  loadingOn('figure');
   try {
     buildRail();
     buildHotspots();
@@ -6147,7 +6302,7 @@ async function boot() {
     loading.innerHTML = '<span>GLB not reachable — serve the folder over HTTP</span>';
     throw err;
   } finally {
-    setTimeout(() => loading.classList.remove('on'), 200);
+    setTimeout(loadingOff, 200);
   }
 }
 
@@ -7084,8 +7239,18 @@ function organView(cfg) {
     if (booted) return;
     booted = true;
     if (load) load.classList.add('on');
+    /* These two are 7 MB each, and one word with nothing moving in it reads as
+       a page that has stopped rather than one that is working. The `booted`
+       flag above is why this view needs nothing more: it loads its one file
+       once, so there is no second request to race the first. */
+    const word = load ? load.querySelector('span') : null;
+    const say = (frac) => {
+      if (word) word.textContent = frac > 0 ? `Loading ${Math.round(frac * 100)}%` : 'Loading';
+    };
     try {
-      const holder = fitToFloor(await loadGLB(cfg.file), 1);
+      const holder = fitToFloor(await loadGLB(cfg.file, say), 1);
+      say(0);                             // the number has done its job
+
       holder.traverse((o) => {
         if (!o.isMesh) return;
         o.material = toneFor(rankOf(o));

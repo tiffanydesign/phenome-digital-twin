@@ -5989,7 +5989,13 @@ function buildHotspots() {
   hotHost.innerHTML = '';
   for (const c of CATS) {
     const b = document.createElement('button');
-    b.className = 'hot';
+    /* Born gone. The doctrine below is that the whole figure carries no pins
+       and one appears only where something is open -- but these were created
+       bare and only hidden a moment later by go('overview'), and .hot carries
+       a .3s opacity transition, so opening the page flashed seven rings over
+       the body and faded them out. A pin that is never visible has nothing to
+       fade. */
+    b.className = 'hot gone';
     b.innerHTML = `<span class="pin"></span><span class="tag">${c.name}</span>`;
     b.addEventListener('click', (e) => {
       e.stopPropagation();

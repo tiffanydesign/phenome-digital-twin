@@ -982,6 +982,39 @@ body{
 body:has(#viewHeart.is-on) #detailMode,
 body:has(#viewKidney.is-on) #detailMode{display:block}
 
+/* ---- arriving from the body, the detail page arrives bare ----
+   The switcher is the detail PAGE's own control: it sits at the top-left with
+   the back button because, when you are already on that page, the question it
+   answers is "which reading am I looking at". Coming in off an organ you just
+   flew into, that question has not been asked yet — you did not pick a page
+   from a list, you followed one organ, and a dropdown offering to swap it for
+   a different organ the moment you land undoes the whole gesture.
+
+   So the arrival is bare and the tab bar is the way out. Press the detail tab
+   and the page opens the ordinary way, switcher and all: the class is set for
+   exactly one viewchange and cleared on the next, so there is no mode to get
+   stuck in. !important because the two rules above win on specificity — they
+   carry two ids to this one's one. */
+body.detail-bare #detailMode{display:none!important}
+
+/* ---- the organ handoff · the wash that covers the swap ----
+   Not a curtain across the frame: a bloom opening from the middle of the
+   stage, which is exactly where the camera has just put the organ. White at
+   the core because that is where the figure's own key light already is
+   (#labGlow paints the same ellipse), cooling to the page's ground at the
+   corners so the edges of the frame never flash brighter than the page they
+   are covering. It outranks everything including the tab bar — a handoff with
+   the chrome still showing through is two pages at once.
+
+   .48s in and .48s out, both on the frosted ease, so the reveal on the report
+   is the mirror of the cover on the body. */
+#organVeil{position:fixed;inset:0;z-index:200;opacity:0;pointer-events:none;
+  background:radial-gradient(ellipse 46% 44% at 50% 48%,
+    #ffffff 0%,#ffffff 34%,#f4f8fe 62%,#e9f0fb 100%);
+  transition:opacity .48s var(--ease-frosted-out)}
+#organVeil.on{opacity:1;pointer-events:auto}
+@media(prefers-reduced-motion:reduce){#organVeil{transition:none}}
+
 /* the row that puts the pose switcher to the right of the overline */
 .pose-intro-top{display:flex;align-items:center;gap:14px;
   width:max-content;margin-bottom:17px}
@@ -2721,6 +2754,13 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
       <b>Kidneys</b><small>Filtration and pressure</small></li>
   </ul>
 </div>
+
+<!-- The wash that covers the handoff from an organ in the body to that organ's
+     written report. It sits out here, at body level, because it has to survive
+     the very thing it is covering: both views go display:none the moment the
+     swap happens, so anything parked inside one of them would blink out at the
+     exact frame it is needed. Driven from the body page's handOff(). -->
+<div id="organVeil" aria-hidden="true"></div>
 
 <!-- Host for the tab bar's displacement filter. It has to be in the document
      for url(#id) to resolve; a detached fragment silently fails. -->
@@ -4746,7 +4786,6 @@ try {
      cursor on a page of prose is a cost with no return. */
   #labWrap .lab-seg button,
   #labWrap .lab-cat,
-  #labWrap .lab-go,
   #labWrap .lab-back,
   #labWrap .lab-bar-nav button,
   #labWrap .hot,
@@ -4918,30 +4957,58 @@ try {
   .lab-cat .ic{flex:none;width:22px;height:22px;border-radius:50%;border:0;
     background:var(--orb);box-shadow:0 0 0 1px #2a3f6e14}
   .lab-cat .nm{flex:1}
-  /* The chevron, and what it names has changed. It used to be the row's only
-     affordance and it pointed at the row's one destination: the organ, seated
-     in the body. Two of these organs now have a written report as well, and
-     this is the way in — so it is a button rather than a glyph, and it is
-     written only onto the rows that have somewhere further to go. A row
-     without one is not a row missing its arrow; it is a row with one
-     destination, and an arrow there would be a promise the demo cannot keep.
+  /* There WAS a chevron here, on the two rows whose organ has a written
+     report, and it was a second way into that report sitting inside the row
+     that opens the organ. Removed, and the reason is worth keeping: the rail
+     is a list of organs in a body, and every row means the same thing — take
+     me to that organ. Two rows carrying an extra control meant two rows that
+     did not mean what the other five meant, and a reader scanning the list had
+     to work out why. The report has not lost its way in; it moved onto the
+     organ's own label, where the reader is already looking at the thing the
+     report is about. See handOff() below. */
 
-     Everything it looks like is .sg-item's chevron unchanged: ink-400, no
-     border, no shadow, no fill, 18px to sit at the 18px SVG's cap height. It
-     slides with the row, so the arrow still leads where the row is going.
-     Padding rather than a width, because the hit area is the point: 13px top
-     and bottom takes the row's full height, and 2px on the left leaves the
-     14px gap the flex row used to give it.
+  /* ---------- the dive ----------
+     What the stage does while the camera is flying into the organ. The blur
+     and the 1.09 are the point of it: the figure goes soft because the camera
+     has gone inside it, not because a panel was drawn over the top — a veil
+     alone over a sharp, still frame reads as a page being covered up, and this
+     reads as a page being left behind. It runs 950ms, which is the flight, and
+     the veil opens over the second half of it.
 
-     No colour on hover, here or anywhere on this page: the row's own tint
-     marks the row, and a step of ink marks this. */
-  .lab-go{flex:none;border:0;padding:13px 12px 13px 2px;border-radius:14px;cursor:pointer;
-    background-image:none;background-color:transparent;
-    -webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;
-    font-family:var(--font-sans);color:var(--ink-400);font-size:18px;line-height:1;
-    transition:transform .2s var(--ease-frosted-out),color .2s var(--ease-frosted-out)}
-  .lab-row:hover .lab-go{color:var(--ink-600);transform:translateX(3px)}
-  .lab-go:hover{color:var(--ink-900)}
+     Held on `forwards` rather than eased back, because the frame it ends on is
+     the frame that gets swapped; the class comes off after the swap, behind
+     the veil, and the stage is sharp again before anyone sees it. */
+  #labWrap.diving{pointer-events:none;
+    animation:organDive .95s var(--ease-frosted-out) forwards}
+  @keyframes organDive{
+    0%{filter:blur(0);transform:scale(1)}
+    52%{filter:blur(1.4px);transform:scale(1.028)}
+    100%{filter:blur(9px);transform:scale(1.09)}}
+
+  /* The furniture goes first and the label goes last. Everything that belongs
+     to the body page — the way back, the organ bar, the readings card, the
+     credits — is off in 280ms, so by the time the veil opens the only things
+     left on the stage are the organ and the name you clicked. The pin
+     collapses into its own centre; the label grows a little as it fades, which
+     is the same direction the camera is travelling. */
+  #labWrap.diving .lab-back,
+  #labWrap.diving .lab-bar,
+  #labWrap.diving .lab-card,
+  #labWrap.diving .prov,
+  #labWrap.diving .lab-top{opacity:0;transition:opacity .28s ease}
+  #labWrap.diving .hot .pin{opacity:0;transform:scale(.55);
+    transition:opacity .3s ease,transform .45s var(--ease-frosted-out)}
+  #labWrap.diving .hot .tag{opacity:0;transform:scale(1.07);
+    transition:opacity .42s ease .1s,transform .6s var(--ease-frosted-out)}
+  @media(prefers-reduced-motion:reduce){
+    #labWrap.diving{animation:none}
+    #labWrap.diving .lab-back,
+    #labWrap.diving .lab-bar,
+    #labWrap.diving .lab-card,
+    #labWrap.diving .prov,
+    #labWrap.diving .lab-top,
+    #labWrap.diving .hot .pin,
+    #labWrap.diving .hot .tag{transition:none}}
 
   /* ---------- hotspots ---------- */
   #labHot{position:absolute;inset:0;z-index:5;pointer-events:none}
@@ -5274,10 +5341,9 @@ const CATS = [
     note:'Read from a blood sample and a set of memory and attention tasks. No scan involved.' },
   /* report names the detail-page route this organ has a written report on,
      and only two organs have one. It is the route string show() already
-     takes, so the rail's arrow and the organ's own label can hand it straight
-     over without a second table mapping one onto the other. An organ without
-     the field has no report, and the entries that would open one are simply
-     not drawn on it. */
+     takes, so the organ's own label can hand it straight over without a second
+     table mapping one onto the other. An organ without the field has no
+     report, and its label opens the readings card instead. */
   { id:'cardio', name:'Heart',          file:'realistic_human_heart.glb',
     report:'heart',
     hFrac:0.069, seat:0.715, x:0.022,  z:0.028, yaw:-12, dist:0.60,
@@ -6004,8 +6070,12 @@ function buildHotspots() {
          stand-in for a report an organ does not have — three rows and a
          sentence where there is no page — and putting it in front of the two
          organs that DO have a page would be a stop on the way to nowhere.
-         So the five without one keep the card, and these two skip it. */
-      if (c.report) { openReport(c); return; }
+         So the five without one keep the card, and these two skip it — they
+         fly into the organ and hand over to its report instead. The label is
+         only ever clickable on an organ that is already open, which is what
+         makes this the second step of a gesture rather than a jump: the rail
+         row opens the organ, the label on it goes to the reading. */
+      if (c.report) { handOff(c); return; }
       if (state === 'category' && current && current.id === c.id) go('closeup', c);
       else go('category', c);
     });
@@ -6014,12 +6084,11 @@ function buildHotspots() {
   }
 }
 
-/* Two destinations per row where there are two, and one where there is one.
-   The row opens the organ in the body, which is this page's whole subject; the
-   arrow at its right opens the organ's written report, and exists only on the
-   rows that have one. They are two buttons in a wrapper rather than one button
-   with two halves, because a button cannot contain a button and because a
-   reader on a keyboard has to be able to reach both. */
+/* One destination per row, for every row. The row opens the organ in the body,
+   which is this page's whole subject. Two of these organs also have a written
+   report, and the rail used to carry a second button that jumped straight
+   there — see the note where .lab-go's rules used to be. It is gone: the way
+   into a report is the organ's own label, once the organ is open. */
 function buildRail() {
   const host = L('#labCatList');
   host.innerHTML = '';
@@ -6033,18 +6102,6 @@ function buildRail() {
     b.innerHTML = `<span class="ic" style="--orb:${orbOf(c)}"></span><span class="nm">${c.name}</span>`;
     b.addEventListener('click', () => go('category', c));
     row.appendChild(b);
-
-    if (c.report) {
-      const g = document.createElement('button');
-      g.className = 'lab-go';
-      g.type = 'button';
-      /* The name, because "Open the report" seven times over is a screen
-         reader reading the rail rather than the rail's contents. */
-      g.setAttribute('aria-label', `Open the ${c.name} report`);
-      g.innerHTML = '&#8250;';
-      g.addEventListener('click', (e) => { e.stopPropagation(); openReport(c); });
-      row.appendChild(g);
-    }
 
     host.appendChild(row);
   }
@@ -6084,20 +6141,94 @@ function markCredit(id) {
   }
 }
 
-/* One way out of this page and into an organ's report, shared by the rail's
-   arrow and the organ's own label.
+/* One way out of this page and into an organ's report.
 
-   Nothing here touches the detail page's switcher. Its labels follow the
-   ROUTE rather than the click — sync() is wired to the viewchange this
-   dispatches — so arriving from the body page lands with the dropdown already
-   reading Heart rhythm or Kidneys, and __detailMode set, exactly as a deep
-   link or the tab's own restore does. That is why the arrival keeps the
-   switcher rather than needing one added: there was never a second copy of
-   that state to keep in agreement. */
+   Nothing here touches the detail page's switcher's STATE. Its labels follow
+   the ROUTE rather than the click — sync() is wired to the viewchange this
+   dispatches — so the dropdown lands already reading Heart rhythm or Kidneys,
+   and __detailMode set, exactly as a deep link or the tab's own restore does.
+   What the flag below changes is only whether it is on screen: see the
+   .detail-bare rules and the listener that clears them. */
 function openReport(cat) {
   if (!cat || !cat.report) return;
   if (typeof window.__showView !== 'function') return;
+  window.__detailBare = true;
   window.__showView(cat.report);
+}
+
+/* ------------------------------------------------- the organ handoff
+
+   The label on an open organ is the way into that organ's written report, and
+   this is the move between the two. It replaced a hard swap, and the hard swap
+   was not a small problem: one frame held a body at arm's length and the next
+   held a diagram at reading distance, with nothing in between, so the reader
+   had to work out for themselves that the page they had landed on was about
+   the thing they had just been looking at. The click said "this organ"; the
+   result said "a different page". This says both.
+
+   Three things run over the same 950ms and they overlap on purpose.
+
+     DIVE   The camera flies from wherever the organ is framed now — the
+            category framing at 2.1x, or the closeup at 1x — down to 0.60 of
+            the organ's own closeup distance. At the lab's 32 degree lens
+            that is the organ at roughly 85% of frame height: past the
+            inspection distance the page ever offers, into the one subject
+            the next page is about. The stage goes soft and grows to 1.09
+            underneath it (see #labWrap.diving), which is what makes this
+            read as travel rather than as a fade.
+
+     LIFT   The page's own furniture leaves first, in 280ms — back disc,
+            organ bar, readings card, credits, top bar. The pin collapses
+            into itself and the label scales up as it goes, so the thing
+            that was clicked is the last thing on the stage.
+
+     VEIL   At 430ms the wash opens from the middle of the frame. The view
+            swap happens under it at 950ms, the stage is put back to the
+            framing it had before the dive while it is still covered, and
+            the veil is released at 1040ms to fade off the report.
+
+   Putting the camera back matters more than it looks. The dive ends inside
+   the organ, and the reader who takes the body tab back is entitled to the
+   view they left — not the frame the transition happened to stop on. The
+   restore is a copy rather than a flyTo because the lab's loop parks itself
+   the moment the view goes off (`live`), so an in-flight tween would sit
+   frozen and then play out under the reader on their way back in.
+
+   Reduced motion takes none of it and goes straight there. */
+const DIVE = { flight: 950, veilAt: 430, hold: 90 };
+let handingOff = false;
+
+function handOff(cat) {
+  if (handingOff || !cat || !cat.report) return;
+  if (typeof window.__showView !== 'function') return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { openReport(cat); return; }
+
+  handingOff = true;
+  const veil = document.getElementById('organVeil');
+  const stage = L('#labWrap');
+  /* the view the reader is entitled to get back */
+  const keepP = view.pos.clone(), keepT = view.tgt.clone();
+
+  const a = organAnchorWorld(cat);
+  const d = cat.dist * 0.60;
+  flyTo(new THREE.Vector3(a.x * 0.4, a.y + d * 0.12, a.z + d), a.clone(), DIVE.flight / 1000);
+  stage.classList.add('diving');
+
+  const openVeil = setTimeout(() => { if (veil) veil.classList.add('on'); }, DIVE.veilAt);
+
+  setTimeout(() => {
+    openReport(cat);
+    stage.classList.remove('diving');
+    view.pos.copy(keepP); view.tgt.copy(keepT); flight.on = false;
+    setTimeout(() => {
+      if (veil) veil.classList.remove('on');
+      handingOff = false;
+    }, DIVE.hold);
+  }, DIVE.flight);
+
+  /* nothing cancels this once it is running, but the timer is named so a
+     future escape hatch has something to clear */
+  return openVeil;
 }
 
 function cardFor(cat) {
@@ -7944,6 +8075,21 @@ window.__kidneyView = organView({
              ['pose','debug','map'],'__poseMode');
   bindSwitch('detailMode','detailModeBtn','detailModeList','detailModeCurrent',
              ['heart','kidney'],'__detailMode');
+
+  /* One arrival, one class. The body page raises window.__detailBare
+     immediately before it calls show(), so the flag is up for exactly the
+     viewchange that show() dispatches and is taken back down again here. Any
+     later move — the detail tab, a pose tab, a deep link — comes through with
+     it lowered and the class comes off, which is why arriving bare cannot
+     strand a reader in a page with no switcher.
+
+     It does NOT touch sync() above. The switcher still tracks the route while
+     it is hidden, so pressing the detail tab after a bare arrival reopens the
+     organ you actually came in on rather than snapping back to the heart. */
+  window.addEventListener('viewchange',function(){
+    document.body.classList.toggle('detail-bare', window.__detailBare===true);
+    window.__detailBare=false;
+  });
 })();
 </script>
 

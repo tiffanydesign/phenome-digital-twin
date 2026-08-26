@@ -5180,8 +5180,27 @@ try {
 
   /* ---------- hotspots ---------- */
   #labHot{position:absolute;inset:0;z-index:5;pointer-events:none}
+  /* pointer-events:auto, and this button has needed it since the day it was
+     written. The host above is pointer-events:none so that the overlay does
+     not swallow a drag on the figure -- the whole of #labHot sits over the
+     canvas, and without it the one thing a still render cannot do would be
+     dead everywhere the layer reaches. But a child inherits that, and nothing
+     here ever took it back, so a real pointer went straight through the pin
+     and the label into the canvas underneath. .hot.gone turning pointer-events
+     off is the tell: that rule can only mean something if the rule above it
+     had them on.
+
+     It never showed up in testing because a test clicks by calling .click() on
+     the node, which dispatches the event directly and never asks what is on
+     top at that point on the screen. Only a real cursor does hit-testing, so
+     only a real cursor found this.
+
+     The host stays none and only the buttons opt in, so the figure still turns
+     from anywhere except the 34px pin and its label -- and those are buttons,
+     which is exactly where a drag should not start. */
   .hot{position:absolute;left:0;top:0;display:flex;align-items:center;gap:0;padding:0;border:0;
-    background:none;cursor:pointer;transform:translate(-50%,-50%);will-change:transform;
+    background:none;cursor:pointer;pointer-events:auto;
+    transform:translate(-50%,-50%);will-change:transform;
     transition:opacity .3s ease}
   .hot .pin{position:relative;flex:none;width:34px;height:34px;border-radius:50%;
     background:#ffffff2e;border:1.5px solid #ffffffe6;display:grid;place-items:center}

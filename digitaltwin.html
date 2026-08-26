@@ -4079,6 +4079,10 @@ function bindProvenance(){
    would mean three contexts building the same joint map off the same mesh. */
 var VIEWS={scan:'viewScan',lab:'viewLab',heart:'viewHeart',kidney:'viewKidney',
            pose:'viewPose',debug:'viewPose',map:'viewPose',spec:'viewSpec'};
+/* Which view is up, from the first frame. show() keeps it current; the home
+   page is what the document is parsed showing, so that is the honest start
+   value rather than undefined. */
+window.__view = window.__view || 'scan';
 var TABS ={scan:'tabScan', lab:'tabLab', heart:'tabDetail', kidney:'tabDetail',
            pose:'tabPose', debug:'tabPose', map:'tabPose', spec:'tabSpec'};
 function show(which){
@@ -4110,6 +4114,18 @@ function show(which){
     if(which==='kidney') fitKidney();
     window.scrollTo(0,0);
   }
+  /* The route, published, and it is not a convenience. Every heavy view lives
+     in a module that opens with `const {THREE,...} = await (...)` — a top-level
+     await, which SUSPENDS module evaluation. The listener each of them adds is
+     therefore registered some time after this event has already been and gone,
+     and a viewchange dispatched before that moment is heard by nobody: press
+     Detail page early enough and the organ simply never loads, because boot()
+     is only ever called from that listener.
+
+     An event says "this just changed" and cannot answer "what is it now". This
+     can, so a module that arrives late has something to ask. See the catch-up
+     lines at the end of each module. */
+  window.__view = which;
   /* the second experience is heavy, so it only wakes up when it is on screen */
   window.dispatchEvent(new CustomEvent('viewchange',{detail:which}));
 }
@@ -4133,8 +4149,14 @@ document.getElementById('tabPose').addEventListener('click',function(){
 });
 document.getElementById('tabSpec').addEventListener('click',function(){show('spec');});
 /* A direct view URL is useful for reviews and lets the heavy views keep their
-   normal lazy boot: wait until every module has registered its viewchange
-   listener, then take the same path as a real tab press. */
+   normal lazy boot: take the same path as a real tab press.
+
+   This used to say it waits "until every module has registered its viewchange
+   listener", and DOMContentLoaded does not do that — a module suspended on a
+   top-level await has not run a line of itself by then. The wait was never
+   real and the deep link fired into an empty room, which is why ?view=heart
+   opened on a page with no organ on it. It does not need to wait now: the
+   route is published, and each module catches up on it when it arrives. */
 window.addEventListener('DOMContentLoaded',function(){
   var requested=new URLSearchParams(location.search).get('view');
   if(Object.prototype.hasOwnProperty.call(VIEWS,requested)) show(requested);
@@ -6929,14 +6951,21 @@ async function boot() {
 
 /* the first experience's rig is fixed to the viewport, so it follows you into
    this one unless it is explicitly parked */
-addEventListener('viewchange', (e) => {
-  const other = e.detail !== 'scan';
+function onView(which) {
+  const other = which !== 'scan';
   const rig = document.getElementById('rig'), rigOpen = document.getElementById('rigOpen');
   if (rig) rig.style.display = other ? 'none' : '';
   if (rigOpen) rigOpen.style.display = other ? 'none' : '';
-  live = (e.detail === 'lab');
+  live = (which === 'lab');
   if (live) { boot(); resize(); last = performance.now(); }
-});
+}
+addEventListener('viewchange', (e) => onView(e.detail));
+/* Same catch-up as the organ views, and this module needs it for a second
+   reason: the home page's tuning rig is fixed to the viewport and follows the
+   reader into every other view unless it is parked here. Suspended on its own
+   top-level await, this module was not there to park it, so any view reached
+   before it finished loading came up with a Figure rig sitting on top of it. */
+onView(window.__view);
 </script>
 
 <!-- ============================================================
@@ -8064,10 +8093,14 @@ function organView(cfg) {
 
   /* A canvas that has been off screen is not guaranteed to still hold what it
      drew, and two passes cost nothing, so it simply draws again. */
-  addEventListener('viewchange', (e) => {
-    if (e.detail !== cfg.view) return;
-    boot().then(render, () => {});
-  });
+  const wake = () => boot().then(render, () => {});
+  addEventListener('viewchange', (e) => { if (e.detail === cfg.view) wake(); });
+  /* ...and the catch-up. This module opens with a top-level await, so by the
+     time the line above runs the reader may already be looking at this view —
+     they pressed the tab while the module was still suspended, or arrived on a
+     ?view= link, and that viewchange was dispatched into an empty room. The
+     event says what changed; window.__view says what IS. */
+  if (window.__view === cfg.view) wake();
 
   const back = document.getElementById(cfg.back);
   if (back) back.addEventListener('click', () => {

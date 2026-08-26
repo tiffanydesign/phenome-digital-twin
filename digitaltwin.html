@@ -5114,22 +5114,39 @@ try {
      report is about. See handOff() below. */
 
   /* ---------- the dive ----------
-     What the stage does while the camera is flying into the organ. The blur
-     and the 1.09 are the point of it: the figure goes soft because the camera
-     has gone inside it, not because a panel was drawn over the top — a veil
-     alone over a sharp, still frame reads as a page being covered up, and this
-     reads as a page being left behind. It runs 950ms, which is the flight, and
-     the veil opens over the second half of it.
+     Two beats, and they are two different statements.
 
-     Held on `forwards` rather than eased back, because the frame it ends on is
-     the frame that gets swapped; the class comes off after the swap, behind
-     the veil, and the stage is sharp again before anyone sees it. */
-  #labWrap.diving{pointer-events:none;
-    animation:organDive .95s var(--ease-frosted-out) forwards}
+     ZOOM, to 44%. The camera dollies into the organ for real and the stage
+     grows with it. Nothing fades, nothing moves sideways, and the blur is
+     almost nothing: this beat is the reader being taken CLOSER to the thing
+     they clicked, and anything else happening over it would blunt that.
+
+     TRAVEL, from 44%. The organ then leaves for where the next page keeps it.
+     It slides to the seat the report gives it — left of the seam, a little
+     above centre — shrinking as it goes, because that seat is smaller than a
+     full-frame closeup, and fading out as it arrives. --dx and --dy are
+     measured at click time from the geometry the detail page will actually
+     use, so the organ travels to a real destination at any window size rather
+     than a chosen distance in a chosen direction.
+
+     Each beat carries its own ease. The zoom takes the frosted ease, which
+     arrives fast and settles; the travel takes a symmetric one, so it leaves
+     gently rather than snapping away from a position it has just settled into.
+
+     Held on `forwards` because the frame it ends on is the frame that gets
+     swapped. The class comes off after the swap, behind the veil, and the
+     stage is whole again before anyone sees it. */
+  #labWrap.diving{pointer-events:none;transform-origin:50% 50%;
+    animation:organDive 1.4s linear forwards}
   @keyframes organDive{
-    0%{filter:blur(0);transform:scale(1)}
-    52%{filter:blur(1.4px);transform:scale(1.028)}
-    100%{filter:blur(9px);transform:scale(1.09)}}
+    0%{filter:blur(0);opacity:1;transform:translate(0,0) scale(1);
+       animation-timing-function:var(--ease-frosted-out)}
+    44%{filter:blur(.5px);opacity:1;transform:translate(0,0) scale(1.14);
+        animation-timing-function:cubic-bezier(.42,0,.28,1)}
+    74%{filter:blur(2.2px);opacity:.72;
+        transform:translate(calc(var(--dx,0px) * .58),calc(var(--dy,0px) * .58)) scale(.97)}
+    100%{filter:blur(5px);opacity:0;
+         transform:translate(var(--dx,0px),var(--dy,0px)) scale(.78)}}
 
   /* The furniture goes first and the label goes last. Everything that belongs
      to the body page — the way back, the organ bar, the readings card, the
@@ -5144,8 +5161,13 @@ try {
   #labWrap.diving .lab-top{opacity:0;transition:opacity .28s ease}
   #labWrap.diving .hot .pin{opacity:0;transform:scale(.55);
     transition:opacity .3s ease,transform .45s var(--ease-frosted-out)}
-  #labWrap.diving .hot .tag{opacity:0;transform:scale(1.07);
-    transition:opacity .42s ease .1s,transform .6s var(--ease-frosted-out)}
+  /* The label outlasts the furniture and goes out on the zoom rather than
+     before it. It is the thing that was clicked, so it stays legible while
+     the organ comes toward the reader and leaves as the travel begins —
+     which is also when its name reappears, forty pixels tall, on the page
+     the travel is going to. */
+  #labWrap.diving .hot .tag{opacity:0;transform:scale(1.1);
+    transition:opacity .34s ease .22s,transform .62s var(--ease-frosted-out)}
   @media(prefers-reduced-motion:reduce){
     #labWrap.diving{animation:none}
     #labWrap.diving .lab-back,
@@ -6320,24 +6342,29 @@ function openReport(cat) {
 
    Three things run over the same 950ms and they overlap on purpose.
 
-     DIVE   The camera flies from wherever the organ is framed now — the
-            category framing at 2.1x, or the closeup at 1x — down to 0.60 of
-            the organ's own closeup distance. At the lab's 32 degree lens
-            that is the organ at roughly 85% of frame height: past the
-            inspection distance the page ever offers, into the one subject
-            the next page is about. The stage goes soft and grows to 1.09
-            underneath it (see #labWrap.diving), which is what makes this
-            read as travel rather than as a fade.
+     ZOOM   0 to 620ms. The camera flies from wherever the organ is framed
+            now — the category framing at 2.1x, or the closeup at 1x — down
+            to 0.60 of the organ's own closeup distance. At the lab's 32
+            degree lens that is the organ at roughly 85% of frame height:
+            past the inspection distance the page ever offers, into the one
+            subject the next page is about.
 
-     LIFT   The page's own furniture leaves first, in 280ms — back disc,
-            organ bar, readings card, credits, top bar. The pin collapses
-            into itself and the label scales up as it goes, so the thing
-            that was clicked is the last thing on the stage.
+     LIFT   The page's own furniture leaves over the zoom, in 280ms — back
+            disc, organ bar, readings card, credits, top bar. The pin
+            collapses into itself; the label holds on a little longer and
+            leaves as the travel starts, so the thing that was clicked is
+            the last thing on the stage.
 
-     VEIL   At 430ms the wash opens from the middle of the frame. The view
-            swap happens under it at 950ms, the stage is put back to the
-            framing it had before the dive while it is still covered, and
-            the veil is released at 1040ms to fade off the report.
+     TRAVEL 620 to 1400ms. The organ leaves for the seat the report gives
+            it: left of the seam, shrinking to that seat's size, fading as
+            it arrives. seatOffset() below measures where that is.
+
+     VEIL   At 1020ms the wash opens from the middle of the frame, so the
+            travel is watched rather than covered and only its last third is
+            hidden. The view swap happens under it at 1400ms, the stage is
+            put back to the framing it had before the dive while it is still
+            covered, and the veil is released at 1490ms to fade off the
+            report.
 
    Putting the camera back matters more than it looks. The dive ends inside
    the organ, and the reader who takes the body tab back is entitled to the
@@ -6347,8 +6374,39 @@ function openReport(cat) {
    frozen and then play out under the reader on their way back in.
 
    Reduced motion takes none of it and goes straight there. */
-const DIVE = { flight: 950, veilAt: 430, hold: 90 };
+const DIVE = { zoom: 620, flight: 1400, veilAt: 1020, hold: 90 };
 let handingOff = false;
+
+/* Where the report will seat this organ, as an offset from where it is now.
+
+   A detail page is a fixed 1366x1024 composition scaled to fit and centred,
+   with the organ's canvas at 134,222 and 440x580 inside it — so its middle
+   sits at 354,512 in stage units, less whatever --spread has pushed the left
+   half toward the frame. Every number below is read from that page's own
+   geometry rather than guessed, which is the only way the travel can land on
+   the seat at a window size nobody tried.
+
+   One function for both reports, because #heartGL and #kidneyGL are seated at
+   the same four numbers — a single-organ report puts its organ in one place,
+   and that is a fact about the composition rather than about the organ.
+
+   It is computed at click time and not cached: the two things it depends on,
+   the window and the stage scale, are both free to change between one handoff
+   and the next.
+
+   The organ is at the middle of the viewport when this runs, because the dive
+   has aimed the camera at it — so the offset is simply seat minus middle. */
+function seatOffset() {
+  const SW = 1366, SH = 1024, ORGAN_X = 354, ORGAN_Y = 512;
+  const s = Math.min(innerWidth / SW, innerHeight / SH);
+  /* fitOrgan's own two lines, so the two cannot disagree about --spread */
+  const band = Math.max(0, (innerWidth / s - SW) / 2);
+  const spread = Math.round(Math.min(band / 2, 54));
+  /* #heartWrap is margin:0 auto at the top of the view */
+  const x = (innerWidth - SW * s) / 2 + (ORGAN_X - spread) * s;
+  const y = ORGAN_Y * s;
+  return { dx: x - innerWidth / 2, dy: y - innerHeight / 2 };
+}
 
 function handOff(cat) {
   if (handingOff || !cat || !cat.report) return;
@@ -6363,7 +6421,11 @@ function handOff(cat) {
 
   const a = organAnchorWorld(cat);
   const d = cat.dist * 0.60;
-  flyTo(new THREE.Vector3(a.x * 0.4, a.y + d * 0.12, a.z + d), a.clone(), DIVE.flight / 1000);
+  flyTo(new THREE.Vector3(a.x * 0.4, a.y + d * 0.12, a.z + d), a.clone(), DIVE.zoom / 1000);
+
+  const seat = seatOffset();
+  stage.style.setProperty('--dx', seat.dx.toFixed(1) + 'px');
+  stage.style.setProperty('--dy', seat.dy.toFixed(1) + 'px');
   stage.classList.add('diving');
 
   const openVeil = setTimeout(() => { if (veil) veil.classList.add('on'); }, DIVE.veilAt);
@@ -6371,6 +6433,7 @@ function handOff(cat) {
   setTimeout(() => {
     openReport(cat);
     stage.classList.remove('diving');
+    stage.style.removeProperty('--dx'); stage.style.removeProperty('--dy');
     view.pos.copy(keepP); view.tgt.copy(keepT); flight.on = false;
     setTimeout(() => {
       if (veil) veil.classList.remove('on');

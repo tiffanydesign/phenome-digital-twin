@@ -997,23 +997,36 @@ body:has(#viewKidney.is-on) #detailMode{display:block}
    carry two ids to this one's one. */
 body.detail-bare #detailMode{display:none!important}
 
-/* ---- the organ handoff · the wash that covers the swap ----
-   Not a curtain across the frame: a bloom opening from the middle of the
-   stage, which is exactly where the camera has just put the organ. White at
-   the core because that is where the figure's own key light already is
-   (#labGlow paints the same ellipse), cooling to the page's ground at the
-   corners so the edges of the frame never flash brighter than the page they
-   are covering. It outranks everything including the tab bar — a handoff with
-   the chrome still showing through is two pages at once.
+/* ---- the organ handoff · both pages on screen at once ----
+   There was a white wash here that opened over the middle of the frame and
+   covered the swap. It is gone, and what replaced it is the opposite idea.
 
-   .48s in and .48s out, both on the frosted ease, so the reveal on the report
-   is the mirror of the cover on the body. */
-#organVeil{position:fixed;inset:0;z-index:200;opacity:0;pointer-events:none;
-  background:radial-gradient(ellipse 46% 44% at 50% 48%,
-    #ffffff 0%,#ffffff 34%,#f4f8fe 62%,#e9f0fb 100%);
-  transition:opacity .48s var(--ease-frosted-out)}
-#organVeil.on{opacity:1;pointer-events:auto}
-@media(prefers-reduced-motion:reduce){#organVeil{transition:none}}
+   A wash says "something is happening, look away for a moment". But the two
+   pages either side of this move are looking at the SAME HEART — one seated in
+   a body, one drawn on its own with its intervals beside it — and covering the
+   join threw away the only thing worth showing: that they are the same object.
+
+   So nothing covers it. For the length of one handoff both views are on the
+   page together: the report is laid in underneath, already drawn, and the body
+   page's stage is held over it and carried down onto it until the two organs
+   are the same size in the same place and the one on top is gone. The reader
+   watches the heart become the heart.
+
+   z-index 40 puts the stage over the report and under the tab bar at 50. The
+   bar belongs to both pages and never moves, so it has no business being in
+   the transition at all. */
+body.handoff #viewLab{display:block}
+body.handoff #labWrap{z-index:40;pointer-events:none}
+/* The figure's key light does not travel. #labGlow is a soft white bloom the
+   width of the stage, and carried down onto the report at 80% opacity it would
+   be exactly the large pale wash this transition was rebuilt to get rid of —
+   the veil coming back in through the side door. The organ is what moves; the
+   light it was lit by belongs to the page it is leaving, and the report has
+   its own. */
+body.handoff #labGlow{opacity:0;transition:opacity .3s ease}
+/* The stage stops rendering the moment the view changes, which is exactly what
+   is wanted: the frame it stops on is the frame at the end of the zoom, and
+   that frozen frame is what gets carried down. */
 
 /* the row that puts the pose switcher to the right of the overline */
 .pose-intro-top{display:flex;align-items:center;gap:14px;
@@ -2755,13 +2768,6 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   </ul>
 </div>
 
-<!-- The wash that covers the handoff from an organ in the body to that organ's
-     written report. It sits out here, at body level, because it has to survive
-     the very thing it is covering: both views go display:none the moment the
-     swap happens, so anything parked inside one of them would blink out at the
-     exact frame it is needed. Driven from the body page's handOff(). -->
-<div id="organVeil" aria-hidden="true"></div>
-
 <!-- Host for the tab bar's displacement filter. It has to be in the document
      for url(#id) to resolve; a detached fragment silently fails. -->
 <svg id="tabGlassDefs" aria-hidden="true" style="position:fixed;width:0;height:0;overflow:hidden"></svg>
@@ -3594,10 +3600,14 @@ var ECG={
    supporting rows and the P-wave step's own numbers are plausible values
    standing in for a real report, in the same shape a real one would take.
 
+   Each step names itself and nothing more. There was a sentence on each one
+   describing that part of the beat in plain words, and it is gone: the rail
+   names the part, the track scores it, and a line of prose in between said a
+   third time what those two had already said.
+
    `pin` is which readout on the figure this step is about, by data-step. */
 var HEART_STEPS=[
   {key:'P', name:'Atrial contraction',
-   note:'The upper chambers squeezing. First thing that happens in a beat, and the shortest.',
    track:{name:'Atrial contraction',meta:'P wave duration',value:104,unit:'ms',min:60,max:180,
      bounds:[80,120,150],zones:[{name:'Short'},{name:'Normal'},{name:'Mild'},{name:'High'}],
      status:['ok','Normal'],tinted:false},
@@ -3606,7 +3616,6 @@ var HEART_STEPS=[
          ['Origin','Sinus node','']]},
 
   {key:'PR', name:'Conduction time',
-   note:'How long the signal takes to cross from the upper chambers to the lower ones.',
    track:{name:'Conduction time',meta:'PR interval',value:160,unit:'ms',min:80,max:340,
      bounds:[120,220,300],zones:[{name:'Shortened'},{name:'Normal'},{name:'Mild'},{name:'High'}],
      status:['ok','Normal'],tinted:false},
@@ -3615,7 +3624,6 @@ var HEART_STEPS=[
          ['Blocked conduction','Not seen','']]},
 
   {key:'QRS', name:'Ventricular contraction',
-   note:'The main squeeze. The lower chambers emptying, and the largest mark on the strip.',
    track:{name:'Ventricular contraction',meta:'QRS duration',value:100,unit:'ms',min:60,max:180,
      bounds:[120,130],zones:[{name:'Normal'},{name:'Mild'},{name:'High'}],
      status:['ok','Normal'],tinted:false},
@@ -3624,7 +3632,6 @@ var HEART_STEPS=[
          ['Bundle branch','Both clear','']]},
 
   {key:'QTc', name:'Contract and reset time',
-   note:'Squeeze plus recovery, corrected for your rate. The part most worth watching over time.',
    track:{name:'Contract and reset time',meta:'QTc interval',value:417,unit:'ms',min:280,max:560,
      bounds:[330,450,500],zones:[{name:'Shortened'},{name:'Normal'},{name:'Mild'},{name:'High'}],
      status:['ok','Normal'],tinted:false},
@@ -3658,23 +3665,18 @@ function heartGo(i){
   heartStep=i;
 
   var rail=document.getElementById('heartSteps');
-  if(rail){
-    /* the fraction of the way along the sequence, which is what the filled
-       part of the connector is measuring — not i/n, which would leave the
-       last step's line stopping short of the last dot */
-    rail.style.setProperty('--k', n>1 ? (i/(n-1)).toFixed(4) : '0');
-    for(j=0;j<rail.children.length;j++){
-      d=rail.children[j];
-      d.classList.toggle('on', j===i);
-      d.classList.toggle('done', j<i);
-      d.setAttribute('aria-selected', String(j===i));
-      d.tabIndex = j===i ? 0 : -1;
-    }
+  if(rail) for(j=0;j<rail.children.length;j++){
+    d=rail.children[j];
+    /* One state, and the CSS does the rest. There was a `done` class here for
+       the dots behind the current one, and a --k the connector filled itself
+       to; both are gone with the progress line they belonged to. */
+    d.classList.toggle('on', j===i);
+    d.setAttribute('aria-selected', String(j===i));
+    d.tabIndex = j===i ? 0 : -1;
   }
 
   var cn=document.getElementById('heartStepN'); if(cn) cn.textContent=(i+1)+' of '+n;
   var nm=document.getElementById('heartStepName'); if(nm) nm.textContent=st.name;
-  var nt=document.getElementById('heartStepNote'); if(nt) nt.textContent=st.note;
 
   var pane=document.getElementById('heartDetail');
   if(pane){
@@ -5113,40 +5115,58 @@ try {
      organ's own label, where the reader is already looking at the thing the
      report is about. See handOff() below. */
 
-  /* ---------- the dive ----------
+  /* ---------- the handoff · zoom, then travel ----------
      Two beats, and they are two different statements.
 
-     ZOOM, to 44%. The camera dollies into the organ for real and the stage
-     grows with it. Nothing fades, nothing moves sideways, and the blur is
-     almost nothing: this beat is the reader being taken CLOSER to the thing
-     they clicked, and anything else happening over it would blunt that.
+     ZOOM is the camera's alone. It dollies into the organ for real, and the
+     stage is not scaled at all while it does — no CSS transform, nothing
+     faded, no blur. A flat 2D upscale of the canvas on top of a real dolly
+     would only soften the one beat whose whole job is to bring the reader
+     closer to the thing they clicked. It also keeps the arithmetic honest: the
+     scale the travel ends on is measured against this camera position with the
+     stage untransformed, so the number means what it says.
 
-     TRAVEL, from 44%. The organ then leaves for where the next page keeps it.
-     It slides to the seat the report gives it — left of the seam, a little
-     above centre — shrinking as it goes, because that seat is smaller than a
-     full-frame closeup, and fading out as it arrives. --dx and --dy are
-     measured at click time from the geometry the detail page will actually
-     use, so the organ travels to a real destination at any window size rather
-     than a chosen distance in a chosen direction.
+     TRAVEL carries that frozen frame down onto the report's own organ. It
+     moves to the seat, shrinks to the size the report draws the organ at, and
+     fades out over the top of it. There is no blur here either, and that is
+     deliberate: a blur would say "this is leaving", and what is wanted is
+     "this is the same heart, over there now, at that size". Every number in it
+     is measured -- --dx and --dy from the report's geometry, --k from the two
+     cameras -- so the thing underneath is genuinely where the thing on top
+     lands.
 
-     Each beat carries its own ease. The zoom takes the frosted ease, which
-     arrives fast and settles; the travel takes a symmetric one, so it leaves
-     gently rather than snapping away from a position it has just settled into.
+     Each beat carries its own ease. The zoom is the camera's, on the flight's
+     own curve; the travel leaves gently and settles, so it does not snap away
+     from a position it has just arrived at. */
+  #labWrap.diving{pointer-events:none;transform-origin:50% 50%}
+  body.handoff-go #labWrap{
+    animation:organTravel .78s cubic-bezier(.42,0,.2,1) forwards}
+  @keyframes organTravel{
+    from{opacity:1;transform:translate(0,0) scale(1)}
+    to{opacity:0;transform:translate(var(--dx,0px),var(--dy,0px)) scale(var(--k,.62))}}
 
-     Held on `forwards` because the frame it ends on is the frame that gets
-     swapped. The class comes off after the swap, behind the veil, and the
-     stage is whole again before anyone sees it. */
-  #labWrap.diving{pointer-events:none;transform-origin:50% 50%;
-    animation:organDive 1.4s linear forwards}
-  @keyframes organDive{
-    0%{filter:blur(0);opacity:1;transform:translate(0,0) scale(1);
-       animation-timing-function:var(--ease-frosted-out)}
-    44%{filter:blur(.5px);opacity:1;transform:translate(0,0) scale(1.14);
-        animation-timing-function:cubic-bezier(.42,0,.28,1)}
-    74%{filter:blur(2.2px);opacity:.72;
-        transform:translate(calc(var(--dx,0px) * .58),calc(var(--dy,0px) * .58)) scale(.97)}
-    100%{filter:blur(5px);opacity:0;
-         transform:translate(var(--dx,0px),var(--dy,0px)) scale(.78)}}
+  /* The report assembles as the organ lands on it rather than sitting there
+     finished behind a fading picture. The rail comes up under the organ's
+     arrival, and the figure's own annotations -- the leaders and the four
+     pinned readings -- wait until the organ is nearly down, because they are
+     labels ON it and a label cannot arrive before its subject. */
+  /* Opacity only on the rails, and the reason is worth stating because the
+     obvious version is wrong. Both rails are POSITIONED by transform —
+     translate(var(--spread), -50%) is what centres them in the right half — so
+     a keyframe animating `transform` does not add a 12px rise to that, it
+     replaces it, and the rail lands 300px down and to the right of where it
+     belongs. Anything that wants to move here has to move a child.
+
+     The panes are that child, and they carry the rise between them. */
+  body.handoff-go #heartRail,
+  body.handoff-go #kidneyRail{animation:reportFade .62s var(--ease-frosted-out) both}
+  body.handoff-go #heartRail .org-pane,
+  body.handoff-go #kidneyRail .org-pane{animation:reportRise .62s var(--ease-frosted-out) both}
+  body.handoff-go #heartLeads,body.handoff-go #heartField .pin,
+  body.handoff-go #kidneyLeads,body.handoff-go #kidneyField .pin{
+    animation:reportFade .46s var(--ease-frosted-out) .34s both}
+  @keyframes reportFade{from{opacity:0}to{opacity:1}}
+  @keyframes reportRise{from{transform:translateY(12px)}to{transform:none}}
 
   /* The furniture goes first and the label goes last. Everything that belongs
      to the body page — the way back, the organ bar, the readings card, the
@@ -5161,15 +5181,18 @@ try {
   #labWrap.diving .lab-top{opacity:0;transition:opacity .28s ease}
   #labWrap.diving .hot .pin{opacity:0;transform:scale(.55);
     transition:opacity .3s ease,transform .45s var(--ease-frosted-out)}
-  /* The label outlasts the furniture and goes out on the zoom rather than
-     before it. It is the thing that was clicked, so it stays legible while
-     the organ comes toward the reader and leaves as the travel begins —
-     which is also when its name reappears, forty pixels tall, on the page
-     the travel is going to. */
+  /* The label outlasts the furniture and goes out over the zoom rather than
+     before it. It is the thing that was clicked, so it stays legible while the
+     organ comes toward the reader — and it is gone by the time the travel
+     starts, which is when its name reappears, forty pixels tall, on the page
+     the organ is travelling to. */
   #labWrap.diving .hot .tag{opacity:0;transform:scale(1.1);
-    transition:opacity .34s ease .22s,transform .62s var(--ease-frosted-out)}
+    transition:opacity .34s ease .2s,transform .62s var(--ease-frosted-out)}
   @media(prefers-reduced-motion:reduce){
-    #labWrap.diving{animation:none}
+    body.handoff-go #labWrap,
+    body.handoff-go #heartRail,body.handoff-go #kidneyRail,
+    body.handoff-go #heartLeads,body.handoff-go #heartField .pin,
+    body.handoff-go #kidneyLeads,body.handoff-go #kidneyField .pin{animation:none}
     #labWrap.diving .lab-back,
     #labWrap.diving .lab-bar,
     #labWrap.diving .lab-card,
@@ -6241,6 +6264,8 @@ let glass = 0, glassTo = 0;      // 0 pearl, 1 glass
    can be dropped rather than waited out. */
 let goSeq = 0;
 let organLive = null;
+/* 1 while the figure is drawn, 0 once a handoff owns the frame. See frame(). */
+let bodyFade = 1;
 
 const hotHost = L('#labHot');
 const hots = {};
@@ -6357,112 +6382,223 @@ function openReport(cat) {
    held a diagram at reading distance, with nothing in between, so the reader
    had to work out for themselves that the page they had landed on was about
    the thing they had just been looking at. The click said "this organ"; the
-   result said "a different page". This says both.
+   result said "a different page".
 
-   Three things run over the same 950ms and they overlap on purpose.
+   Two beats say both, and nothing is hidden between them.
 
-     ZOOM   0 to 620ms. The camera flies from wherever the organ is framed
-            now — the category framing at 2.1x, or the closeup at 1x — down
-            to 0.60 of the organ's own closeup distance. At the lab's 32
-            degree lens that is the organ at roughly 85% of frame height:
-            past the inspection distance the page ever offers, into the one
-            subject the next page is about.
+     ZOOM   The camera flies from wherever the organ is framed now — the
+            category framing at 2.1x, or the closeup at 1x — down to 0.60 of
+            the organ's own closeup distance, which at the lab's 32 degree
+            lens is the organ at roughly 85% of frame height. The page's own
+            furniture leaves underneath it in 280ms, and the label that was
+            clicked is the last thing to go.
 
-     LIFT   The page's own furniture leaves over the zoom, in 280ms — back
-            disc, organ bar, readings card, credits, top bar. The pin
-            collapses into itself; the label holds on a little longer and
-            leaves as the travel starts, so the thing that was clicked is
-            the last thing on the stage.
+     HOLD   The report is laid in UNDERNEATH, already loaded and drawn, and
+            the stage stays over it at full opacity until it is. The lab's
+            loop parks itself the moment the view changes, so what is being
+            held is the last frame of the zoom — which is exactly the frame
+            that needs to be carried down.
 
-     TRAVEL 620 to 1400ms. The organ leaves for the seat the report gives
-            it: left of the seam, shrinking to that seat's size, fading as
-            it arrives. seatOffset() below measures where that is.
+     TRAVEL The stage is carried onto the report's own organ: to its seat, to
+            its size, fading out over the top of it. Both organs are the same
+            heart, so at the end of this the reader has watched one become
+            the other rather than watched a page get covered up and replaced.
 
-     VEIL   At 1020ms the wash opens from the middle of the frame, so the
-            travel is watched rather than covered and only its last third is
-            hidden. The view swap happens under it at 1400ms, the stage is
-            put back to the framing it had before the dive while it is still
-            covered, and the veil is released at 1490ms to fade off the
-            report.
+   Every number in the travel is measured rather than chosen — see landing()
+   below. That is what makes it a morph instead of a slide: if
+   the thing on top does not land exactly on the thing underneath, the whole
+   idea reads as two pictures crossfading.
 
-   Putting the camera back matters more than it looks. The dive ends inside
-   the organ, and the reader who takes the body tab back is entitled to the
-   view they left — not the frame the transition happened to stop on. The
-   restore is a copy rather than a flyTo because the lab's loop parks itself
-   the moment the view goes off (`live`), so an in-flight tween would sit
-   frozen and then play out under the reader on their way back in.
+   Putting the camera back matters more than it looks. The zoom ends inside the
+   organ, and the reader who takes the body tab back is entitled to the view
+   they left — not the frame the transition happened to stop on. The restore is
+   a copy rather than a flyTo because the lab's loop is parked, so an in-flight
+   tween would sit frozen and then play out under the reader on their way in.
 
    Reduced motion takes none of it and goes straight there. */
-const DIVE = { zoom: 620, flight: 1400, veilAt: 1020, hold: 90 };
+const DIVE = { zoom: 620, travel: 780, wait: 2600 };
 let handingOff = false;
 
-/* Where the report will seat this organ, as an offset from where it is now.
+/* Where the report puts this organ, and how big it draws it — measured off
+   the two live scenes at the moment of the handoff rather than derived from
+   the compositions.
 
-   A detail page is a fixed 1366x1024 composition scaled to fit and centred,
-   with the organ's canvas at 134,222 and 440x580 inside it — so its middle
-   sits at 354,512 in stage units, less whatever --spread has pushed the left
-   half toward the frame. Every number below is read from that page's own
-   geometry rather than guessed, which is the only way the travel can land on
-   the seat at a window size nobody tried.
+   This started as arithmetic: the report is a fixed 1366x1024 stage scaled to
+   fit and centred, its organ canvas at 134,222 and 440x580, so the middle of
+   the canvas is at 354,512 in stage units less --spread. That put the organ's
+   horizontal seat exactly right and its vertical seat 17px low, because the
+   report frames its organ with `aim` — 0.46 for the heart — which seats the
+   MUSCLE in the canvas rather than the bounding box, and the box's middle
+   therefore sits above the canvas's. The same arithmetic would have been wrong
+   by a different amount for the kidney, which aims at 0.5.
 
-   One function for both reports, because #heartGL and #kidneyGL are seated at
-   the same four numbers — a single-organ report puts its organ in one place,
-   and that is a fact about the composition rather than about the organ.
+   Measuring ends the whole class of error. Both views hand out their camera
+   and their pivot, both are on screen by the time this runs, and a bounding
+   box projected through a camera is not an estimate of where something is
+   drawn — it is where it is drawn. So: project the organ's own box in each
+   view, take the difference of the centres for the travel and the ratio of
+   the heights for the scale. No constants, nothing to keep in agreement with
+   a stylesheet, and correct for any organ at any window size.
 
-   It is computed at click time and not cached: the two things it depends on,
-   the window and the stage scale, are both free to change between one handoff
-   and the next.
+   Both sides are projected through the LIVE camera, and that is the important
+   half of it. An earlier version built a copy of the lab's camera, placed it
+   at the zoom's framing, and measured through that — on the reasoning that the
+   flight has landed by then so the two agree. They do not always agree, and
+   when they disagree the copy is the wrong one: what has to be matched is the
+   frame the canvas is actually holding, and that frame was drawn by the live
+   camera wherever it happens to be. Measured against a copy, a stalled or
+   still-moving flight sends the travel to a seat the picture is not at.
 
-   The organ is at the middle of the viewport when this runs, because the dive
-   has aimed the camera at it — so the offset is simply seat minus middle. */
-function seatOffset() {
-  const SW = 1366, SH = 1024, ORGAN_X = 354, ORGAN_Y = 512;
-  const s = Math.min(innerWidth / SW, innerHeight / SH);
-  /* fitOrgan's own two lines, so the two cannot disagree about --spread */
-  const band = Math.max(0, (innerWidth / s - SW) / 2);
-  const spread = Math.round(Math.min(band / 2, 54));
-  /* #heartWrap is margin:0 auto at the top of the view */
-  const x = (innerWidth - SW * s) / 2 + (ORGAN_X - spread) * s;
-  const y = ORGAN_Y * s;
-  return { dx: x - innerWidth / 2, dy: y - innerHeight / 2 };
+   `camera` is only written by the render loop, from view.pos and view.tgt, so
+   reading it is reading exactly what was last drawn. */
+function projectBox(obj, cam, w, h, ox, oy) {
+  const box = new THREE.Box3().setFromObject(obj);
+  const v = new THREE.Vector3();
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let i = 0; i < 8; i++) {
+    v.set(i & 1 ? box.max.x : box.min.x,
+          i & 2 ? box.max.y : box.min.y,
+          i & 4 ? box.max.z : box.min.z).project(cam);
+    const px = (v.x * 0.5 + 0.5) * w + ox;
+    const py = (-v.y * 0.5 + 0.5) * h + oy;
+    if (px < x0) x0 = px; if (px > x1) x1 = px;
+    if (py < y0) y0 = py; if (py > y1) y1 = py;
+  }
+  return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, h: y1 - y0 };
 }
 
-function handOff(cat) {
+/* The travel's three numbers. Returns null when either side cannot be
+   measured, and handOff treats that as "do not animate" rather than as
+   "animate to nowhere" — a transition that lands in the wrong place is worse
+   than one that does not run. */
+function landing(cat) {
+  const V = reportView(cat);
+  const rec = bodies[sex];
+  const organ = rec && rec.organs[cat.id];
+  if (!V || !V.ready() || !organ) return null;
+
+  const canvas = V.renderer.domElement.getBoundingClientRect();
+  if (!canvas.width || !canvas.height) return null;
+  const to = projectBox(V.pivot, V.camera, canvas.width, canvas.height, canvas.x, canvas.y);
+
+  camera.updateMatrixWorld(true);
+  const from = projectBox(organ.holder, camera, innerWidth, innerHeight, 0, 0);
+  if (!(from.h > 1)) return null;
+
+  return { dx: to.cx - from.cx, dy: to.cy - from.cy, k: to.h / from.h };
+}
+
+/* Which module draws this organ's report. Two entries, and they are the same
+   two routes CATS already names, so an organ cannot have a report the handoff
+   cannot find. */
+function reportView(cat) {
+  if (!cat) return null;
+  if (cat.report === 'heart') return window.__heartView || null;
+  if (cat.report === 'kidney') return window.__kidneyView || null;
+  return null;
+}
+
+/* The reader opening an organ is about to spend several seconds looking at it,
+   and the report's own mesh is a 7 MB file that has to be in before the two
+   can be dissolved together — so the fetch starts when the organ opens rather
+   than when the label is clicked, which is time that was being spent anyway.
+   boot() loads its one file once and is safe to call whenever.
+
+   The delay is not politeness. Parsing seven megabytes of GLB blocks the main
+   thread, and started the instant the organ opens it lands on top of the
+   camera flight that go() has just begun: the render loop stops ticking, the
+   flight does not advance, and the figure jumps to its framing when the thread
+   comes back. Held until after that flight has settled, the parse happens
+   while the reader is looking at a still organ and costs nothing visible.
+   requestIdleCallback where it exists, because a browser that already knows it
+   is busy should be allowed to say so. */
+function warmReport(cat) {
+  const v = reportView(cat);
+  if (!v) return;
+  const go = () => v.boot().catch(() => {});
+  setTimeout(() => {
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(go, { timeout: 1500 });
+    else go();
+  }, 1250);
+}
+
+/* Hold until the report's organ is actually drawn, or until the cap runs out.
+   Dissolving the body's heart down onto a loading chip would be worse than not
+   animating at all — and with warmReport above having started the fetch when
+   the organ opened, this usually resolves on the first tick.
+
+   A timer rather than requestAnimationFrame, and the difference is not
+   cosmetic: this waits on a boolean, not on a paint, and the one moment it has
+   to survive is the view swap — which is exactly when the body page's own loop
+   parks itself and the frame callbacks stop being a thing you can count on. An
+   rAF poll here stalled the handoff intermittently, leaving the page showing
+   the held frame with both views up. 30ms is far below anything a reader can
+   see and costs nothing for the handful of ticks this normally takes. */
+function untilDrawn(v, cap) {
+  if (!v) return Promise.resolve();
+  return new Promise((done) => {
+    const t0 = performance.now();
+    (function poll() {
+      if (v.ready() || performance.now() - t0 > cap) return done();
+      setTimeout(poll, 30);
+    })();
+  });
+}
+
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function handOff(cat) {
   if (handingOff || !cat || !cat.report) return;
   if (typeof window.__showView !== 'function') return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { openReport(cat); return; }
 
   handingOff = true;
-  const veil = document.getElementById('organVeil');
   const stage = L('#labWrap');
+  const body = document.body;
   /* the view the reader is entitled to get back */
   const keepP = view.pos.clone(), keepT = view.tgt.clone();
 
-  const a = organAnchorWorld(cat);
-  const d = cat.dist * 0.60;
-  flyTo(new THREE.Vector3(a.x * 0.4, a.y + d * 0.12, a.z + d), a.clone(), DIVE.zoom / 1000);
+  /* Everything this routine does is a class on an element somebody else owns,
+     so the whole of it is wrapped: whatever happens — a throw, a mesh that
+     never arrives, a reader who presses a tab halfway through — the page must
+     not be left with two views stacked on it and a stage that cannot be
+     clicked. There is no state here worth trying to resume. */
+  try {
+    /* ZOOM */
+    const a = organAnchorWorld(cat);
+    const d = cat.dist * 0.60;
+    flyTo(new THREE.Vector3(a.x * 0.4, a.y + d * 0.12, a.z + d), a.clone(), DIVE.zoom / 1000);
+    stage.classList.add('diving');
+    await wait(DIVE.zoom);
 
-  const seat = seatOffset();
-  stage.style.setProperty('--dx', seat.dx.toFixed(1) + 'px');
-  stage.style.setProperty('--dy', seat.dy.toFixed(1) + 'px');
-  stage.classList.add('diving');
-
-  const openVeil = setTimeout(() => { if (veil) veil.classList.add('on'); }, DIVE.veilAt);
-
-  setTimeout(() => {
+    /* HOLD — the report goes in under the held frame */
+    body.classList.add('handoff');
     openReport(cat);
-    stage.classList.remove('diving');
-    stage.style.removeProperty('--dx'); stage.style.removeProperty('--dy');
-    view.pos.copy(keepP); view.tgt.copy(keepT); flight.on = false;
-    setTimeout(() => {
-      if (veil) veil.classList.remove('on');
-      handingOff = false;
-    }, DIVE.hold);
-  }, DIVE.flight);
+    await untilDrawn(reportView(cat), DIVE.wait);
+    /* a beat with both on screen before anything moves, so the travel starts
+       from a composed picture rather than from whatever landed mid-paint */
+    await wait(32);
 
-  /* nothing cancels this once it is running, but the timer is named so a
-     future escape hatch has something to clear */
-  return openVeil;
+    /* TRAVEL. A reader who pressed a tab during the hold is somewhere else
+       now, and animating a stage down onto a page they have left would be the
+       transition arguing with them. */
+    const land = document.body.classList.contains('handoff') ? landing(cat) : null;
+    if (land) {
+      stage.style.setProperty('--dx', land.dx.toFixed(1) + 'px');
+      stage.style.setProperty('--dy', land.dy.toFixed(1) + 'px');
+      stage.style.setProperty('--k', land.k.toFixed(4));
+      body.classList.add('handoff-go');
+      await wait(DIVE.travel);
+    }
+  } finally {
+    body.classList.remove('handoff', 'handoff-go');
+    stage.classList.remove('diving');
+    stage.style.removeProperty('--dx');
+    stage.style.removeProperty('--dy');
+    stage.style.removeProperty('--k');
+    view.pos.copy(keepP); view.tgt.copy(keepT); flight.on = false;
+    handingOff = false;
+  }
 }
 
 function cardFor(cat) {
@@ -6496,6 +6632,8 @@ async function go(next, cat) {
   current = cat;
   state = next;
   glassTo = 1;
+  /* the report's mesh starts loading now, not when the label is clicked */
+  warmReport(cat);
   L('#labCats').classList.add('away');
   L('#labBack').classList.add('on');
   L('#labBar').classList.add('on');
@@ -6612,7 +6750,15 @@ function frame(now) {
      Base tone comes down with it because it is a floor under that curve and
      would otherwise hold the crushed cells up. */
   glass += (glassTo - glass) * Math.min(dt * 3.4, 1);
-  const bodyInk = 1 - glass * CLOSEUP.inkDrop;
+  /* During a handoff the figure is not drawn at all. The organ is what
+     travels — it is the subject of both pages — and the body it was seated in
+     belongs to the page being left. Carried down onto the report, the torso
+     and the arm swept across the readings as a large field of dots, which is
+     the same mistake as the veil in a different costume: something big and
+     pale crossing the page the reader is arriving at. It ramps rather than
+     cutting, so the figure dissolves off the organ over the zoom. */
+  bodyFade += ((handingOff ? 0 : 1) - bodyFade) * Math.min(dt * 4.5, 1);
+  const bodyInk = (1 - glass * CLOSEUP.inkDrop) * bodyFade;
   const bodyFloor = SCREEN.body.floor * (1 - glass);
   const bodyContrast = SCREEN.body.contrast + glass * CLOSEUP.contrastGain;
   const bodyPitch = SCREEN.body.pitch + glass * (CLOSEUP.pitchOpen - SCREEN.body.pitch);
@@ -6893,10 +7039,7 @@ addEventListener('viewchange', (e) => {
              the rate that produced it becomes its label. -->
         <div class="org-head">
           <h1 class="org-title">Heart rhythm</h1>
-          <div class="hrt-vital">
-            <span class="hrt-rate">Heart rate <b class="num">61</b> bpm</span>
-            <b class="hrt-state">Normal</b>
-          </div>
+          <b class="hrt-state">Normal</b>
         </div>
 
         <!-- One beat, four parts, and the rail is where you are in it. The
@@ -6909,10 +7052,7 @@ addEventListener('viewchange', (e) => {
         <div class="hrt-steps">
           <div class="step-rail" id="heartSteps" role="tablist"
                aria-label="Which part of the beat"></div>
-          <div class="step-read">
-            <div class="step-count"><b id="heartStepN">1 of 4</b><i>&middot;</i><span id="heartStepName"></span></div>
-            <p class="step-note" id="heartStepNote"></p>
-          </div>
+          <div class="step-count"><b id="heartStepN">1 of 4</b><i>&middot;</i><span id="heartStepName"></span></div>
         </div>
 
         <div class="org-rule"></div>
@@ -7022,28 +7162,20 @@ addEventListener('viewchange', (e) => {
      the right, on one baseline. */
   .org-head{display:flex;align-items:baseline;justify-content:space-between;gap:20px}
 
-  /* ── the heart's vital, in the finding's column ──
-     Two things on one baseline, and the ranking between them is the whole
-     point. "Normal" is the finding — the answer to the question the reader
-     brought to the page — so it takes the value rung and the serif, exactly
-     as Kidneys' Monitor does, in the success ink rather than the warning one.
-     The rate is what the finding was made from, so it is the label: the meta
-     rung, sans, ink-600, with only the numeral stepping up in weight and
-     colour because 61 is a measurement and "bpm" is a unit.
+  /* ── the finding, on the title's own baseline ──
+     One word, and it is Kidneys' verdict to the token: contralto-small at the
+     33px value rung, 400, -.01em, line-height 1, differing only in ink because
+     the finding differs. .org-head aligns on baselines, so it sits on the 44px
+     title's line rather than under it — the name of the page and the answer it
+     gives, read across in one movement.
 
-     Stacked rather than side by side: the two lines are read down the column
-     from evidence to verdict, and stacking keeps the serif word alone on its
-     own baseline where the 44px title opposite can answer it. Right-aligned
-     so both lines finish on the rail's edge with the panes below. */
-  .hrt-vital{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px;
-    text-align:right}
-  .hrt-rate{font-family:var(--font-sans);font-size:var(--text-micro);
-    font-weight:var(--w-data);letter-spacing:.04em;color:var(--ink-600)}
-  .hrt-rate b{margin:0 2px;font-weight:var(--w-module);color:var(--ink-900)}
-  /* Kidneys' .kid-verdict, to the token: contralto-small at the 33px value
-     rung, 400, -.01em, line-height 1. Only the ink differs, and it differs
-     because the finding differs. */
-  .hrt-state{font-family:var(--font-serif-small);font-size:var(--kpi-value-lg);
+     The rate that produced it used to sit above this word as a 14px label.
+     Cut. Two facts stacked in the corner made a small block competing with the
+     title for the same glance, and the number was not the finding: 61 bpm is
+     one of the things the four intervals below are measured against, and the
+     rail already carries what is worth reading. A page states its conclusion
+     once, at one rung. */
+  .hrt-state{flex:none;font-family:var(--font-serif-small);font-size:var(--kpi-value-lg);
     font-weight:var(--w-serif-title);line-height:1;letter-spacing:-.01em;
     color:var(--status-success-ink)}
 
@@ -7053,65 +7185,64 @@ addEventListener('viewchange', (e) => {
      places along it, and the one thing a stack of three tracks could never
      show is that P comes before PR comes before QRS comes before QTc.
 
-     The track is drawn by the rail itself rather than by a wrapper, because a
-     connector that belongs to the row cannot fall out of step with the dots
-     sitting on it. It runs between the first and last dot centres — inset by
-     half a hit area at each end — so it never sticks out past the sequence it
-     is connecting.
+     The motion is the reference stepper's, measured off it: the mark itself
+     grows from 9px to 13px, fills from white to brand blue, and takes a 5px
+     translucent halo, all in 160ms on the standard ease. Not a scale
+     transform — the reference changes the box, and the difference is visible
+     at this size, because a scaled 9px ring carries a scaled 1.5px border with
+     it and goes soft, while a 13px ring keeps the hairline it started with.
+     160ms is also far faster than anything else on this page, and that is
+     right for a control: the pane below is the thing that eases in, and the
+     mark you pressed should already be lit when you look back at it.
 
-     Hit areas are 34px and the dot inside is 11. An 11px target is not a
-     target; the button is the size a finger needs and the mark is the size the
-     composition needs, which is the same split .hot uses on the body page. */
-  .hrt-steps{display:flex;align-items:flex-start;justify-content:space-between;
-    gap:26px;margin-top:22px}
-  .step-rail{position:relative;flex:none;display:flex;align-items:center}
-  .step-rail::before{content:"";position:absolute;left:17px;right:17px;top:50%;height:1px;
+     The connector is one flat hairline the whole way across, with no travelled
+     portion — the reference's again, and it replaces a blue line that filled
+     in behind the current dot. A progress line says these four are steps
+     toward completing something. They are not: they are four places on one
+     beat, and they can be read in any order.
+
+     The dot is 9px and the button around it is 28. A 9px target is not a
+     target; the button is the size the pointer needs and the mark is the size
+     the composition needs, which is the same split .hot uses on the body page.
+     28 rather than the 34 this had, because the button's own width is what
+     sets the spacing here and 28 puts the dot centres where the reference
+     has them. */
+  .hrt-steps{display:flex;align-items:center;justify-content:space-between;
+    gap:26px;margin-top:20px}
+  .step-rail{position:relative;flex:none;display:flex;align-items:center;height:28px}
+  .step-rail::before{content:"";position:absolute;left:14px;right:14px;top:50%;height:1px;
     margin-top:-.5px;background:var(--border-strong)}
-  /* The travelled part of the line, under the dots that are behind you. It is
-     the brand blue rather than more of the hairline, so the rail reads as a
-     progress in one glance without a second element to say so. --k is set by
-     JS: the fraction of the way along the sequence the current step sits. */
-  /* Full span, scaled from its left end, rather than a width that grows.
-     Same line either way; this one animates on the compositor and cannot make
-     the browser re-measure anything to draw it. */
-  .step-rail::after{content:"";position:absolute;left:17px;right:17px;top:50%;height:1px;
-    margin-top:-.5px;background:var(--phenome-blue-400);
-    transform-origin:left center;transform:scaleX(var(--k,0));
-    transition:transform .42s var(--ease-frosted-out)}
-  .step-dot{position:relative;z-index:1;flex:none;width:34px;height:34px;padding:0;border:0;
+  .step-dot{position:relative;z-index:1;flex:none;width:28px;height:28px;padding:0;border:0;
     background:none;cursor:pointer;display:grid;place-items:center;
     -webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;border-radius:50%}
-  /* Three states on one mark, and each one is a step of ink rather than a
-     different shape: ahead is a hollow ring on the hairline, behind is the
-     same ring filled at the connector's blue, and current is a filled disc at
-     full brand blue with a ring of ground punched around it so it reads as
-     ON the line rather than as a bead threaded over it. */
-  .step-dot i{width:11px;height:11px;border-radius:50%;
-    border:1.5px solid var(--border-strong);background:var(--stage-field-1);
-    transition:background-color .3s var(--ease-frosted-out),
-               border-color .3s var(--ease-frosted-out),
-               transform .42s var(--ease-frosted-out),
-               box-shadow .3s var(--ease-frosted-out)}
+  /* Two states, not three. #fff rather than the ground tint because the mark
+     has to read as a bead sitting ON the hairline, and a bead the colour of
+     what is behind it reads as a gap in the line instead. */
+  .step-dot i{width:9px;height:9px;border-radius:50%;
+    border:1.5px solid var(--phenome-blue-200);background:#fff;box-shadow:none;
+    transition:width .16s cubic-bezier(.4,0,.2,1),height .16s cubic-bezier(.4,0,.2,1),
+               background-color .16s cubic-bezier(.4,0,.2,1),
+               border-color .16s cubic-bezier(.4,0,.2,1),
+               box-shadow .16s cubic-bezier(.4,0,.2,1)}
   .step-dot:hover i{border-color:var(--phenome-blue-400)}
-  .step-dot.done i{border-color:var(--phenome-blue-400);background:var(--phenome-blue-400)}
-  .step-dot.on i{border-color:var(--phenome-blue-500);background:var(--phenome-blue-500);
-    transform:scale(1.42);box-shadow:0 0 0 4px var(--stage-field-1)}
+  .step-dot.on i{width:13px;height:13px;
+    border-color:var(--phenome-blue-500);background:var(--phenome-blue-500);
+    box-shadow:0 0 0 5px #203a851a}
 
-  /* The count and the name, on the rail's own line, and the sentence under
-     them. "2 of 4" is the position and the name is what is at it, so they sit
-     on one line separated by the same middot the file's other pairings use.
-     Right-aligned against the rail for the same reason .hrt-vital is: every
-     line in this column ends on the same edge. */
-  .step-read{flex:1;min-width:0;text-align:right}
-  .step-count{display:flex;align-items:baseline;justify-content:flex-end;gap:7px;
-    font-family:var(--font-sans);font-size:var(--text-micro);letter-spacing:.04em}
+  /* The count and the name, on the rail's own line. "2 of 4" is the position
+     and the name is what is at it, so they sit on one line separated by the
+     same middot the file's other pairings use, right-aligned against the far
+     end so this column closes on the same edge as the panes below.
+
+     There was a sentence under this describing each part of the beat in plain
+     words. Cut: the rail names the part and the track under it scores the
+     part, so a line of prose between them was saying a third time what two
+     components had already said. */
+  .step-count{flex:1;min-width:0;display:flex;align-items:baseline;justify-content:flex-end;
+    gap:7px;font-family:var(--font-sans);font-size:var(--text-micro);letter-spacing:.04em}
   .step-count b{font-weight:var(--w-module);color:var(--ink-900);font-variant-numeric:tabular-nums}
   .step-count i{font-style:normal;color:var(--ink-400)}
   .step-count span{color:var(--ink-600)}
-  /* One sentence, in the product's own voice: what this part of the beat is,
-     in words a reader already has. Two lines at this measure, which is why the
-     rail above it is 34px tall and the block is aligned to the top. */
-  .step-note{margin-top:7px;font-size:var(--text-data);line-height:1.5;color:var(--ink-600)}
 
   /* The pane's content is replaced wholesale on every step, so the swap gets
      one authored moment rather than four things easing separately: it comes up
@@ -7943,8 +8074,14 @@ function organView(cfg) {
     document.getElementById('tabLab').click();
   });
 
-  /* a handle, the same way the figure pages expose theirs */
-  return { render, boot, renderer, camera, pivot };
+  /* A handle, the same way the figure pages expose theirs. `ready` is on it
+     because the body page's handoff has to know whether this organ is actually
+     drawn before it dissolves its own copy down onto it — dissolving into a
+     loading chip would be worse than not animating at all. boot() is safe to
+     call from there at any time and as often as it likes: it loads its one
+     file once, and CW/CH are constants, so it does not care whether this view
+     is on screen when it runs. */
+  return { render, boot, renderer, camera, pivot, ready: () => ready };
 }
 
 /* fill is measured against the whole bounding box, and for the heart the box

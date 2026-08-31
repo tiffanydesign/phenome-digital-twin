@@ -3850,6 +3850,121 @@ function buildHeart(){
   heartGo(0);
 }
 
+/* ── the same report, on the pose lab's own heart ────────────────────────────
+   The Pose Lab's heart study flies the camera into the chest, fades the body
+   out and leaves one organ on screen — and then said nothing about it. It is
+   the only place in the file where a reader is looking at a heart that is
+   actually beating: updatePoseOrgans drives the mesh off cardiacPulse, a real
+   two-phase waveform, where VIEW 4's organ is a static render by policy. A
+   rhythm report standing next to a still picture of a heart is the weaker of
+   the two pairings by some distance.
+
+   So VIEW 4's rail is rebuilt here, and REBUILT is the precise word: the
+   composition is stated again, because where a rail sits is a fact about one
+   page — this one is fixed to a window, not laid out on a 1366 stage — while
+   everything that carries meaning is the same object. HEART_STEPS is the same
+   table, heartStepHTML the same builder, waveformHTML the same chart with its
+   own clip id, and .gl / .org-* / .step-* / .trk the same classes. Change a
+   step's numbers and both pages change together; there is no second copy of
+   anything a reader reads.
+
+   What it does NOT bring across is pattern 02's pinned readouts, and the
+   reason is the camera. On VIEW 4 the four numbers sit at measured pixel
+   coordinates with leaders reaching back to the atrium, the AV node, the apex
+   and the free wall — the pattern's whole rule is that a leader points at the
+   place a number was taken from. Here the reader can orbit, pan and zoom, so
+   those anchors would have to be four world-space points on the mesh, tracked
+   and projected every frame. Pinned at fixed screen offsets instead they would
+   point at whatever happened to be behind them, which is pattern 02 saying
+   something untrue. The rail carries the numbers; the beat carries the figure.
+
+   Its own step state, deliberately. A reader on QRS here and on P over there
+   are looking at two screens, and neither is wrong about the other. */
+var POSE_HEART_STATE={ step:0, built:false };
+
+function poseHeartGo(i){
+  var n=HEART_STEPS.length, st, j, d;
+  i=(i%n+n)%n;
+  POSE_HEART_STATE.step=i; st=HEART_STEPS[i];
+
+  var rail=document.getElementById('poseHeartSteps');
+  if(rail) for(j=0;j<rail.children.length;j++){
+    d=rail.children[j];
+    d.classList.toggle('on', j===i);
+    d.setAttribute('aria-selected', String(j===i));
+    d.tabIndex = j===i ? 0 : -1;
+  }
+
+  var cn=document.getElementById('poseHeartStepN'); if(cn) cn.textContent=(i+1)+' of '+n;
+  var nm=document.getElementById('poseHeartStepName'); if(nm) nm.textContent=st.name;
+
+  var pane=document.getElementById('poseHeartDetail');
+  if(pane){
+    pane.innerHTML=heartStepHTML(st);
+    pane.classList.remove('swap'); void pane.offsetWidth; pane.classList.add('swap');
+  }
+
+  /* The strip answers the rail here too — same two attributes, same values, so
+     the map and the position on it agree on this page exactly as they do on
+     the other one. */
+  var host=document.getElementById('poseHeartWave');
+  if(host){
+    var rects=host.querySelectorAll('.wv-pane'), keys=host.querySelectorAll('.wv-key');
+    for(j=0;j<rects.length;j++)
+      rects[j].setAttribute('fill-opacity', +rects[j].dataset.i===i ? '.30' : '.09');
+    for(j=0;j<keys.length;j++)
+      keys[j].setAttribute('fill', +keys[j].dataset.i===i ? 'var(--ink-900)' : 'var(--ink-400)');
+  }
+}
+
+function buildPoseHeart(){
+  if(POSE_HEART_STATE.built) return;
+  var rail=document.getElementById('poseHeartSteps'); if(!rail) return;
+
+  var w=document.getElementById('poseHeartWave');
+  if(w) w.innerHTML=waveformHTML(ECG,'pose');
+
+  var out='',i;
+  for(i=0;i<HEART_STEPS.length;i++)
+    out+='<button class="step-dot" type="button" role="tab" data-i="'+i+'" tabindex="-1" '+
+         'aria-selected="false" aria-label="'+(i+1)+' of '+HEART_STEPS.length+', '+
+         HEART_STEPS[i].name+'"><i></i></button>';
+  rail.innerHTML=out;
+
+  rail.addEventListener('click',function(e){
+    var b=e.target.closest('.step-dot'); if(b) poseHeartGo(+b.dataset.i);
+  });
+  rail.addEventListener('keydown',function(e){
+    var n=HEART_STEPS.length, i=POSE_HEART_STATE.step;
+    if(e.key==='ArrowRight'||e.key==='ArrowDown') i=POSE_HEART_STATE.step+1;
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp') i=POSE_HEART_STATE.step-1;
+    else if(e.key==='Home') i=0;
+    else if(e.key==='End') i=n-1;
+    else return;
+    e.preventDefault(); poseHeartGo(i); rail.children[POSE_HEART_STATE.step].focus();
+  });
+
+  POSE_HEART_STATE.built=true;
+  poseHeartGo(0);
+}
+
+/* The handle the pose module drives this through, published the way the figure
+   pages publish theirs. The module owns when the flight is over; this owns what
+   is on screen when it is. */
+window.__poseHeartReport={
+  show:function(){
+    var host=document.getElementById('poseHeartReport'); if(!host) return;
+    buildPoseHeart();
+    host.classList.add('on');
+    host.setAttribute('aria-hidden','false');
+  },
+  hide:function(){
+    var host=document.getElementById('poseHeartReport'); if(!host) return;
+    host.classList.remove('on');
+    host.setAttribute('aria-hidden','true');
+  }
+};
+
 /* The kidney page's one chart, and it is section 04's dot meter unmodified —
    the same reading the specimen already shows, in the product that reading
    belongs to. 87 against a floor of 90 is the case the specimen was drawn
@@ -3871,9 +3986,8 @@ function buildHeart(){
    and the ceiling leave each other. Four numbers evenly spaced under a 240px
    meter, instead of three numbers and a pair that reads as one. */
 function buildKidney(){
-  var m=document.getElementById('kidneyMeter');
-  if(m) m.innerHTML=meterHTML({max:160,bounds:[90,120],value:87,status:'mon',
-    caption:'Just below the expected floor'});
+  /* The meter's own numbers have moved onto the step that shows it, so there is
+     nothing to write here but the control — and the control writes the pane. */
   buildKidneySteps();
 }
 
@@ -3899,12 +4013,79 @@ function buildKidney(){
    Both readings stay on screen. Only the current one holds its ink and the
    other steps back to a caption, which is the heart page's rule and its
    reasoning too: these are two facts about one organ, and hiding half of it to
-   look at the other would tell the reader they are separate. */
+   look at the other would tell the reader they are separate.
+
+   Each step carries its own pane, and the two are deliberately not the same
+   component. MOCK DATA, all of it, in the shape a real report would take.
+
+   The pressure panel is the one this page did not have. 129/82 was pinned on
+   the figure with nothing on the rail to stand behind it, so the step named a
+   reading the column could not answer for. Systolic against graded zones is
+   section 03's track doing exactly what it was drawn for — and 129 in Elevated
+   is the case worth showing, because a kidney page cares about pressure that is
+   not yet being treated as pressure.
+
+   Three zones and not four, and this is a fact about the component rather than
+   about the medicine. The clinical bands are <120 / 120-129 / 130-139 / 140+,
+   and the track centres each zone's name inside its own width: the two middle
+   bands are 10mmHg on a 90mmHg scale, so at four zones "Elevated" and
+   "Stage 1" overlap by thirteen pixels. Merged above 140 the names land at 17,
+   44 and 78 per cent with room to spare, and nothing about the reading is lost
+   — 129 sits in the same zone either way.
+
+   The night-time dip is the row that earns its place. A pressure that does not
+   fall overnight is the renal reading in a blood-pressure panel, and at 6%
+   against a normal 10-20% it is the second thing on this page pointing the same
+   way the eGFR discordance does.
+
+   Mean arterial pressure was a third row and is cut. At 98 it is
+   82 + (129-82)/3 to within a decimal — the two numbers already on the pane,
+   put through a formula. A row that a reader could derive from the row above it
+   is a row spending height on nothing. */
 var KIDNEY_STEPS=[
-  { name:'Blood pressure' },
-  { name:'Filtration rate' }
+  { name:'Blood pressure',
+    head:'Blood pressure', gloss:'brachial, seated average',
+    track:{name:'Systolic',meta:'24-hour average',value:129,unit:'mmHg',min:90,max:180,
+      bounds:[120,140],
+      zones:[{name:'Optimal'},{name:'Elevated'},{name:'High'}],
+      status:['mon','Monitor'],tinted:false},
+    rows:[['Diastolic','82<em>&nbsp;mmHg</em>','num'],
+          ['Night-time dip','Blunted, 6%','']] },
+
+  { name:'Filtration rate',
+    head:'Filtration rate', gloss:'eGFR, from creatinine',
+    meter:{max:160,bounds:[90,120],value:87,status:'mon',
+      caption:'Just below the expected floor'},
+    /* The card's own three rows, now under the reading they belong to. No
+       gloss on cystatin C: it IS a substance, and the h4 above already names
+       what is made from it. */
+    rows:[['Cystatin C','0.58<em>&nbsp;mg/L</em>','num'],
+          ['Waste products <i>creatinine, urea, urate</i>','Monitor','pill mon'],
+          ['Minerals <i>calcium, magnesium, phosphate</i>','Normal','pill ok']] }
 ];
 var kidneyStep=0;
+
+/* One pane, two shapes, and the h4 is the same in both — a reader stepping the
+   rail should see the pane's title change and its chart change, not the pane
+   itself move. The chart is whichever component the reading asked for; the rows
+   under it are the same panel form in both, which is what keeps the two steps
+   reading as two of one thing.
+
+   Three row kinds, and each is a rung the rail already has: a measured number
+   at the card-row rung, a status as a pill, and a word in the sans because
+   there is nothing to align. */
+function kidneyStepHTML(s){
+  var h='<h4>'+s.head+' <span class="gloss">'+s.gloss+'</span></h4>', i, r, val;
+  h+=s.meter ? meterHTML(s.meter) : trackHTML(s.track);
+  for(i=0;i<(s.rows||[]).length;i++){
+    r=s.rows[i];
+    if(r[2]==='num') val='<b class="num">'+r[1]+'</b>';
+    else if(r[2] && r[2].indexOf('pill')===0) val='<span class="'+r[2]+'">'+r[1]+'</span>';
+    else val='<span class="step-val">'+r[1]+'</span>';
+    h+='<div class="sg-hair"></div><div class="sg-line"><span>'+r[0]+'</span>'+val+'</div>';
+  }
+  return h;
+}
 
 function kidneyGo(i){
   var n=KIDNEY_STEPS.length, s, j, d;
@@ -3929,6 +4110,16 @@ function kidneyGo(i){
      about. */
   var pins=document.querySelectorAll('#kidneyField .pin');
   for(j=0;j<pins.length;j++) pins[j].classList.toggle('dim', +pins[j].dataset.step!==i);
+
+  /* And the column answers it too. Replaced wholesale, so the swap gets one
+     authored moment rather than a title and a chart easing separately —
+     #heartDetail's own arrangement, including the reflow between remove and
+     add, without which a second press of the same kind never re-runs. */
+  var pane=document.getElementById('kidneyStepPane');
+  if(pane){
+    pane.innerHTML=kidneyStepHTML(s);
+    pane.classList.remove('swap'); void pane.offsetWidth; pane.classList.add('swap');
+  }
 }
 
 function buildKidneySteps(){
@@ -7876,40 +8067,37 @@ onView(window.__view);
             <div class="sg-zone"><u></u><b></b></div>
             <div class="sg-scale"><span>Low</span><span>Mild&nbsp;&middot;&nbsp;60</span><span>Normal&nbsp;&middot;&nbsp;90</span></div>
           </div>
-          <!-- The other three inputs, as rows under the same hairline the
-               specimen already draws once. They were a third pane, two
-               columns of name-over-substances with a status under each, and
-               it cost the rail 200px it does not have: the stage is 1024 tall
-               and a rail centred in it cannot run past 950 without touching
-               both frames. Section 06 had the cheaper form all along — a
-               panel whose rows are separated by .sg-hair, no per-row surface —
-               and it is also the truer one, because these are not three
-               subjects. They are the four readings the verdict at the top of
-               the page was made from, and a panel is what says so. -->
-          <div class="sg-hair"></div>
-          <div class="sg-line">
-            <!-- no gloss: cystatin C IS a substance, and the row above already
-                 names what is made from it. A second line here also broke the
-                 row's baseline, which is the one thing .sg-line is for. -->
-            <span>Cystatin C</span>
-            <b class="num">0.58<em>&nbsp;mg/L</em></b>
-          </div>
-          <div class="sg-hair"></div>
-          <div class="sg-line">
-            <span>Waste products <i>creatinine, urea, urate</i></span>
-            <span class="pill mon">Monitor</span>
-          </div>
-          <div class="sg-hair"></div>
-          <div class="sg-line">
-            <span>Minerals <i>calcium, magnesium, phosphate</i></span>
-            <span class="pill ok">Normal</span>
-          </div>
+          <!-- The three chemistry rows that used to close this card have moved
+               into the Filtration step's own pane, and the move is about
+               meaning before it is about height. Cystatin C, the waste
+               products and the minerals are all filtration evidence; sitting
+               here they stood above a Blood pressure reading and answered for
+               nothing in it. Under the step they are what that step was made
+               from, which is the same relationship #heartDetail's three
+               supporting rows have to the interval above them.
+
+               It also happens to settle the one thing that was wrong with the
+               stepper. The two panes were 368 and 182, so a centred rail grew
+               and shrank by 186 and the whole column jumped ninety pixels
+               every time a reader pressed a disc. With the rows on the step
+               that needs them the two panes are the same height, the rail is
+               one height, and nothing moves but the pane's contents. -->
         </div>
 
-        <div class="gl org-pane">
-          <h4>Filtration rate <span class="gloss">eGFR, from creatinine</span></h4>
-          <div id="kidneyMeter"></div>
-        </div>
+        <!-- The step's own evidence, written by JS, and it is what makes the
+             stepper a control rather than a caption: the card above is the
+             verdict's four inputs and does not move, and this pane is whichever
+             reading the rail is on. VIEW 4's #heartDetail exactly, one pane
+             down: the thing that stays is the summary, the thing that swaps is
+             the reading.
+
+             The two readings take different charts, and the view's own header
+             already argues for why — a filtration rate is one number against
+             one band, so it takes section 04's meter; a pressure is a number
+             against four graded zones, so it takes section 03's track. Same
+             rail, same rungs, two components that were each drawn for the
+             question being asked. -->
+        <div class="gl org-pane" id="kidneyStepPane"></div>
       </div>
 
     </div>
@@ -8001,6 +8189,24 @@ onView(window.__view);
   #kidneyBar .lab-bar-nav button{width:38px;height:38px;font-size:17px}
   /* Both discs stay live and the sequence wraps, so neither ever goes dead —
      there are two readings and either button reaches the other one. */
+
+  /* ── the step's pane ──
+     #heartDetail's four rules verbatim, for the same reason it has them: the
+     scored reading keeps the track's 33px value rung and the supporting rows
+     take the rung under it, or the pane is four readings in a list. The first
+     hairline carries the pane's own division, so the gap above it is wider —
+     the reading and its evidence are two groups, not four rows. */
+  #kidneyStepPane.swap{animation:stepIn .46s var(--ease-frosted-out)}
+  #kidneyStepPane .sg-line b{font-size:var(--kpi-value-sm)}
+  #kidneyStepPane .sg-line{min-height:30px}
+  #kidneyStepPane .trk + .sg-hair,
+  #kidneyStepPane .meter-case + .sg-hair{margin-top:22px}
+  #kidneyStepPane .step-val{font-size:var(--text-label);color:var(--ink-900)}
+  /* the substances a reading is made of, on the reading's own line: .kid-fn's
+     own rule, following its rows to the pane they moved into */
+  #kidneyStepPane .sg-line i{font-style:normal;margin-left:8px;
+    font-size:var(--text-data);color:var(--ink-600)}
+  @media(prefers-reduced-motion:reduce){#kidneyStepPane.swap{animation:none}}
 
   /* ── the rail's type ─────────────────────────────────────────────────────
      It had eight sizes on one column — 44, 33, 24, 18, 15, 14, 13 and 11 —
@@ -8893,11 +9099,39 @@ window.__kidneyView = organView({
       </footer>
     </aside>
 
-    <div class="pose-camera-hint" aria-hidden="true">
-      <span>Drag orbit</span><i></i><span>Shift-drag pan</span><i></i><span>Scroll zoom</span><i></i><span>Double-click focus</span>
-    </div>
-
     <div class="anatomy-pin-layer" id="anatomyPinLayer" aria-hidden="true"></div>
+
+    <!-- ── the heart study's report ──
+         VIEW 4's rail, on the study that flies you to the organ it is about.
+         Written here rather than shared with that view because a rail's SEAT is
+         a fact about one page: that one is laid out on a 1366x1024 stage and
+         scaled, this one is fixed to the window beside a camera the reader can
+         move. Everything inside is the other page's — same classes, same
+         builders, same HEART_STEPS — so the two cannot drift on anything a
+         reader actually reads.
+
+         It is empty on purpose. buildPoseHeart fills the strip and the dots the
+         first time the study lands, so a reader who never opens the heart study
+         never pays for the chart. -->
+    <div class="pose-report" id="poseHeartReport" aria-hidden="true">
+      <div class="org-head">
+        <h1 class="org-title">Heart rhythm</h1>
+        <b class="hrt-state">Normal</b>
+      </div>
+
+      <div class="org-steps">
+        <div class="step-rail" id="poseHeartSteps" role="tablist"
+             aria-label="Which part of the beat"></div>
+        <div class="step-count"><b id="poseHeartStepN">1 of 4</b><i>&middot;</i><span id="poseHeartStepName"></span></div>
+      </div>
+
+      <div class="org-rule"></div>
+      <div class="gl org-pane">
+        <h4>Rhythm strip</h4>
+        <div id="poseHeartWave"></div>
+      </div>
+      <div class="gl org-pane" id="poseHeartDetail"></div>
+    </div>
 
     <div class="prov on-stage pose-prov" data-open="false">
       <button class="prov-btn" type="button" aria-expanded="false" aria-controls="provPose"
@@ -8932,13 +9166,31 @@ window.__kidneyView = organView({
     color:var(--ink-900)}
   .pose-intro p{margin-top:18px;max-width:245px;font-size:15px;line-height:1.55;color:var(--ink-600)}
 
-  .pose-readout{position:absolute;z-index:3;left:40px;bottom:92px;display:flex;align-items:center;
-    gap:16px;pointer-events:none}
+  /* ── which study · top right ──────────────────────────────────────────────
+     It sat bottom-left, which is where three other things are: the provenance
+     disc, the tab bar and — on an organ study — the figure's own lower half. At
+     40/92 it was reading over the tab bar's left end and under the model.
+
+     Top right is the one corner this view leaves empty, and it is the corner
+     the rest of the file already uses for a page's identity: the body page puts
+     "Phenome Digital Twin" there, the home page its own mark. A study's number
+     and name is that — what you are looking at, stated once, out of the way of
+     everything you can touch.
+
+     row-reverse, so the numbered disc lands outermost against the frame and
+     the name reads inward from it. Right-aligned text for the same reason: a
+     block set against the right edge that flushes left has a ragged edge
+     facing the frame. 48/40 rather than the intro's 40/48 — the mode switcher
+     opposite it is 40 from the left and 44 from the top, and this sits on that
+     line. */
+  .pose-readout{position:absolute;z-index:3;right:40px;top:44px;display:flex;
+    flex-direction:row-reverse;align-items:center;gap:16px;text-align:right;
+    pointer-events:none}
   .pose-readout>span{display:grid;place-items:center;width:50px;height:50px;border-radius:50%;
     color:var(--phenome-blue-500);font-size:11px;font-weight:700;letter-spacing:.08em;
     background:#ffffff70;border:1px solid #fff9;box-shadow:var(--gl-shadow-rest),var(--gl-inner);
     -webkit-backdrop-filter:var(--gl-blur-thin);backdrop-filter:var(--gl-blur-thin)}
-  .pose-readout div{display:flex;flex-direction:column;gap:3px}
+  .pose-readout div{display:flex;flex-direction:column;gap:3px;align-items:flex-end}
   .pose-readout b{font:400 24px/1.1 var(--font-serif-small);color:var(--ink-900)}
   .pose-readout small{font-size:12px;color:var(--ink-400);letter-spacing:.02em}
 
@@ -9209,18 +9461,62 @@ window.__kidneyView = organView({
   #poseWrap.skeletal-map .anatomy-skeletal-guide{display:flex}
   #poseWrap.anatomy-on.skeletal-map .anatomy-pin-layer{display:none}
   #poseWrap.anatomy-on .pose-intro h1{font-size:42px}
-  #poseWrap.anatomy-on .pose-camera-hint{display:none}
   #poseWrap.debug-on .pose-list,#poseWrap.debug-on .anatomy-review{display:none}
   #poseWrap.debug-on .pose-debug{display:flex}
   #poseWrap.debug-on .pose-sidebar>footer{display:none}
-  #poseWrap.debug-on .pose-camera-hint{left:calc(50% - 65px)}
 
-  .pose-camera-hint{position:absolute;z-index:3;left:calc(50% + 56px);bottom:34px;transform:translateX(-50%);
-    display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;
-    color:var(--ink-400);background:#f8fbff9c;border:1px solid #ffffffb8;
-    box-shadow:var(--gl-shadow-rest);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-    font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;pointer-events:none}
-  .pose-camera-hint i{width:2px;height:2px;border-radius:50%;background:var(--ink-300)}
+  /* The camera-hint pill is gone — a row of uppercase mouse instructions across
+     the bottom of the stage, in the one place the tab bar and the study bar
+     already are. The sidebar's footer still states the same four moves for
+     anyone who goes looking, which is where an instruction belongs. */
+
+  /* ── the heart study's report ─────────────────────────────────────────────
+     520 is VIEW 4's rail width, unchanged, because the panes inside it are that
+     page's panes and a card drawn at 520 reads at 520. right:40 puts it on the
+     study readout's own margin, and the two stack: what you are looking at,
+     then what it says.
+
+     Centred on the window rather than seated at a top, and here that is the
+     right choice for the reason VIEW 4's note gives — the pane below the rule
+     is replaced on every step and its height moves with the step's own content,
+     so a top would have to be re-guessed for the tallest of four. Centred, the
+     column breathes from its middle and the head stays where the eye left it.
+
+     The figure is the other half of the composition. The heart study frames the
+     organ left of centre already, so nothing about the camera had to move: the
+     rail lands in the space the flight leaves empty. */
+  .pose-report{position:absolute;z-index:4;right:40px;top:50%;width:520px;
+    transform:translateY(-50%);opacity:0;pointer-events:none;
+    transition:opacity .55s var(--ease-frosted-out)}
+  /* Only once the flight is over. The report is what the study arrives AT, so
+     it has no business being on screen while the camera is still travelling —
+     and pointer-events follow opacity, or an invisible rail would eat the drag
+     that orbits the model. */
+  .pose-report.on{opacity:1;pointer-events:auto}
+  /* Three things it yields to, all of them at the same corner. The study list
+     grows upward out of the sidebar and would run straight through the panes;
+     the anatomy and debug modes own the whole right column for their own
+     controls. */
+  #poseWrap.study-open .pose-report{opacity:0;pointer-events:none}
+  #poseWrap.anatomy-on .pose-report,
+  #poseWrap.debug-on .pose-report{display:none}
+  #poseHeartDetail.swap{animation:stepIn .46s var(--ease-frosted-out)}
+  /* #heartDetail's rules, following its panes to the page they are drawn on
+     again — the scored reading keeps the track's value rung and the supporting
+     rows take the rung under it. */
+  #poseHeartDetail .sg-line b{font-size:var(--kpi-value-sm)}
+  #poseHeartDetail .sg-line{min-height:28px}
+  #poseHeartDetail .trk + .sg-hair{margin-top:22px}
+  #poseHeartDetail .step-val{font-size:var(--text-label);color:var(--ink-900)}
+  #poseHeartWave .wv-pane{transition:fill-opacity .42s var(--ease-frosted-out)}
+  #poseHeartWave .wv-key{transition:fill .42s var(--ease-frosted-out)}
+  @media(prefers-reduced-motion:reduce){
+    .pose-report{transition:none}
+    #poseHeartDetail.swap{animation:none}
+    #poseHeartWave .wv-pane,#poseHeartWave .wv-key{transition:none}}
+  /* Below this the window cannot hold a 520 rail and a figure side by side, so
+     the study keeps the figure and the report stands down. */
+  @media(max-width:1180px),(max-height:760px){.pose-report{display:none}}
 
   .pose-prov{left:108px!important;bottom:99px!important}
   .pose-load{position:absolute;z-index:6;left:50%;top:50%;display:flex;align-items:center;gap:11px;
@@ -9244,7 +9540,6 @@ window.__kidneyView = organView({
     .pose-choice>span:nth-child(2){gap:2px}
     .pose-sidebar>footer{padding-top:10px}
   }
-  @media(max-width:1220px){.pose-camera-hint{display:none}}
   @media(max-width:720px){
     .pose-intro{left:22px;top:26px;width:220px}
     .pose-intro h1{font-size:38px}
@@ -9255,8 +9550,7 @@ window.__kidneyView = organView({
       width:min(360px,calc(100vw - 24px));padding:16px 10px 12px}
     .pose-choice{grid-template-columns:24px 1fr 15px;min-height:54px;padding:6px 9px}
     .pose-choice small,.pose-sidebar>footer small{display:none}
-    .pose-readout{left:22px;bottom:86px}
-    .pose-camera-hint{display:none}
+    .pose-readout{right:22px;top:22px}
     .pose-prov{display:none}
   }
 
@@ -13139,8 +13433,30 @@ poseDebugCopy.addEventListener('click',async()=>{
 
 const poseHasStudyEffect=(item)=>item===POSES.natural||item===POSES.composition||item===POSES.skeletal||item===POSES.dermatology;
 const poseHasLivingIdle=(item)=>item===POSES.natural||item===POSES.eye;
+/* The heart study's report, and the two rules it lives by: it is never on
+   screen while the camera is moving, and it is only ever on screen for the one
+   study it is about. Both are enforced here rather than in the report itself,
+   because this function is the only thing that knows when a flight starts and
+   when it has finished. */
+const poseReportFor=(item)=>item===POSES.heart?window.__poseHeartReport:null;
+let poseReportTimer=0;
+function hidePoseReports(){
+  if(poseReportTimer){clearTimeout(poseReportTimer);poseReportTimer=0;}
+  window.__poseHeartReport?.hide();
+}
+function showPoseReportFor(item){ poseReportFor(item)?.show(); }
+/* Cleared by hidePoseReports, which every transition calls on its way in — so a
+   reader who leaves the heart study while its report is still queued does not
+   get it landing on top of the study they moved to. */
+function queuePoseReport(item,delay){
+  if(!poseReportFor(item))return;
+  if(poseReportTimer)clearTimeout(poseReportTimer);
+  poseReportTimer=setTimeout(()=>{poseReportTimer=0;showPoseReportFor(item);},delay);
+}
+
 function runPoseTransition(item,immediate=false){
   if(poseFrame)cancelAnimationFrame(poseFrame);
+  hidePoseReports();
   const poseDuration=item.poseDuration||900,cameraDuration=item.cameraDuration||1200;
   const hasEffects=poseHasStudyEffect(item);
   const moveCamera=true;
@@ -13162,6 +13478,9 @@ function runPoseTransition(item,immediate=false){
     beginPoseBodyFade(item.organ?0:1,0,settledAt);
     beginPoseOrganReveal(item.organ?1:0,0,settledAt);
     poseNote.textContent=item.note;renderPose();
+    /* No flight to wait for on this path — a deep link, or a reader who asked
+       for reduced motion — so the report is simply already there. */
+    showPoseReportFor(item);
     return;
   }
   const transitionStart=performance.now();
@@ -13207,6 +13526,11 @@ function runPoseTransition(item,immediate=false){
       beginPoseOrganReveal(1,ORGAN_PIXEL_ASSEMBLY_DURATION,revealStart);
       if(poseTransition.item.organ){beginPoseBodyFade(0,ORGAN_BODY_FADE_DURATION,revealStart);poseTransition.organBodyFadeStarted=true;}
       poseTransition.organRevealStarted=true;
+      /* When the dots will have finished assembling. The reveal is deliberately
+         led into the camera move — 1200ms early on the heart — so it ends after
+         the camera has already stopped, and the report waits for THIS rather
+         than for the flight. */
+      poseTransition.organRevealEndsAt=revealStart+ORGAN_PIXEL_ASSEMBLY_DURATION;
     }
     poseNote.textContent=poseT<1?'Transitioning · '+poseTransition.item.note:poseTransition.item.note;
     renderPose();
@@ -13214,6 +13538,7 @@ function runPoseTransition(item,immediate=false){
     const completedItem=poseTransition.item;
     const organRevealPrestarted=poseTransition.organRevealStarted;
     const organBodyFadePrestarted=poseTransition.organBodyFadeStarted;
+    const organRevealEndsAt=poseTransition.organRevealEndsAt;
     const idlePrestarted=poseHasLivingIdle(completedItem)&&Number.isFinite(idleMotionStart);
     currentPose=copyPose(poseTransition.to);poseNote.textContent=completedItem.note;
     poseTransition=null;poseFrame=0;
@@ -13225,6 +13550,13 @@ function runPoseTransition(item,immediate=false){
     if(!poseHasStudyEffect(completedItem))studyEffectStart=Infinity;
     else if(!Number.isFinite(studyEffectStart))studyEffectStart=now;
     idleMotionState.lastUpdate=-Infinity;if(!idlePrestarted)idleMotionState.blend=0;
+    /* The organ is still assembling out of its own dots for a moment after the
+       camera stops, so the report waits for that rather than for this. The
+       remainder is whatever is left of the assembly, or the whole of it if the
+       reveal has not been led in. */
+    const revealRemaining=Math.max(0,
+      (Number.isFinite(organRevealEndsAt)?organRevealEndsAt:now+ORGAN_PIXEL_ASSEMBLY_DURATION)-now);
+    queuePoseReport(completedItem,revealRemaining);
   };
   poseFrame=requestAnimationFrame(step);
 }
@@ -13443,6 +13775,9 @@ async function bootPose(){
     beginPoseBodyFade(bootItem.organ?0:1,0,bootSettledAt);
     beginPoseOrganReveal(bootItem.organ?1:0,0,bootSettledAt);
     poseLoad.classList.add('off');resizePose();renderPose();startHologram();
+    /* A ?study=heart deep link arrives already framed — there was no flight to
+       wait for — so the report comes up with the organ. */
+    showPoseReportFor(bootItem);
     window.__poses={
       THREE,POSES,geometry,mesh,camera,renderer,selectPose,joints:J,cameraState,poseBodySex,poseBodyLabel,
       resetPoseCamera,resolveCameraCue,setAnatomyMode,setAnatomyView,setAnatomySection,setAnatomyOrgan,setAnatomyOrganView,setAnatomyShowAllOrgans,setAnatomySkeletalView,

@@ -3552,6 +3552,15 @@ function beatPath(x0,w){
    already uses for the cyan it bleeds across the page's own seam. */
 function waveformHTML(o,uid){
   var W=560,H=134,n=o.panes.length,pw=W/n;
+  /* Headroom above the drawing, and it is a fix rather than a decision about
+     spacing. The four keys are set at 19 on a baseline of 13, so a capital
+     reaches about 0.7 units above the box and the whole em square reaches 5.5
+     above it — the strip was shaving the tops off P, PR, QRS and QTc against
+     its own edge. Nothing inside moves: the viewBox opens upward by TOP and
+     every authored coordinate below stays exactly where it was written, which
+     is the only way to add room to an SVG without re-deriving the bracket, the
+     bands, the rules and the clip against a new origin. */
+  var TOP=8;
   var PER=132, k=PER/BEAT.end, nb=Math.ceil(W/PER)+1, i,j,p,a,b,h='';
   var g='wv-'+(uid||'a');
   /* the beat whose feature sits closest to each pane's centre is the beat that
@@ -3566,7 +3575,7 @@ function waveformHTML(o,uid){
   /* No height attribute. With one, the viewBox scales to fit and the strip
      letterboxes — it was drawing 111px tall inside a 134px box and paying for
      two empty bands. The viewBox carries the ratio; height:auto reads it. */
-  h='<svg viewBox="0 0 '+W+' '+H+'" style="display:block;width:100%;height:auto" '+
+  h='<svg viewBox="0 '+(-TOP)+' '+W+' '+(H+TOP)+'" style="display:block;width:100%;height:auto" '+
     'role="img" aria-label="'+o.aria+'">'+
     '<defs><clipPath id="'+g+'-c"><rect x="0" y="16" width="'+W+'" height="112"/>'+
     '</clipPath></defs>';
@@ -3862,9 +3871,135 @@ function buildHeart(){
    and the ceiling leave each other. Four numbers evenly spaced under a 240px
    meter, instead of three numbers and a pair that reads as one. */
 function buildKidney(){
-  var m=document.getElementById('kidneyMeter'); if(!m) return;
-  m.innerHTML=meterHTML({max:160,bounds:[90,120],value:87,status:'mon',
+  var m=document.getElementById('kidneyMeter');
+  if(m) m.innerHTML=meterHTML({max:160,bounds:[90,120],value:87,status:'mon',
     caption:'Just below the expected floor'});
+  buildKidneySides();
+}
+
+/* ── which kidney · one state, two handles ───────────────────────────────────
+   A kidney is one of a pair and the page was drawing one of them without ever
+   saying which. This is that, and it is the heart page's stepper with two
+   places on it instead of four: the dots on the rail say where you are, the
+   discs under the organ move you, and both are written off this list so they
+   cannot end up disagreeing about how many sides a body has.
+
+   The figure is the payload. Left and right kidney are mirror images of each
+   other — the hilum, the vessels and the ureter leave one toward the midline
+   and the other away from it — so the other side is this model reflected
+   across the field's own centre, and there is no second file to load. The
+   annotation has to be reflected with it or pattern 02's leaders end up
+   pointing at cortex where they were drawn to point at the hilum, which is why
+   the leads and the pins are data here rather than markup: 708 - x, worked
+   once and written down.
+
+   The pins are anchored by `right` on the reflected side rather than by a
+   `left` computed from their own width. The rule under a number is what the
+   leader reaches back from, so it is the number's outer edge that has to land
+   on the mirrored coordinate — and a block positioned from that edge lands
+   there whatever the face measures, which a hard-coded left does not. It also
+   makes the number arithmetic-free: a block's distance from the right frame
+   after the reflection IS its distance from the left frame before it, so the
+   mirrored `right` is the same value the unmirrored `left` already carries.
+
+   MOCK DATA of a kind worth naming: both pinned readings are of the BODY, not
+   of a kidney. Blood pressure is systemic and 87 mL/min is a whole-body eGFR —
+   the same 87 the meter on the rail scores — so neither changes when the side
+   does, and neither should. What changes is which kidney you are looking at. */
+var KIDNEY_SIDES=[
+  { name:'Left kidney',
+    leads:['632,392 470,392 386,428','96,706 240,706 306,672'],
+    dots:[[386,428],[306,672]],
+    pins:[{left:520},{left:96}] },
+  { name:'Right kidney',
+    leads:['76,392 238,392 322,428','612,706 468,706 402,672'],
+    dots:[[322,428],[402,672]],
+    pins:[{right:520},{right:96}] }
+];
+var kidneySide=0;
+
+function kidneyGo(i){
+  var n=KIDNEY_SIDES.length, s, j, d, el, g;
+  i=(i%n+n)%n;
+  kidneySide=i;
+  s=KIDNEY_SIDES[i];
+
+  var rail=document.getElementById('kidneySteps');
+  if(rail) for(j=0;j<rail.children.length;j++){
+    d=rail.children[j];
+    d.classList.toggle('on', j===i);
+    d.setAttribute('aria-selected', String(j===i));
+    d.tabIndex = j===i ? 0 : -1;
+  }
+
+  var cn=document.getElementById('kidneyStepN'); if(cn) cn.textContent=(i+1)+' of '+n;
+  var nm=document.getElementById('kidneyStepName'); if(nm) nm.textContent=s.name;
+  var bn=document.getElementById('kidneyBarName'); if(bn) bn.textContent=s.name;
+
+  /* the leaders and their dots, in the SVG's own units */
+  g=document.getElementById('kidneyLeads');
+  if(g){
+    var lines=g.querySelectorAll('polyline'), dots=g.querySelectorAll('circle');
+    for(j=0;j<lines.length && j<s.leads.length;j++) lines[j].setAttribute('points', s.leads[j]);
+    for(j=0;j<dots.length && j<s.dots.length;j++){
+      dots[j].setAttribute('cx', s.dots[j][0]);
+      dots[j].setAttribute('cy', s.dots[j][1]);
+    }
+  }
+
+  /* and the two readouts they reach back from. left and right are set as a
+     pair — one is always cleared — or the block would keep whichever edge it
+     was last anchored by and stretch between the two. */
+  var pins=[document.getElementById('kidneyPinBp'),
+            document.getElementById('kidneyPinGfr')];
+  for(j=0;j<pins.length;j++){
+    el=pins[j]; if(!el) continue;
+    d=s.pins[j];
+    el.style.left  = d.left  != null ? d.left +'px' : 'auto';
+    el.style.right = d.right != null ? d.right+'px' : 'auto';
+    el.style.textAlign = d.right != null ? 'right' : 'left';
+  }
+
+  /* The model itself. The handle is exposed by organView so this page never
+     touches a renderer, a camera or a scene graph it does not own. */
+  var v=window.__kidneyView;
+  if(v && v.mirror) v.mirror(i===1);
+}
+
+function buildKidneySides(){
+  var rail=document.getElementById('kidneySteps'); if(!rail) return;
+  var out='',i;
+  for(i=0;i<KIDNEY_SIDES.length;i++)
+    out+='<button class="step-dot" type="button" role="tab" data-i="'+i+'" tabindex="-1" '+
+         'aria-selected="false" aria-label="'+(i+1)+' of '+KIDNEY_SIDES.length+', '+
+         KIDNEY_SIDES[i].name+'"><i></i></button>';
+  rail.innerHTML=out;
+
+  rail.addEventListener('click',function(e){
+    var b=e.target.closest('.step-dot'); if(b) kidneyGo(+b.dataset.i);
+  });
+  /* One tab stop for the sequence and the arrows move along it, the same shape
+     the heart's rail and the mode switcher's listbox both take. */
+  rail.addEventListener('keydown',function(e){
+    var n=KIDNEY_SIDES.length, i=kidneySide;
+    if(e.key==='ArrowRight'||e.key==='ArrowDown') i=kidneySide+1;
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp') i=kidneySide-1;
+    else if(e.key==='Home') i=0;
+    else if(e.key==='End') i=n-1;
+    else return;
+    e.preventDefault(); kidneyGo(i); rail.children[kidneySide].focus();
+  });
+
+  /* The bottom bar's two discs, and they wrap for the heart bar's own reason
+     one step simpler: with two sides, either disc reaches the other one, so
+     stopping the reader at an end would leave a control that does nothing
+     half the time. Nothing is disabled and nothing goes grey. */
+  function sideBy(d){ kidneyGo(kidneySide + d); }
+  var p=document.getElementById('kidneyPrev'), nx=document.getElementById('kidneyNext');
+  if(p)  p.addEventListener('click',function(){ sideBy(-1); });
+  if(nx) nx.addEventListener('click',function(){ sideBy(1); });
+
+  kidneyGo(0);
 }
 
 function buildTracks(){
@@ -4188,26 +4323,6 @@ var VIEWS={scan:'viewScan',lab:'viewLab',heart:'viewHeart',kidney:'viewKidney',
 window.__view = window.__view || 'scan';
 var TABS ={scan:'tabScan', lab:'tabLab', heart:'tabDetail', kidney:'tabDetail',
            pose:'tabPose', debug:'tabPose', map:'tabPose', spec:'tabSpec'};
-/* The pose lab is the only view that writes its own route. It has a sex and a
-   study to name and a link to them is worth having, so it keeps ?view, ?sex and
-   ?study current as you move through it. Nothing else writes the route, which
-   means nothing else was ever going to clear it: press Pose lab, press Home,
-   reload, and the page opens on the pose lab because ?view=pose is still
-   standing. So the tab that leaves takes those three with it.
-
-   Only those three, and only on the way out of a pose route. A deep link into
-   any other view is not ours to erase — ?view=heart is how a review is sent,
-   and it has to survive being read. */
-var POSE_ROUTES={pose:1,debug:1,map:1};
-function dropPoseRoute(which){
-  if(POSE_ROUTES[which])return;
-  var url=new URL(location.href);
-  if(!POSE_ROUTES[url.searchParams.get('view')])return;
-  url.searchParams.delete('view');
-  url.searchParams.delete('sex');
-  url.searchParams.delete('study');
-  history.replaceState(null,'',url);
-}
 function show(which){
   /* Compare IDS, not keys, and touch each element once — on both maps, for the
      same reason. Neither is one-to-one: three pose routes share one view and,
@@ -4249,7 +4364,6 @@ function show(which){
      can, so a module that arrives late has something to ask. See the catch-up
      lines at the end of each module. */
   window.__view = which;
-  dropPoseRoute(which);
   /* the second experience is heavy, so it only wakes up when it is on screen */
   window.dispatchEvent(new CustomEvent('viewchange',{detail:which}));
 }
@@ -5310,7 +5424,8 @@ try {
      only — its own transform is what positions it. */
   body.handoff-go #heartRail,
   body.handoff-go #heartBar,
-  body.handoff-go #kidneyRail{animation:reportFade .62s var(--ease-frosted-out) both}
+  body.handoff-go #kidneyRail,
+  body.handoff-go #kidneyBar{animation:reportFade .62s var(--ease-frosted-out) both}
   body.handoff-go #heartRail .org-pane,
   body.handoff-go #kidneyRail .org-pane{animation:reportRise .62s var(--ease-frosted-out) both}
   body.handoff-go #heartLeads,body.handoff-go #heartField .pin,
@@ -5342,6 +5457,7 @@ try {
   @media(prefers-reduced-motion:reduce){
     body.handoff-go #labWrap,
     body.handoff-go #heartRail,body.handoff-go #kidneyRail,
+    body.handoff-go #heartBar,body.handoff-go #kidneyBar,
     body.handoff-go #heartLeads,body.handoff-go #heartField .pin,
     body.handoff-go #kidneyLeads,body.handoff-go #kidneyField .pin{animation:none}
     #labWrap.diving .lab-back,
@@ -7209,7 +7325,7 @@ onView(window.__view);
              not. Buttons are written by JS off HEART_STEPS so the rail, the
              pane under it and the pins on the figure cannot disagree about how
              many steps there are or what they are called. -->
-        <div class="hrt-steps">
+        <div class="org-steps">
           <div class="step-rail" id="heartSteps" role="tablist"
                aria-label="Which part of the beat"></div>
           <div class="step-count"><b id="heartStepN">1 of 4</b><i>&middot;</i><span id="heartStepName"></span></div>
@@ -7448,8 +7564,14 @@ onView(window.__view);
      the composition needs, which is the same split .hot uses on the body page.
      28 rather than the 34 this had, because the button's own width is what
      sets the spacing here and 28 puts the dot centres where the reference
-     has them. */
-  .hrt-steps{display:flex;align-items:center;justify-content:space-between;
+     has them.
+
+     .org-, not .hrt-. The kidney rail draws this row too — two dots on it
+     rather than four, naming which of a pair you are looking at — and a
+     stepper is not anything about a heartbeat. Same reasoning the rest of the
+     .org- family is named on, and made for the same reason: the second page
+     to want it is the moment a copy would start drifting. */
+  .org-steps{display:flex;align-items:center;justify-content:space-between;
     gap:26px;margin-top:20px}
   .step-rail{position:relative;flex:none;display:flex;align-items:center;height:28px}
   .step-rail::before{content:"";position:absolute;left:14px;right:14px;top:50%;height:1px;
@@ -7712,14 +7834,14 @@ onView(window.__view);
           </g>
         </svg>
 
-        <div class="pin" style="left:520px;top:326px">Blood pressure<b class="num">129<em>/82</em></b></div>
+        <div class="pin" id="kidneyPinBp" style="left:520px;top:326px">Blood pressure<b class="num">129<em>/82</em></b></div>
         <!-- Low, not level with the organ's middle. A kidney is widest across
              its own centre and the left readout's rule was running under the
              flank rather than beside it — with the number's own hairline
              disappearing into the dots, which is the one line pattern 02 needs
              to stay legible. At the lower pole the silhouette has curved back
              in and the whole block sits clear of it. -->
-        <div class="pin" style="left:96px;top:640px">Filtration rate<b class="num">87<em>mL/min</em></b></div>
+        <div class="pin" id="kidneyPinGfr" style="left:96px;top:640px">Filtration rate<b class="num">87<em>mL/min</em></b></div>
 
         <div class="lab-load" id="kidneyLoad"><i></i><span>Loading</span></div>
       </div>
@@ -7736,6 +7858,23 @@ onView(window.__view);
           <h1 class="org-title">Kidneys</h1>
           <div class="kid-verdict">Monitor</div>
         </div>
+
+        <!-- Two, where the heart has four, and it is the same component doing
+             the same job: saying where in a set the figure opposite is. A beat
+             is a sequence and a pair is not, which changes nothing about the
+             control — the heart's own note already says these are places to
+             look and not steps toward finishing something, which is why the
+             connector never fills in behind the mark.
+
+             The dots and the discs under the organ are one control with two
+             handles, so both are written off KIDNEY_SIDES and neither can end
+             up naming a side the other does not have. -->
+        <div class="org-steps">
+          <div class="step-rail" id="kidneySteps" role="tablist"
+               aria-label="Which kidney"></div>
+          <div class="step-count"><b id="kidneyStepN">1 of 2</b><i>&middot;</i><span id="kidneyStepName"></span></div>
+        </div>
+
         <div class="org-rule"></div>
 
         <!-- Section 06's panel specimen, in the product it was drawn for. Its
@@ -7804,6 +7943,27 @@ onView(window.__view);
 
     </div>
   </div>
+
+  <!-- ── which kidney · the second handle on one control ──
+       #heartBar, at the one thing that differs: a pair is not a beat, so the
+       name says which of two organs is drawn rather than which part of one
+       signal. Everything else is that bar unchanged — outside #kidneyWrap
+       because it is viewport furniture and not something drawn in stage
+       coordinates, .lab-bar and its two pills straight off the body page, and
+       the same 26vw / bottom:80 seat, which is derived from the seam and the
+       tab bar and therefore holds on both reports.
+
+       Two controls carry this state and that is intended, the way three carry
+       the heart's: the dots in the column are where you ARE, and this is the
+       step, without asking a reader to hit a 28px target beside a 44px title.
+       kidneyGo() is the one place that knows, so they cannot disagree. -->
+  <div class="lab-bar on" id="kidneyBar">
+    <div class="lab-bar-name"><i></i><b id="kidneyBarName"></b></div>
+    <div class="lab-bar-nav">
+      <button id="kidneyPrev" type="button" aria-label="The other kidney, back">&#8249;</button>
+      <button id="kidneyNext" type="button" aria-label="The other kidney, forward">&#8250;</button>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -7831,6 +7991,36 @@ onView(window.__view);
   #kidneyBack{position:fixed}
   #kidneyRail{position:absolute;left:777px;top:50%;width:520px;
     transform:translate(var(--spread,0px),-50%)}
+
+  /* ── the side switcher, under the organ ──────────────────────────────────
+     #heartBar's block, repeated rather than shared, on the same rule the
+     geometry above is repeated on: where a bar sits is a fact about one
+     composition. Every number in it is that bar's and every one of them is
+     derived there — 26vw is half the seam, bottom:80 clears the tab bar, the
+     width is capped against the seam so the bar can never reach the column it
+     is not about, and 140 is what keeps its left end off the provenance disc.
+
+     The name takes the same rung for the same reason: the subject is stated at
+     44px two columns over, so a 34px name here would be a second title.
+
+     One thing does differ, and it is not a size. The heart's mark is the rail's
+     lit bead because four parts of a beat are not a sequence you can be further
+     along in. Two kidneys are not either — there is no first one — so the mark
+     is the same bead at the same geometry, and neither bar walks the body
+     page's orb ramp. */
+  #kidneyBar{position:fixed;left:26vw;bottom:80px;z-index:6;
+    width:min(560px,calc(52vw - 140px));transform:translateX(-50%)}
+  #kidneyBar.on{transform:translateX(-50%)}
+  #kidneyBar .lab-bar-name{gap:18px;padding:14px 26px}
+  #kidneyBar .lab-bar-name i{width:13px;height:13px;
+    background:var(--phenome-blue-500);box-shadow:0 0 0 5px #203a851a}
+  #kidneyBar .lab-bar-name b{font-family:var(--font-serif-xsmall);
+    font-size:var(--kpi-value-sm);white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis}
+  #kidneyBar .lab-bar-nav{padding:0 8px;gap:8px}
+  #kidneyBar .lab-bar-nav button{width:38px;height:38px;font-size:17px}
+  /* Both discs stay live and the sequence wraps, so neither ever goes dead —
+     there are two sides and either button reaches the other one. */
 
   /* ── the rail's type ─────────────────────────────────────────────────────
      It had eight sizes on one column — 44, 33, 24, 18, 15, 14, 13 and 11 —
@@ -8320,6 +8510,30 @@ function organView(cfg) {
     document.getElementById('tabLab').click();
   });
 
+  /* ── the other one of a pair ──
+     Reflecting the pivot rather than loading a second file, because for a
+     kidney that is not an approximation: the two are mirror images, and the
+     one difference a model would carry — the right sitting a little lower
+     under the liver — is a fact about where they are in the body, not about
+     what one looks like on its own stage.
+
+     Nothing in the two passes objects. matTone is DoubleSide, so a reflected
+     winding order does not cull, and its facing term is an abs(), so it does
+     not care which way a normal ended up pointing either. What does have to
+     run again is the framing: the bounding box reflects with the model, and
+     the camera is placed on the box's centre.
+
+     Called before the model lands it just sets the scale — boot() frames after
+     it adds the mesh, and it frames whatever the pivot is by then. */
+  function mirror(on) {
+    const s = on ? -1 : 1;
+    if (pivot.scale.x === s) return;
+    pivot.scale.x = s;
+    if (!ready) return;
+    frameOrgan();
+    render();
+  }
+
   /* A handle, the same way the figure pages expose theirs. `ready` is on it
      because the body page's handoff has to know whether this organ is actually
      drawn before it dissolves its own copy down onto it — dissolving into a
@@ -8327,7 +8541,7 @@ function organView(cfg) {
      call from there at any time and as often as it likes: it loads its one
      file once, and CW/CH are constants, so it does not care whether this view
      is on screen when it runs. */
-  return { render, boot, renderer, camera, pivot, ready: () => ready };
+  return { render, boot, renderer, camera, pivot, mirror, ready: () => ready };
 }
 
 /* fill is measured against the whole bounding box, and for the heart the box

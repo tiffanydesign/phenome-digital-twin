@@ -979,8 +979,13 @@ body{
    The pose switcher does not use this: it rides in .pose-intro's flow, beside
    the overline, so it tracks a line of type rather than a fixed offset. */
 .mode-switch.dock{position:fixed;z-index:51;left:82px;top:29px;display:none}
-body:has(#viewHeart.is-on) #detailMode,
+/* One dock, one occupant per view. The heart report has four parts to move
+   between and the kidney report has none, so the heart view gets the step
+   switcher and the kidney view keeps the organ switcher. Stacking both onto
+   the heart view would put two "which reading" dropdowns side by side and
+   make a reader pick a list before they can pick a row. */
 body:has(#viewKidney.is-on) #detailMode{display:block}
+body:has(#viewHeart.is-on) #heartStepMode{display:block}
 
 /* ---- arriving from the body, the detail page arrives bare ----
    The switcher is the detail PAGE's own control: it sits at the top-left with
@@ -2768,6 +2773,38 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:
   </ul>
 </div>
 
+<!-- The heart report's own switcher, in the same dock and the same component.
+     It answers the same shape of question the organ switcher answers — which
+     reading of this page am I looking at — one level further in: not which
+     organ, but which part of the beat. Two controls that do the same job
+     should not be looked for in two places, which is the reason the dock
+     exists at all, so this takes the dock rather than inventing a spot.
+
+     It REPLACES the organ switcher on this view rather than sitting beside it.
+     Two dropdowns eleven pixels apart, both offering "which reading", is the
+     reader working out which of two lists they are in before they can use
+     either. The way to the other report is the way a reader already came:
+     back to the body page and into the organ. The kidney page keeps the organ
+     switcher because it has no steps of its own to switch between.
+
+     The rows are written by JS off HEART_STEPS, like the rail's dots and the
+     pane under them, so the four places a reader can stand in this page are
+     stated once in one array. A hand-kept list here would be a fourth copy of
+     the order the beat runs in, and the first of the four to go stale.
+
+     data-mode carries the step's own key — P, PR, QRS, QTc — and not an
+     index, because the rhythm strip two columns over brackets those same four
+     keys. A reader opening this list is picking a label already on screen. -->
+<div class="mode-switch dock" id="heartStepMode">
+  <button class="mode-switch-btn gl" id="heartStepModeBtn" type="button"
+          aria-haspopup="listbox" aria-expanded="false" aria-label="Which part of the beat">
+    <b id="heartStepModeCurrent">Atrial contraction</b>
+    <svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+  </button>
+  <ul class="mode-switch-list gl" id="heartStepModeList" role="listbox"
+      aria-label="Which part of the beat" tabindex="-1"></ul>
+</div>
+
 <!-- Host for the tab bar's displacement filter. It has to be in the document
      for url(#id) to resolve; a detached fragment silently fails. -->
 <svg id="tabGlassDefs" aria-hidden="true" style="position:fixed;width:0;height:0;overflow:hidden"></svg>
@@ -3678,6 +3715,19 @@ function heartGo(i){
   var cn=document.getElementById('heartStepN'); if(cn) cn.textContent=(i+1)+' of '+n;
   var nm=document.getElementById('heartStepName'); if(nm) nm.textContent=st.name;
 
+  /* The other two faces of this one state. The bottom bar names the step it
+     is sitting on, and the switcher at the top-left states it as the row it
+     would be selecting — so the rail, the bar and the switcher are three ways
+     of pressing the same thing rather than three controls to reconcile.
+
+     The switcher's sync() is reached through the registry the switch binder
+     publishes, and it is reached defensively: this function also runs from
+     buildHeart(), and a heart page opened in a document where that binder
+     never ran should still step. */
+  var bn=document.getElementById('heartBarName'); if(bn) bn.textContent=st.name;
+  var sw=window.__switches && window.__switches.heartStepMode;
+  if(sw) sw.sync(st.key);
+
   var pane=document.getElementById('heartDetail');
   if(pane){
     pane.innerHTML=heartStepHTML(st);
@@ -3703,6 +3753,50 @@ function heartGo(i){
       keys[j].setAttribute('fill', +keys[j].dataset.i===i ? 'var(--ink-900)' : 'var(--ink-400)');
   }
 }
+
+/* The top-left switcher's four rows, off the same array as everything else on
+   this page. `small` is the step's clinical alias — the name a clinician would
+   use for the same interval — which is what the organ switcher's own second
+   line does for its two rows, and it is already in the data as track.meta.
+
+   Called from the switch binder rather than from buildHeart(), and the
+   difference matters: the binder reads its options once, at bind time, and
+   that happens while the document is still parsing. A list built later, on
+   DOMContentLoaded, would be bound to as an empty one. */
+function buildHeartStepList(){
+  var list=document.getElementById('heartStepModeList'); if(!list) return;
+  var out='',i,st;
+  for(i=0;i<HEART_STEPS.length;i++){
+    st=HEART_STEPS[i];
+    out+='<li role="option" data-mode="'+st.key+'" aria-selected="'+(i===0)+'">'+
+         '<b>'+st.name+'</b><small>'+st.track.meta+'</small></li>';
+  }
+  list.innerHTML=out;
+}
+
+/* Which step a key belongs to. The switcher and the rail address the beat
+   differently — one by name, one by position — and this is the one place that
+   converts, so neither has to hold the other's index. */
+function heartStepOf(key){
+  for(var i=0;i<HEART_STEPS.length;i++) if(HEART_STEPS[i].key===key) return i;
+  return 0;
+}
+
+/* The one seam out of this closure. The top-left switcher is viewport
+   furniture bound by the shell's own script, which cannot see anything in
+   here, so the page publishes exactly what that script needs and nothing
+   else: the four keys to build rows from, the builder, and one way to move.
+   HEART_STEPS itself stays private — handing out the array would invite a
+   second reader of it, and the point of the array is that there is one. */
+window.__heartSteps=(function(){
+  var keys=[],i;
+  for(i=0;i<HEART_STEPS.length;i++) keys.push(HEART_STEPS[i].key);
+  return {
+    keys:keys,
+    buildList:buildHeartStepList,
+    go:function(key){ heartGo(heartStepOf(key)); }
+  };
+})();
 
 /* The heart page's DOM half. Its markup is parsed after this script, so this
    runs on DOMContentLoaded with bindProvenance rather than in the boot line. */
@@ -3734,6 +3828,15 @@ function buildHeart(){
     else return;
     e.preventDefault(); heartGo(i); rail.children[i].focus();
   });
+
+  /* The bottom bar's two discs. They wrap, like the body page's do: the beat
+     is a loop and its last part is followed by its first, so stopping the
+     reader at either end would be the control disagreeing with the thing it
+     is moving through. Nothing is disabled and nothing goes grey. */
+  function stepBy(d){ heartGo((heartStep + d + HEART_STEPS.length) % HEART_STEPS.length); }
+  var p=document.getElementById('heartPrev'), nx=document.getElementById('heartNext');
+  if(p)  p.addEventListener('click',function(){ stepBy(-1); });
+  if(nx) nx.addEventListener('click',function(){ stepBy(1); });
 
   heartGo(0);
 }
@@ -5201,7 +5304,12 @@ try {
      belongs. Anything that wants to move here has to move a child.
 
      The panes are that child, and they carry the rise between them. */
+  /* #heartBar rides with the rail rather than with the pins: it is the
+     report's furniture, not a label on the organ, so it arrives when the
+     report does. Opacity only, for the same reason the rails take opacity
+     only — its own transform is what positions it. */
   body.handoff-go #heartRail,
+  body.handoff-go #heartBar,
   body.handoff-go #kidneyRail{animation:reportFade .62s var(--ease-frosted-out) both}
   body.handoff-go #heartRail .org-pane,
   body.handoff-go #kidneyRail .org-pane{animation:reportRise .62s var(--ease-frosted-out) both}
@@ -7120,6 +7228,33 @@ onView(window.__view);
 
     </div>
   </div>
+
+  <!-- The way along the beat, in the body page's own bar. That page has one
+       object for "you are on one of a set — which one, and how do you reach
+       the next": a name and a pair of discs, .lab-bar with .lab-bar-name and
+       .lab-bar-nav. This page asks the identical question one level in, so it
+       takes the component rather than drawing a second bar that resembles it.
+       .lab-back and .lab-load already cross from that page to this one on the
+       same reasoning, which is why the class keeps its lab- name here.
+
+       It sits OUTSIDE #heartWrap on purpose. The wrap is the letterboxed
+       1366x1024 stage and everything in it is drawn in stage coordinates and
+       then scaled; this is viewport furniture, like the back button above it,
+       and it belongs at the frame's own bottom rather than at the picture's.
+
+       Three controls now carry the same state — this bar, the dot rail in the
+       column, and the switcher at the top-left — and that is intended rather
+       than overlooked. The rail is where you ARE (four marks, one lit), the
+       switcher is a jump to any of them by name, and this is the step either
+       way without aiming at a 28px target. heartGo() is the one place that
+       knows, so the three cannot disagree. -->
+  <div class="lab-bar on" id="heartBar">
+    <div class="lab-bar-name"><i></i><b id="heartBarName"></b></div>
+    <div class="lab-bar-nav">
+      <button id="heartPrev" type="button" aria-label="Previous part of the beat">&#8249;</button>
+      <button id="heartNext" type="button" aria-label="Next part of the beat">&#8250;</button>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -7177,6 +7312,61 @@ onView(window.__view);
   /* fixed, not absolute: the stage is scaled and letterboxed, and this button
      belongs to the viewport's furniture, the way it does on the body page */
   #heartBack{position:fixed}
+
+  /* ── the step bar · the body page's organ bar, one page in ──────────────
+     Everything about how it LOOKS comes from .lab-bar, .lab-bar-name and
+     .lab-bar-nav unchanged. What is written here is geometry and one rung of
+     the type ladder, and each of the four is a fact about this composition
+     that the body page's copy could not have known:
+
+     · Centred on the FIGURE half, not on the window. The body page centres
+       its bar because that page is one figure in the middle of the frame, and
+       this bar is about the figure in the same way — so it centres on the
+       half that figure stands in. The seam is at 52% of a stage that is
+       itself centred in the window, which puts it within a couple of pixels
+       of 52vw at every size the stage can take; half of that is 26vw, and
+       that is the whole derivation. A window-centred bar would straddle the
+       seam and end up under the rail's bottom pane.
+
+     · bottom:80 is the body page's number, unchanged and for its reason — it
+       is what clears a 46px tab bar sitting on a 24px offset, and that bar is
+       the same object at the same offset on every view in the file.
+
+     · The width is capped against the seam, not against the window, so the
+       bar can never reach the column it is not about. The 140 taken off it is
+       what keeps its left end clear of the provenance button in the corner:
+       that button is a 20px disc on a 26px inset and it sits at the same
+       height as this bar's lower half, so the two would otherwise meet on a
+       narrow window. 560 is where the bar stops growing — the longest of the
+       four names, "Ventricular contraction", sets a name pill of about 400
+       and the nav pill is 100, so past 560 the bar is padding.
+
+     · The name drops one rung — 24px Contralto Xsmall, against the organ
+       bar's 34px Small. On the body page the bar's name IS the page's
+       subject. Here the subject is stated at 44px two columns over, and a
+       34px step name would be a second title arguing with the first. This is
+       the same one-rung step section 06's card heading makes. */
+  #heartBar{position:fixed;left:26vw;bottom:80px;z-index:6;
+    width:min(560px,calc(52vw - 140px));transform:translateX(-50%)}
+  #heartBar.on{transform:translateX(-50%)}
+  /* The mark is the dot rail's own lit bead, not the body page's 22px orb.
+     That orb walks a ramp because it says WHICH ORGAN, and seven organs are a
+     list you can be at a position in; four parts of one beat are not, and a
+     ramp across them would say one part is further along than another. So the
+     bar carries the same mark the rail is carrying for the same step, at
+     .step-dot.on's exact geometry: 13px filled brand blue on a 5px halo. Two
+     faces of one state, wearing one mark. */
+  #heartBar .lab-bar-name{gap:18px;padding:14px 26px}
+  #heartBar .lab-bar-name i{width:13px;height:13px;
+    background:var(--phenome-blue-500);box-shadow:0 0 0 5px #203a851a}
+  #heartBar .lab-bar-name b{font-family:var(--font-serif-xsmall);
+    font-size:var(--kpi-value-sm);white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis}
+  /* 38 on 8 is 54, matched to the name pill the way 46 on 10 matches the body
+     page's — the same pairing, at the size this bar is drawn at. The height
+     still comes from the name pill through .lab-bar's align-items:stretch. */
+  #heartBar .lab-bar-nav{padding:0 8px;gap:8px}
+  #heartBar .lab-bar-nav button{width:38px;height:38px;font-size:17px}
 
   /* Centred in the right half the same way: 777+520/2 = 1037 against the
      half's own 1037, and translateY off the middle rather than a top that
@@ -8930,7 +9120,16 @@ window.__kidneyView = organView({
    showing the right row.
    ============================================================ */
 (function(){
-  function bindSwitch(rootId, btnId, listId, currentId, routes, stateKey){
+  /* `commit` is what a chosen row DOES, and it is the only thing that ever
+     differed between the two switchers this binder was written for. Left out,
+     a row is a route and choosing it changes the view — which is what both of
+     them meant when there were two. The heart page's step switcher passes one,
+     because its rows are four places inside a view that is already open.
+
+     Everything else — the glass, the cursor, the arrow keys, the outside
+     click, closing on a viewchange — is the same control in all three, and
+     that is the reason to pass a function rather than write a third one. */
+  function bindSwitch(rootId, btnId, listId, currentId, routes, stateKey, commit){
     var root=document.getElementById(rootId);
     if(!root) return;
     var btn=document.getElementById(btnId),
@@ -8957,7 +9156,8 @@ window.__kidneyView = organView({
     }
     function choose(mode){
       sync(mode); open(false);
-      if(typeof window.__showView==='function') window.__showView(mode);
+      if(commit) commit(mode);
+      else if(typeof window.__showView==='function') window.__showView(mode);
     }
 
     btn.addEventListener('click',function(){ open(root.dataset.open!=='true'); });
@@ -8982,12 +9182,32 @@ window.__kidneyView = organView({
     window.addEventListener('viewchange',function(e){
       if(routes.indexOf(e.detail)>-1) sync(e.detail); else open(false);
     });
+
+    /* A switcher whose rows are not routes cannot be kept honest by the
+       viewchange above — nothing dispatches "you are now on QRS". So the
+       binder publishes its sync, and whatever owns that state calls it. For
+       the heart page that owner is heartGo(), which is already the one place
+       the rail, the pane, the strip and the pins agree through. */
+    (window.__switches||(window.__switches={}))[rootId]={sync:sync};
   }
 
   bindSwitch('poseMode','poseModeBtn','poseModeList','poseModeCurrent',
              ['pose','debug','map'],'__poseMode');
   bindSwitch('detailMode','detailModeBtn','detailModeList','detailModeCurrent',
              ['heart','kidney'],'__detailMode');
+  /* The heart page's steps, through the one handle that page publishes. Rows
+     are built immediately before the bind because the binder reads its
+     options once — see buildHeartStepList — and the keys come from the page's
+     own array rather than being written out here, so this line cannot be the
+     one that disagrees about how many parts a beat has. Guarded: the page's
+     script could have failed, and a switcher bound to nothing is worse than
+     no switcher. */
+  var hs=window.__heartSteps;
+  if(hs){
+    hs.buildList();
+    bindSwitch('heartStepMode','heartStepModeBtn','heartStepModeList','heartStepModeCurrent',
+               hs.keys,'__heartStepKey',hs.go);
+  }
 
   /* One arrival, one class. The body page raises window.__detailBare
      immediately before it calls show(), so the flag is up for exactly the
@@ -8995,6 +9215,12 @@ window.__kidneyView = organView({
      later move — the detail tab, a pose tab, a deep link — comes through with
      it lowered and the class comes off, which is why arriving bare cannot
      strand a reader in a page with no switcher.
+
+     #heartStepMode is deliberately NOT covered by it. The rule above is about
+     one thing only: being offered a different ORGAN the moment you followed
+     one in. Being offered the four parts of the beat you just landed on is
+     the page doing its job, and hiding it would leave a bare arrival with a
+     bottom bar and a dot rail that its own header could not name.
 
      It does NOT touch sync() above. The switcher still tracks the route while
      it is hidden, so pressing the detail tab after a bare arrival reopens the

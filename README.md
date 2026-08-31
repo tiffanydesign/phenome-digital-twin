@@ -70,6 +70,10 @@ GLB/
     human_liver_and_gallbladder.glb  Liver & Gallbladder
     human_kidney.glb                 Kidneys, inside the body
     kidney_with_labels.glb           Kidneys, the cut-away on its own page
+    bodyparts3d_thyroid.glb          Thyroid, pose lab only
+  skeletal/
+    lumbar-hip.glb                   L1-L5, lumbar discs, sacrum, hips & femurs
+    NOTICE.md                        skeletal asset attribution and licence
 ```
 
 The three lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/organ-material-lab.html` and so on.
@@ -98,7 +102,7 @@ Contralto and New Science Mono are licensed faces. They are **not distributed wi
 
 ## Model sources and licence
 
-Every model under `GLB/` comes from Sketchfab under [CC Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0), which **permits commercial use and requires attribution**.
+The base body and the organ models under `GLB/organ/` come from Sketchfab under [CC Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0), which **permits commercial use and requires attribution**. The two assets the pose lab adds — the thyroid and the lumbar/hip extract — are **share-alike** instead, and are listed separately below.
 
 | File | Model | Author | Source |
 | :--- | :--- | :--- | :--- |
@@ -112,6 +116,14 @@ Every model under `GLB/` comes from Sketchfab under [CC Attribution 4.0 Internat
 | `kidney_with_labels.glb` | Kidney_with_labels | ikon97840 | [Sketchfab](https://sketchfab.com/3d-models/kidney-with-labels-68a030f7dad444b0b6b4a9ce6a572625) |
 | `realistic_stomach.glb` | Realistic Stomach | Brain Diagno (`Brain_Diagno`) | [Sketchfab](https://sketchfab.com/3d-models/realistic-stomach-07859d72489d4f818e508b3738ab7449) |
 
+### The pose lab's two share-alike assets
+
+`bodyparts3d_thyroid.glb` combines the BodyParts3D v4.3 thyroid isthmus (FJ3670), left lobe (FJ3671), and right lobe (FJ3672), published by the Database Center for Life Science (DBCLS). It is licensed under [CC BY-SA 2.1 Japan](https://creativecommons.org/licenses/by-sa/2.1/jp/deed.en) and was combined, reoriented, centered, converted to GLB, and given replacement materials by Phenome Longevity. See the [BodyParts3D download page](https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html).
+
+`skeletal/lumbar-hip.glb` contains the bilateral femurs and hip bones, sacrum, L1-L5 vertebrae, and L1-S1 discs extracted from the Anatria3D male skeletal atlas. The attribution chain is BodyParts3D → Z-Anatomy → Anatria3D; the extract remains under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Phenome Longevity selected the named structures, decoded Draco for the local loader, and removed unreferenced data without polygon reduction. See [`GLB/skeletal/NOTICE.md`](GLB/skeletal/NOTICE.md).
+
+Both are loaded by the pose lab alone. The home, body and detail pages never fetch them, so nothing outside that tab inherits a share-alike term.
+
 ### Attribution in the interface
 
 The models are modified (retopology, materials replaced), so CC BY asks for the change to be stated alongside the credit. The design system specifies how, as **pattern 11, Provenance mark**: one ⓘ ring per anatomy field opens a panel that names the licence and the modification once, then lists each work and its author.
@@ -124,4 +136,4 @@ The credit line reads:
 
 ## License
 
-No licence is set for the code. The 3D models are CC BY 4.0 as listed above; the fonts remain the property of their foundries.
+No licence is set for the code. The 3D models are CC BY 4.0 as listed above, except the pose lab's thyroid (CC BY-SA 2.1 Japan) and lumbar/hip extract (CC BY-SA 4.0); the fonts remain the property of their foundries.

@@ -4085,6 +4085,26 @@ var VIEWS={scan:'viewScan',lab:'viewLab',heart:'viewHeart',kidney:'viewKidney',
 window.__view = window.__view || 'scan';
 var TABS ={scan:'tabScan', lab:'tabLab', heart:'tabDetail', kidney:'tabDetail',
            pose:'tabPose', debug:'tabPose', map:'tabPose', spec:'tabSpec'};
+/* The pose lab is the only view that writes its own route. It has a sex and a
+   study to name and a link to them is worth having, so it keeps ?view, ?sex and
+   ?study current as you move through it. Nothing else writes the route, which
+   means nothing else was ever going to clear it: press Pose lab, press Home,
+   reload, and the page opens on the pose lab because ?view=pose is still
+   standing. So the tab that leaves takes those three with it.
+
+   Only those three, and only on the way out of a pose route. A deep link into
+   any other view is not ours to erase — ?view=heart is how a review is sent,
+   and it has to survive being read. */
+var POSE_ROUTES={pose:1,debug:1,map:1};
+function dropPoseRoute(which){
+  if(POSE_ROUTES[which])return;
+  var url=new URL(location.href);
+  if(!POSE_ROUTES[url.searchParams.get('view')])return;
+  url.searchParams.delete('view');
+  url.searchParams.delete('sex');
+  url.searchParams.delete('study');
+  history.replaceState(null,'',url);
+}
 function show(which){
   /* Compare IDS, not keys, and touch each element once — on both maps, for the
      same reason. Neither is one-to-one: three pose routes share one view and,
@@ -4126,6 +4146,7 @@ function show(which){
      can, so a module that arrives late has something to ask. See the catch-up
      lines at the end of each module. */
   window.__view = which;
+  dropPoseRoute(which);
   /* the second experience is heavy, so it only wakes up when it is on screen */
   window.dispatchEvent(new CustomEvent('viewchange',{detail:which}));
 }

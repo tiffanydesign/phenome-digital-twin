@@ -9114,10 +9114,16 @@ window.__kidneyView = organView({
          first time the study lands, so a reader who never opens the heart study
          never pays for the chart. -->
     <div class="pose-report" id="poseHeartReport" aria-hidden="true">
-      <div class="org-head">
-        <h1 class="org-title">Heart rhythm</h1>
-        <b class="hrt-state">Normal</b>
-      </div>
+      <!-- No title, and that is this page rather than a shortcut. VIEW 4 states
+           "Heart rhythm" at 44px because nothing else on that page says what
+           you are looking at. Here the study readout does, in the corner
+           directly above this — so a 44px title landed under a 24px one saying
+           the same word, and at shorter window heights the two actually
+           collided. What the rail still owes the reader is the FINDING, which
+           the readout does not carry, so the verdict stays and the title goes.
+           Right-aligned onto the count's own column below it, so the block
+           closes on one edge. -->
+      <div class="pose-report-verdict"><b class="hrt-state">Normal</b></div>
 
       <div class="org-steps">
         <div class="step-rail" id="poseHeartSteps" role="tablist"
@@ -9500,6 +9506,7 @@ window.__kidneyView = organView({
   #poseWrap.study-open .pose-report{opacity:0;pointer-events:none}
   #poseWrap.anatomy-on .pose-report,
   #poseWrap.debug-on .pose-report{display:none}
+  .pose-report-verdict{display:flex;justify-content:flex-end}
   #poseHeartDetail.swap{animation:stepIn .46s var(--ease-frosted-out)}
   /* #heartDetail's rules, following its panes to the page they are drawn on
      again — the scored reading keeps the track's value rung and the supporting
@@ -9514,9 +9521,18 @@ window.__kidneyView = organView({
     .pose-report{transition:none}
     #poseHeartDetail.swap{animation:none}
     #poseHeartWave .wv-pane,#poseHeartWave .wv-key{transition:none}}
-  /* Below this the window cannot hold a 520 rail and a figure side by side, so
-     the study keeps the figure and the report stands down. */
-  @media(max-width:1180px),(max-height:760px){.pose-report{display:none}}
+  /* Where it stands down, and both numbers are measured rather than chosen.
+     WIDTH: below 1180 the window cannot hold a 520 rail beside the figure.
+     HEIGHT: the rail is 727 tall and it is centred, so it needs
+     727 + 2x(94 + 16) = 947 to clear the study readout above it and
+     727 + 2x(98 + 16) = 955 to clear the Pose studies bar below it — the
+     readout is 50 tall on a 44 top, and the bar is 74 on a 24 bottom. 980
+     takes the larger of the two and leaves ~29px at each end.
+
+     This was 760, which was a guess, and at 820 the report ran over the bar at
+     the bottom and its own head collided with the readout at the top. Below the
+     threshold the study is what it was before: the figure, alone. */
+  @media(max-width:1180px),(max-height:980px){.pose-report{display:none}}
 
   .pose-prov{left:108px!important;bottom:99px!important}
   .pose-load{position:absolute;z-index:6;left:50%;top:50%;display:flex;align-items:center;gap:11px;

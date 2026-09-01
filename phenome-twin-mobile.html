@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Phenome — Health Digital Twin</title>
+
+<!-- Adobe Fonts kit from the Phenome web viewer. Fallback stacks below are the
+     ones the design system itself declares, so the page holds up offline. -->
+<link rel="preconnect" href="https://use.typekit.net">
+<link rel="preconnect" href="https://p.typekit.net" crossorigin>
+<link rel="stylesheet" href="https://use.typekit.net/omf6kcr.css">
+
+<style>
+/* ============================================================
+   TOKENS — lifted from tiffanydesign.github.io/phenome-digital-twin
+   Only the type scale is rebuilt for a 393px viewport.
+   ============================================================ */
+:root{
+  /* brand ramp */
+  --blue-900:#0a1e57; --blue-700:#142b6e; --blue-500:#203a85;
+  --blue-400:#435ba1; --blue-300:#7185bd; --blue-200:#a9b5d9; --blue-100:#e6e9f2;
+  /* ink + surface */
+  --ink-900:#10214b; --ink-600:#4a5578; --ink-400:#8b93ad; --ink-label:#3f4a70;
+  --surface-sunken:#e7ebf3;
+  --divider:#203a8514; --border-strong:#203a8529; --tint-sunk:#96a8cd2e; --tint-head:#96a8cd1f;
+  /* status — colour is reserved, never decorative */
+  --monitor:#b27f00; --monitor-ink:#7a5600; --monitor-wash:#b27f0012; --monitor-chip:#b27f001f;
+  --ok-ink:#417e1b; --danger:#ff3c1a;
+  /* glass */
+  --glass:#ffffff73; --glass-live:#ffffff96; --glass-solid:#fffffff2;
+  --blur:blur(24px) saturate(140%);
+  --shadow-glass:0 8px 24px -18px #4664a038;
+  --shadow-primary:0 14px 34px -22px #24365e5c;
+  /* shape + motion */
+  --r-sm:5px; --r-md:8px; --r-lg:14px; --r-pill:999px;
+  --ease:cubic-bezier(.16,1,.3,1);
+  /* type */
+  --font-sans:"helvetica-neue-lt-pro","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --font-serif:"contralto-small","Contralto Small",Optima,Candara,"Gill Sans MT","Gill Sans","Trebuchet MS",sans-serif;
+  --font-serif-lg:"contralto-big","Contralto Big",Optima,Candara,"Gill Sans MT","Gill Sans",sans-serif;
+  --font-num:"new-science-mono","New Science Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  /* the page field the twin stands in */
+  --field:
+    radial-gradient(1200px 800px at 85% -10%,#30b0cd1a,transparent 60%),
+    radial-gradient(760px 760px at -170px -170px,#c4daf773,#c4daf700 68%),
+    linear-gradient(150deg,#eef3f9 0%,#e5edf7 46%,#dce7f4 100%);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--font-sans);color:var(--ink-900);
+  background:linear-gradient(150deg,#e9eef6 0%,#e2e9f4 60%,#dae4f1 100%);
+  -webkit-font-smoothing:antialiased;
+  display:flex;align-items:center;justify-content:center;gap:64px;
+  padding:32px;overflow:hidden;
+}
+
+/* ---------- desktop caption rail ---------- */
+.rail{max-width:300px;display:flex;flex-direction:column;gap:22px}
+.rail .kicker{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--ink-400);text-transform:uppercase}
+.rail h1{font-family:var(--font-serif-lg);font-size:38px;font-weight:400;line-height:1.05;letter-spacing:-.005em;color:var(--ink-900)}
+.rail p{font-size:13.5px;line-height:1.6;color:var(--ink-600);text-wrap:pretty}
+.rail ul{list-style:none;display:flex;flex-direction:column;gap:9px;padding-top:20px;border-top:1px solid var(--border-strong)}
+.rail li{font-size:12.5px;line-height:1.45;color:var(--ink-600);display:flex;gap:10px}
+.rail li b{flex:none;width:74px;font-weight:500;color:var(--ink-label)}
+
+/* ---------- device ---------- */
+.stage{flex:none;transform-origin:center center}
+.device{
+  position:relative;width:393px;height:852px;border-radius:48px;overflow:hidden;
+  background:#F2F2F7;box-shadow:0 40px 80px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.12);
+}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:126px;height:37px;border-radius:24px;background:#000;z-index:60}
+.statusbar{
+  position:absolute;top:0;left:0;right:0;height:59px;z-index:55;pointer-events:none;
+  display:flex;align-items:center;justify-content:space-between;padding:21px 30px 19px;
+}
+.statusbar .time{font-family:-apple-system,"SF Pro",system-ui,sans-serif;font-weight:600;font-size:17px;letter-spacing:-.2px;color:#000}
+.homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:139px;height:5px;border-radius:100px;background:rgba(0,0,0,.25);z-index:60}
+
+/* ---------- app shell ---------- */
+.app{position:absolute;inset:0;padding-top:59px;background:var(--field);overflow:hidden}
+.body{position:absolute;top:59px;left:0;right:0;bottom:0}
+
+.screen{position:absolute;inset:0;display:none;flex-direction:column}
+.screen.on{display:flex}
+/* details layer above the tab roots and answer a tap by sliding in */
+.screen.detail{
+  display:flex;z-index:20;transform:translateX(100%);
+  transition:transform .34s var(--ease);
+  background:var(--field);will-change:transform;
+}
+.screen.detail.on{transform:translateX(0)}
+.screen.detail.off{display:flex;transform:translateX(100%);pointer-events:none}
+
+.scroller{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.scroller::-webkit-scrollbar{display:none}
+/* cards sit above the twin so it slides *under* them on its way to the dock */
+.pad{position:relative;z-index:2;padding:0 14px 92px;display:flex;flex-direction:column;gap:10px}
+
+/* ---------- shared atoms ---------- */
+.overline{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--ink-label)}
+.overline.mute{color:var(--ink-400)}
+.meta{font-size:11px;color:var(--ink-400)}
+.note{font-size:13px;line-height:1.45;color:var(--ink-600);text-wrap:pretty}
+.num{font-family:var(--font-num);font-weight:300;line-height:1;letter-spacing:-.02em;color:var(--ink-900);font-variant-numeric:tabular-nums}
+.tnum{font-variant-numeric:tabular-nums}
+.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* three card levels — one primary per screen, glass for support, list for scanning */
+.card{padding:13px 15px;border-radius:var(--r-lg);background:var(--glass);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow-glass)}
+.card.primary{background:var(--glass-solid);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:var(--shadow-primary)}
+.card.flat{background:var(--tint-sunk);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);box-shadow:none}
+.list{border-radius:var(--r-lg);overflow:hidden;background:var(--glass);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow-glass)}
+.list.primary{background:var(--glass-solid);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:var(--shadow-primary)}
+.list-h{padding:9px 15px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--tint-head)}
+.cap{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rule{margin-top:9px;padding-top:9px;border-top:1px solid var(--divider)}
+
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:var(--r-sm);
+  font-size:10px;font-weight:700;letter-spacing:.06em;background:var(--monitor-chip);color:var(--monitor-ink)}
+.chip .dot{width:5px;height:5px;border-radius:50%;background:var(--monitor)}
+.btn{padding:8px 15px;border-radius:var(--r-pill);font-size:12.5px;font-weight:500;color:#fff;background:var(--blue-500);
+  border:none;font-family:inherit;cursor:pointer;transition:transform .18s var(--ease)}
+.btn:active{transform:scale(.96)}
+.btn.ghost{color:var(--blue-500);background:transparent;border:1px solid #203a8566}
+
+/* four-column scan row: name · spark 32 · value 78 · status 58 — fixed widths so
+   values line up down the column, sized so no marker name wraps at 393px */
+.row{padding:9px 15px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--divider);
+  transition:background .18s linear}
+.row:first-child{border-top:none}
+.row .nm{flex:1;min-width:0}
+.row .nm .t{font-size:14px;color:var(--ink-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .nm .s{margin-top:2px;font-size:10px;color:var(--ink-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .val{width:78px;text-align:right;font-size:17px;color:var(--ink-900);font-variant-numeric:tabular-nums;white-space:nowrap}
+.row .val u{margin-left:3px;font-size:10px;color:var(--ink-400);text-decoration:none}
+.row .spark{width:32px}
+.row .st{width:58px;text-align:right;font-size:11px;color:var(--ink-400)}
+.row .st.opt{color:var(--ink-label)}
+.row .go{width:12px;display:grid;place-items:center;color:var(--ink-400)}
+.row .go .ic{width:14px;height:14px}
+.row.tap{cursor:pointer}
+.row.tap:active{background:var(--tint-head)}
+.row.flag{background:var(--monitor-wash);box-shadow:inset 2px 0 0 var(--monitor)}
+.row.flag .nm .t{font-weight:500}
+/* selection is not a status. Gold stays reserved for Monitor, so a selected row
+   gets the brand rail instead — otherwise "heart, 4 years younger" reads as a warning. */
+.row.sel{background:var(--tint-head);box-shadow:inset 2px 0 0 var(--blue-500)}
+
+/* segmented control — the pill answers the tap by sliding */
+.seg{position:relative;margin:0 14px;padding:4px;display:flex;border-radius:var(--r-pill);background:var(--tint-sunk)}
+.seg::before{content:"";position:absolute;left:4px;top:4px;bottom:4px;width:calc((100% - 8px)/var(--n));
+  border-radius:var(--r-pill);background:var(--blue-500);
+  transform:translateX(calc(var(--i) * 100%));transition:transform .3s var(--ease)}
+.seg button{position:relative;flex:1;padding:8px 0;border:none;background:none;font-family:inherit;
+  font-size:14px;color:var(--ink-600);cursor:pointer;transition:color .22s linear}
+.seg button[aria-selected="true"]{color:#fff;font-weight:500}
+.seg.sm button{padding:7px 0;font-size:13px}
+
+/* top bars */
+.appbar{height:44px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;flex:none}
+.appbar .brand{font-size:17px;font-weight:500;letter-spacing:.01em;color:var(--blue-500)}
+.sync{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-400)}
+.sync .dot{width:6px;height:6px;border-radius:50%;background:var(--ok-ink)}
+.sync.off .dot{background:var(--ink-400)}
+.sync.pulse .dot{animation:pulse 1.1s var(--ease)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 #417e1b66}100%{box-shadow:0 0 0 7px #417e1b00}}
+
+.navbar{height:44px;padding:0 12px 0 6px;display:flex;align-items:center;gap:4px;flex:none}
+.back{width:40px;height:40px;display:grid;place-items:center;color:var(--blue-500);background:none;border:none;cursor:pointer;border-radius:50%;transition:background .18s linear}
+.back:active{background:var(--tint-head)}
+.navbar .ttl{flex:1;font-size:15px;font-weight:500;color:var(--ink-600)}
+
+
+/* ---------- the twin ----------
+   Every figure on the page is the real Male.glb, shaded into a tone buffer and
+   resolved by the screen-space halftone pass from the web viewer — one dot per
+   screen cell, not a 3D point cloud. The container keeps the viewer's own SVG
+   viewBox, so badge and organ-tint coordinates are unchanged; the GLB camera is
+   derived from that same viewBox. The inline SVG figure stays as the fallback
+   for a failed fetch or no WebGL. */
+.twin{position:relative;display:block;flex:none}
+.twin>canvas,.twin>.tw-fb,.twin>.tw-ov{position:absolute;inset:0;width:100%;height:100%;display:block}
+.twin>canvas{object-fit:contain;opacity:0;transition:opacity .45s linear}
+.twin.ready>canvas{opacity:1}
+.twin.ready>.tw-fb{opacity:0}
+.twin>.tw-fb{transition:opacity .45s linear}
+.twin>.tw-ov{pointer-events:none;overflow:visible}
+.twin-defs{position:absolute;width:0;height:0}
+.hero{position:relative;z-index:1;height:330px;display:grid;place-items:center}
+/* p runs 0→1 across exactly the 320px of scroll that retires the hero, so the
+   twin arrives head-first in the dock at the same instant the space closes up */
+.hero-twin{
+  position:relative;transform-origin:50% 26px;
+  transform:translate(calc(var(--p,0) * -160px), calc(var(--p,0) * 277px)) scale(calc(1 - var(--p,0) * .4));
+  opacity:clamp(0,calc((.99 - var(--p,0)) / .13),1);
+  will-change:transform,opacity;
+}
+.hero-halo{position:absolute;width:270px;height:270px;border-radius:50%;
+  background:radial-gradient(circle,#ffffffb8 0%,#ffffff70 46%,#ffffff00 78%);
+  opacity:clamp(0,calc((.42 - var(--p,0)) / .3),1)}
+.hero-lead,.hero-flag,.hero-cap{opacity:clamp(0,calc((.26 - var(--p,0)) / .22),1)}
+.hero-lead{position:absolute;left:212px;top:72px;width:58px;height:1px;background:linear-gradient(90deg,#b27f0099,#b27f0014)}
+.hero-flag{position:absolute;left:272px;top:58px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.hero-cap{position:absolute;left:18px;bottom:6px;display:flex;flex-direction:column;gap:2px}
+.hero-cap h3{font-family:var(--font-serif);font-size:24px;font-weight:400;line-height:1.1;color:var(--ink-900)}
+.hero-cap p{max-width:250px}
+
+/* the dock: the twin never leaves, it changes size */
+.dock{
+  position:absolute;top:0;left:0;right:0;height:54px;z-index:12;
+  padding:0 18px;display:flex;align-items:center;gap:10px;pointer-events:none;
+}
+.dock::before{content:"";position:absolute;inset:0;background:var(--glass-live);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow-glass);
+  opacity:clamp(0,calc((var(--p,0) - .45) / .3),1)}
+/* the bar opens an empty slot first; the arriving twin fills it at the last moment,
+   so the hand-off happens where the two are geometrically coincident — no dissolve visible */
+.dock>*{position:relative;opacity:clamp(0,calc((var(--p,0) - .5) / .28),1)}
+.dock-av{position:relative;width:36px;height:36px;border-radius:50%;overflow:hidden;background:#ffffff80;display:grid;place-items:center}
+.dock-av>.twin,.dock-av>.dock-flag{opacity:clamp(0,calc((var(--p,0) - .86) / .13),1)}
+/* scoped to the badge itself — `.dock-av span` also caught the .twin wrapper */
+.dock-flag{position:absolute;right:1px;bottom:3px;width:8px;height:8px;border-radius:50%;background:var(--monitor);box-shadow:0 0 0 2px #ffffffcc;z-index:2}
+.dock .who{flex:1}
+.dock .who b{display:block;font-size:15px;font-weight:500;color:var(--ink-900)}
+
+/* ---------- bottom tab bar ---------- */
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:76px;padding:9px 16px 0;display:flex;z-index:40;
+  background:var(--glass-live);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  box-shadow:0 -8px 24px -18px #4664a038}
+.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  border:none;background:none;font-family:inherit;font-size:11px;color:var(--ink-400);cursor:pointer;
+  transition:color .2s linear}
+.tabbar button .ic{width:20px;height:20px}
+.tabbar button[aria-selected="true"]{color:var(--blue-500);font-weight:500}
+
+/* ---------- charts ---------- */
+.spark{flex:none}
+svg.stretch{width:100%;display:block}
+.axis{margin-top:6px;display:flex;justify-content:space-between;font-size:10px;color:var(--ink-400)}
+.legend{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-600)}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stats3 .k{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--ink-400)}
+.stats3 .v{margin-top:6px;font-size:22px;color:var(--ink-900)}
+.stats3 .u{margin-top:2px;font-size:11px;color:var(--ink-400)}
+
+/* zone bar */
+.zone{position:relative;height:8px;margin-top:14px;border-radius:4px;overflow:hidden;background:var(--surface-sunken)}
+.zone i{position:absolute;top:0;bottom:0}
+.zone .z1{left:0;width:46%;background:#7185bd66}
+.zone .z2{left:46%;width:20%;background:#b27f0059}
+.zone .z3{left:66%;right:0;background:#ff3c1a3d}
+.zone-mark{position:absolute;top:-13px;width:16px;height:16px;margin-left:-8px;border-radius:50%;
+  background:var(--blue-500);box-shadow:0 0 0 3px #fff,0 2px 8px #10214b2e;
+  transition:left .3s var(--ease)}
+.zone-scale{position:relative;height:34px;margin-top:14px;font-size:11px;color:var(--ink-400)}
+.zone-scale span{position:absolute}
+.zone-scale .lab{top:16px;font-size:12px;color:var(--ink-600)}
+.zone-scale .lab.is{font-weight:500;color:var(--ink-900)}
+
+/* delta bar used by omics + organ ages */
+.dbar{position:relative;height:6px;border-radius:3px;background:var(--surface-sunken)}
+.dbar i{position:absolute;top:0;bottom:0;border-radius:3px;transition:width .22s var(--ease)}
+.dbar u{position:absolute;left:50%;top:-3px;width:1px;height:12px;background:var(--border-strong);text-decoration:none}
+
+/* organ-age hero */
+.organ-hero{position:relative;height:150px;display:flex;align-items:center;justify-content:center;flex:none;
+  background:var(--glass-live);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow-glass)}
+#tint{transition:opacity .16s linear}
+.organ-read{position:absolute;right:16px;top:44px;text-align:right}
+.organ-read .n{font-size:12px;color:var(--ink-label)}
+.organ-read .v{font-size:30px;line-height:1.1}
+.organ-hero .foot{position:absolute;left:16px;bottom:10px;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--ink-400)}
+
+.bp-tabs{margin-top:10px;display:flex;gap:6px}
+.bp-tabs button{padding:6px 12px;border-radius:var(--r-pill);font-size:12px;font-family:inherit;
+  color:var(--ink-600);background:none;border:1px solid #203a8533;cursor:pointer;transition:all .22s var(--ease)}
+.bp-tabs button[aria-selected="true"]{font-weight:500;color:#fff;background:var(--blue-500);border-color:transparent}
+
+.avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#2c3f6e;background:#8fb0dd8c;flex:none}
+.avatar.soft{background:#b2c5e866}
+
+/* toggle */
+.sw{width:42px;height:25px;border-radius:var(--r-pill);background:#203a8529;border:none;position:relative;cursor:pointer;flex:none;
+  transition:background .24s var(--ease)}
+.sw::after{content:"";position:absolute;top:2.5px;left:2.5px;width:20px;height:20px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 3px #10214b2e;transition:transform .24s var(--ease)}
+.sw[aria-checked="true"]{background:var(--blue-500)}
+.sw[aria-checked="true"]::after{transform:translateX(17px)}
+
+.hide{display:none !important}
+
+/* ---------- responsive: real phone gets the whole screen ---------- */
+@media (max-width:820px){
+  body{padding:0;gap:0;align-items:stretch;justify-content:stretch}
+  .rail{display:none}
+  .stage{flex:1;transform:none !important}
+  .device{width:100%;height:100dvh;border-radius:0;box-shadow:none}
+  .notch,.homebar,.statusbar{display:none}
+  .app{padding-top:env(safe-area-inset-top,0px)}
+  .body{top:env(safe-area-inset-top,0px)}
+  .tabbar{height:calc(76px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     ICON SPRITE (lucide geometry, inlined — no network dependency)
+     ============================================================ -->
+<svg class="twin-defs" aria-hidden="true">
+<defs>
+  <!-- point-cloud fill + the fade that lets the legs dissolve into the field -->
+  <pattern id="tp" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1.05" fill="#203a85"/></pattern>
+  <linearGradient id="tfade" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset="0.58" stop-color="#fff" stop-opacity="0.9"/>
+    <stop offset="0.82" stop-color="#fff" stop-opacity="0.35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </linearGradient>
+  <mask id="tmask"><rect x="0" y="0" width="200" height="560" fill="url(#tfade)"/></mask>
+
+  <symbol id="twin" viewBox="0 0 200 560">
+    <g mask="url(#tmask)" fill="url(#tp)" opacity="0.66">
+      <ellipse cx="100" cy="38" rx="23" ry="28"/>
+      <path d="M91,58 h18 v20 h-18 z"/>
+      <path d="M68,78 C78,71 122,71 132,78 C136,110 134,150 130,196 C126,232 124,244 122,252 L78,252 C76,244 74,232 70,196 C66,150 64,110 68,78 Z"/>
+      <path d="M68,80 C58,86 52,120 48,160 C45,190 43,214 42,236 L54,238 C57,214 60,190 64,160 C68,128 72,104 79,86 Z"/>
+      <path d="M78,252 C76,300 78,360 80,410 C81,450 82,492 82,530 L96,530 C97,488 98,440 98,404 C99,352 100,300 100,254 Z"/>
+      <g transform="translate(200,0) scale(-1,1)">
+        <path d="M68,80 C58,86 52,120 48,160 C45,190 43,214 42,236 L54,238 C57,214 60,190 64,160 C68,128 72,104 79,86 Z"/>
+        <path d="M78,252 C76,300 78,360 80,410 C81,450 82,492 82,530 L96,530 C97,488 98,440 98,404 C99,352 100,300 100,254 Z"/>
+      </g>
+    </g>
+  </symbol>
+
+  <symbol id="twinArms" viewBox="0 0 200 560">
+    <g mask="url(#tmask)" fill="url(#tp)" opacity="0.66">
+      <ellipse cx="100" cy="38" rx="23" ry="28"/>
+      <path d="M91,58 h18 v20 h-18 z"/>
+      <path d="M68,78 C78,71 122,71 132,78 C136,110 134,150 130,196 C126,232 124,244 122,252 L78,252 C76,244 74,232 70,196 C66,150 64,110 68,78 Z"/>
+      <path d="M68,80 C50,92 32,112 18,134 C10,148 4,160 0,170 L12,176 C18,164 26,150 34,138 C46,120 62,102 79,88 Z"/>
+      <path d="M78,252 C76,300 78,360 80,410 C81,450 82,492 82,530 L96,530 C97,488 98,440 98,404 C99,352 100,300 100,254 Z"/>
+      <g transform="translate(200,0) scale(-1,1)">
+        <path d="M68,80 C50,92 32,112 18,134 C10,148 4,160 0,170 L12,176 C18,164 26,150 34,138 C46,120 62,102 79,88 Z"/>
+        <path d="M78,252 C76,300 78,360 80,410 C81,450 82,492 82,530 L96,530 C97,488 98,440 98,404 C99,352 100,300 100,254 Z"/>
+      </g>
+    </g>
+  </symbol>
+
+  <!-- icons -->
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M18 20a6 6 0 0 0-12 0"/><circle cx="12" cy="10" r="4"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M12 14v2.5l1.5 1"/></symbol>
+  <symbol id="i-ring" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1.6"/></symbol>
+  <symbol id="i-watch" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><path d="M12 10v2l1.5 1"/><path d="M16.51 17.35l-.35 3.83a2 2 0 0 1-2 1.82H9.83a2 2 0 0 1-2-1.82l-.35-3.83"/><path d="M7.48 6.65l.35-3.83A2 2 0 0 1 9.83 1h4.35a2 2 0 0 1 2 1.82l.35 3.83"/></symbol>
+  <symbol id="i-bt" viewBox="0 0 24 24"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 12h3l2-7 4 14 3-9 2 4h6"/></symbol>
+</defs>
+</svg>
+
+<!-- ============================================================
+     DESKTOP CAPTION RAIL
+     ============================================================ -->
+<aside class="rail">
+  <div>
+    <div class="kicker">Phenome Longevity</div>
+    <h1>Health<br>Digital Twin</h1>
+  </div>
+  <p>The twin is the home screen. Ring and band data flows underneath it in the same scroll, so a member who scans twice a year still finds it useful today.</p>
+  <ul>
+    <li><b>Scroll home</b><span>the twin shrinks into the header — it docks, it never leaves</span></li>
+    <li><b>Tap rows</b><span>blood pressure, resting heart rate and proteomics open a detail</span></li>
+    <li><b>Organ ages</b><span>tap a row and the twin tints that organ</span></li>
+    <li><b>Profile</b><span>unpair the devices to see the no-device Home</span></li>
+  </ul>
+</aside>
+
+<!-- ============================================================
+     DEVICE
+     ============================================================ -->
+<div class="stage" id="stage">
+<div class="device">
+  <div class="notch"></div>
+  <div class="statusbar">
+    <span class="time">9:41</span>
+    <svg width="69" height="12" viewBox="0 0 69 12" aria-hidden="true">
+      <rect x="0" y="7.5" width="3.2" height="4.5" rx=".7" fill="#000"/><rect x="5.1" y="5.4" width="3.2" height="6.6" rx=".7" fill="#000"/>
+      <rect x="10.2" y="3" width="3.2" height="9" rx=".7" fill="#000"/><rect x="15.3" y=".6" width="3.2" height="11.4" rx=".7" fill="#000"/>
+      <path d="M30.5 9.6a1.4 1.4 0 1 1 0 2.4 1.4 1.4 0 0 1 0-2.4Zm0-3.6c1.5 0 2.9.6 3.9 1.6l-1.3 1.3a3.7 3.7 0 0 0-5.2 0L26.6 7.6A5.5 5.5 0 0 1 30.5 6Zm0-3.6c2.5 0 4.8 1 6.5 2.6l-1.3 1.3a7.4 7.4 0 0 0-10.4 0L24 4.6A9.2 9.2 0 0 1 30.5 2.4Z" fill="#000"/>
+      <rect x="45.5" y=".5" width="21" height="11" rx="3" fill="none" stroke="#000" stroke-opacity=".35"/>
+      <rect x="47" y="2" width="16" height="8" rx="2" fill="#000"/>
+      <path d="M68 4.3v3.4c.9-.3 1.4-.9 1.4-1.7s-.5-1.4-1.4-1.7Z" fill="#000" fill-opacity=".4"/>
+    </svg>
+  </div>
+
+  <div class="app">
+  <div class="body">
+
+    <!-- ==================== 01/02 · HOME ==================== -->
+    <section class="screen on" id="s-home">
+      <!-- the dock. transparent at rest; the twin lands in it -->
+      <div class="dock" id="dock">
+        <div class="dock-av">
+          <span class="twin" data-vb="52 2 96 96" style="width:36px;height:36px">
+            <canvas></canvas>
+            <svg class="tw-fb" viewBox="52 2 96 96"><use href="#twin" x="0" y="0" width="200" height="560"/></svg>
+          </span>
+          <span class="dock-flag"></span>
+        </div>
+        <div class="who"><b>Your twin</b><div class="meta">Second scan · 14 July</div></div>
+        <div class="chip">2 Monitor</div>
+      </div>
+
+      <div class="scroller" id="home-scroll">
+        <div class="appbar">
+          <div class="brand">Phenome</div>
+          <div class="sync" id="sync"><span class="dot"></span><span id="sync-txt">Ring · band synced 6 min ago</span></div>
+        </div>
+
+        <div class="hero" id="hero">
+          <div class="hero-halo"></div>
+          <div class="hero-twin">
+            <span class="twin" data-vb="0 0 200 560" style="width:196px;height:322px">
+              <canvas></canvas>
+              <svg class="tw-fb" viewBox="0 0 200 560"><use href="#twin" x="0" y="0" width="200" height="560"/></svg>
+              <svg class="tw-ov" viewBox="0 0 200 560">
+                <g id="hero-badges">
+                  <ellipse cx="106" cy="118" rx="13" ry="15" fill="#b27f00" opacity=".16"/>
+                  <ellipse cx="106" cy="118" rx="5" ry="6" fill="#b27f00" opacity=".5"/>
+                  <ellipse cx="92" cy="176" rx="12" ry="13" fill="#b27f00" opacity=".14"/>
+                  <ellipse cx="92" cy="176" rx="4.5" ry="5" fill="#b27f00" opacity=".45"/>
+                </g>
+              </svg>
+            </span>
+          </div>
+          <div class="hero-lead"></div>
+          <div class="hero-flag">
+            <div class="chip"><span class="dot"></span>Monitor</div>
+            <div class="meta">2 regions</div>
+          </div>
+          <div class="hero-cap">
+            <h3>Steady since July</h3>
+            <p class="note">Two markers moved into Monitor since your second scan on 14 July. Everything else held its range.</p>
+          </div>
+        </div>
+
+        <div class="pad">
+
+          <!-- attention: the only warm pixels on the screen -->
+          <div class="list primary" style="box-shadow:var(--shadow-primary),0 0 0 1px #b27f0026">
+            <div class="list-h" style="background:var(--monitor-wash)">
+              <span class="overline" style="color:var(--monitor-ink);display:flex;align-items:center;gap:8px;font-size:12px">
+                <span style="width:6px;height:6px;border-radius:50%;background:var(--monitor)"></span>NEEDS ATTENTION</span>
+              <span class="meta">2 of 52 markers</span>
+            </div>
+            <div class="row tap" data-go="bp" style="padding:10px 14px">
+              <div class="nm"><div class="t" style="font-weight:500">hs-CRP</div><div class="s">inflammation · clinic 14 Jul</div></div>
+              <svg class="spark" width="40" height="18" viewBox="0 0 40 18"><polyline points="0,13 8,12 16,10 24,7 32,5 40,3" fill="none" stroke="#b27f00" stroke-width="1.4"/></svg>
+              <div class="val" style="width:76px;font-size:18px">3.8<u>mg/L</u></div>
+              <div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+            </div>
+            <div class="row tap" data-go="body" style="padding:10px 14px">
+              <div class="nm"><div class="t" style="font-weight:500">BMI</div><div class="s">body · 86 kg, held since July</div></div>
+              <svg class="spark" width="40" height="18" viewBox="0 0 40 18"><polyline points="0,8 8,8 16,7 24,8 32,7 40,7" fill="none" stroke="#b27f00" stroke-width="1.4"/></svg>
+              <div class="val" style="width:76px;font-size:18px">27<u>kg/m²</u></div>
+              <div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+            </div>
+          </div>
+
+          <!-- ===== paired state ===== -->
+          <div id="paired-block" style="display:flex;flex-direction:column;gap:10px">
+
+            <div class="card" style="padding:12px 14px 13px">
+              <div class="cap"><span class="overline" style="font-size:12px">LAST 7 DAYS</span><span class="meta">ring and band</span></div>
+              <div style="margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+                <div>
+                  <div style="display:flex;align-items:baseline;gap:4px"><span class="num" style="font-size:22px">7:12</span><span style="font-size:10px;color:var(--ink-400)">h</span></div>
+                  <svg class="stretch" height="26" viewBox="0 0 96 26" preserveAspectRatio="none" style="margin-top:6px">
+                    <rect x="0" y="8" width="10" height="18" rx="2" fill="#a9b5d9"/><rect x="14" y="5" width="10" height="21" rx="2" fill="#a9b5d9"/>
+                    <rect x="28" y="11" width="10" height="15" rx="2" fill="#a9b5d9"/><rect x="42" y="6" width="10" height="20" rx="2" fill="#a9b5d9"/>
+                    <rect x="56" y="9" width="10" height="17" rx="2" fill="#a9b5d9"/><rect x="70" y="4" width="10" height="22" rx="2" fill="#a9b5d9"/>
+                    <rect x="84" y="7" width="10" height="19" rx="2" fill="#203a85"/></svg>
+                  <div class="meta" style="margin-top:5px">sleep</div>
+                </div>
+                <div>
+                  <div style="display:flex;align-items:baseline;gap:4px"><span class="num" style="font-size:22px">48</span><span style="font-size:10px;color:var(--ink-400)">ms</span></div>
+                  <svg class="stretch" height="26" viewBox="0 0 96 26" preserveAspectRatio="none" style="margin-top:6px">
+                    <polyline points="0,18 16,14 32,17 48,9 64,12 80,7 94,10" fill="none" stroke="#435ba1" stroke-width="1.6"/><circle cx="94" cy="10" r="2.4" fill="#203a85"/></svg>
+                  <div class="meta" style="margin-top:5px">HRV</div>
+                </div>
+                <div>
+                  <div style="display:flex;align-items:baseline;gap:4px"><span class="num" style="font-size:22px">65</span><span style="font-size:10px;color:var(--ink-400)">bpm</span></div>
+                  <svg class="stretch" height="26" viewBox="0 0 96 26" preserveAspectRatio="none" style="margin-top:6px">
+                    <polyline points="0,12 16,13 32,11 48,12 64,12 80,11 94,12" fill="none" stroke="#435ba1" stroke-width="1.6"/><circle cx="94" cy="12" r="2.4" fill="#203a85"/></svg>
+                  <div class="meta" style="margin-top:5px">resting HR</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" role="button" tabindex="0" data-go="cont" style="cursor:pointer">
+              <div class="cap"><span class="overline">LAST NIGHT · RING</span><span class="meta">23:04 – 06:16</span></div>
+              <div style="margin-top:8px;display:flex;align-items:flex-end;justify-content:space-between">
+                <div style="display:flex;align-items:baseline;gap:6px"><span class="num" style="font-size:40px">7:12</span><span style="font-size:13px;color:var(--ink-400)">hours asleep</span></div>
+                <div style="text-align:right"><div class="meta">vs 7-day</div><div style="font-size:14px;color:var(--ok-ink)">+24 min</div></div>
+              </div>
+              <svg class="stretch" height="44" viewBox="0 0 330 44" preserveAspectRatio="none" style="margin-top:10px">
+                <rect x="0" y="30" width="46" height="8" rx="2" fill="#a9b5d9"/><rect x="46" y="6" width="58" height="8" rx="2" fill="#203a85"/>
+                <rect x="104" y="22" width="42" height="8" rx="2" fill="#7185bd"/><rect x="146" y="14" width="52" height="8" rx="2" fill="#435ba1"/>
+                <rect x="198" y="22" width="60" height="8" rx="2" fill="#7185bd"/><rect x="258" y="14" width="38" height="8" rx="2" fill="#435ba1"/>
+                <rect x="296" y="30" width="34" height="8" rx="2" fill="#a9b5d9"/></svg>
+              <div class="rule legend"><span>deep 1:04</span><span>REM 1:38</span><span>light 3:44</span><span>awake 0:46</span></div>
+            </div>
+
+            <div class="card" role="button" tabindex="0" data-go="cont-act" style="cursor:pointer">
+              <div class="cap"><span class="overline">TODAY · BAND</span><span style="font-size:11px;color:var(--ok-ink)">goal met · 6,000</span></div>
+              <div style="margin-top:8px;display:flex;align-items:flex-end;justify-content:space-between">
+                <div style="display:flex;align-items:baseline;gap:6px"><span class="num" style="font-size:30px">14,504</span><span style="font-size:12px;color:var(--ink-400)">steps</span></div>
+                <svg width="150" height="40" viewBox="0 0 150 40">
+                  <line x1="0" y1="22" x2="150" y2="22" stroke="#203a8529" stroke-width="1" stroke-dasharray="3 4"/>
+                  <rect x="0" y="24" width="14" height="16" rx="2" fill="#a9b5d9"/><rect x="20" y="16" width="14" height="24" rx="2" fill="#a9b5d9"/>
+                  <rect x="40" y="28" width="14" height="12" rx="2" fill="#a9b5d9"/><rect x="60" y="10" width="14" height="30" rx="2" fill="#7185bd"/>
+                  <rect x="80" y="20" width="14" height="20" rx="2" fill="#a9b5d9"/><rect x="100" y="14" width="14" height="26" rx="2" fill="#a9b5d9"/>
+                  <rect x="120" y="2" width="14" height="38" rx="2" fill="#203a85"/></svg>
+              </div>
+              <div class="rule legend"><span>active 151 min</span><span>447 kcal</span><span>resting HR flat</span></div>
+            </div>
+          </div>
+
+          <!-- ===== no-device state ===== -->
+          <div id="unpaired-block" class="card flat hide">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="avatar soft"><svg class="ic"><use href="#i-bt"/></svg></div>
+              <div style="flex:1">
+                <div style="font-size:14px;font-weight:500">No device paired</div>
+                <div class="note" style="margin-top:2px;font-size:12px">Home works without one. Your July scan still reads in full — continuous rows stay empty until a ring or band is paired.</div>
+              </div>
+            </div>
+            <div style="margin-top:11px;display:flex;gap:8px">
+              <button class="btn" data-pair="1">Pair a device</button>
+              <button class="btn ghost" data-go="profile">Not now</button>
+            </div>
+          </div>
+
+          <!-- three domain entries -->
+          <div class="list">
+            <div class="row tap" data-go="vitals" style="padding:11px 15px">
+              <div class="nm"><div class="t" style="font-size:15px;font-weight:500">Vitals</div><div class="s" style="font-size:11px">124/74 mmHg · 20 markers</div></div>
+              <div class="chip">1 Monitor</div>
+              <div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+            </div>
+            <div class="row tap" data-go="omics" style="padding:11px 15px">
+              <div class="nm"><div class="t" style="font-size:15px;font-weight:500">Omics</div><div class="s" style="font-size:11px">8 panels · 41 of 52 optimal</div></div>
+              <div class="chip">1 Monitor</div>
+              <div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+            </div>
+            <div class="row tap" data-go="body" style="padding:11px 15px">
+              <div class="nm"><div class="t" style="font-size:15px;font-weight:500">Body</div><div class="s" style="font-size:11px">86 kg · visceral fat index 9</div></div>
+              <div class="chip">1 Monitor</div>
+              <div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card flat" style="padding:12px 15px;display:flex;align-items:center;gap:12px">
+            <svg class="ic" style="color:var(--ink-label)"><use href="#i-cal"/></svg>
+            <div class="note" style="flex:1">Third scan window opens 14 January. No appointment booked.</div>
+            <button class="btn">Book</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 03/06/08 · HEALTH ==================== -->
+    <section class="screen" id="s-health">
+      <div class="seg" id="health-seg" style="--n:3;--i:0;margin-top:10px">
+        <button aria-selected="true" data-tab="vitals">Vitals</button>
+        <button aria-selected="false" data-tab="omics">Omics</button>
+        <button aria-selected="false" data-tab="body">Body</button>
+      </div>
+
+      <!-- ---------- Vitals ---------- -->
+      <div class="scroller tabpane" id="p-vitals">
+        <div class="pad" style="padding-top:10px">
+
+          <div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:12px">
+            <span class="twin" data-vb="34 52 132 132" style="width:76px;height:76px">
+              <canvas></canvas>
+              <svg class="tw-fb" viewBox="34 52 132 132"><use href="#twin" x="0" y="0" width="200" height="560"/></svg>
+              <svg class="tw-ov" viewBox="34 52 132 132">
+                <ellipse cx="106" cy="118" rx="16" ry="18" fill="#30b0cd" opacity=".14"/>
+                <ellipse cx="106" cy="118" rx="6" ry="7" fill="#203a85" opacity=".55"/></svg>
+            </span>
+            <div style="flex:1">
+              <div class="overline mute">HEART AND VASCULATURE</div>
+              <div class="note" style="margin-top:5px">41 of 52 markers sit in optimal range. Resting heart rate has been flat for seven days.</div>
+            </div>
+          </div>
+
+          <!-- continuous lives inside Vitals: same measurement, different sampling rate -->
+          <div class="card" role="button" tabindex="0" data-go="cont" style="cursor:pointer">
+            <div class="cap">
+              <span class="overline">CONTINUOUS · RING AND BAND</span>
+              <span style="display:flex;align-items:center;gap:6px" class="meta">6 min ago <svg class="ic" style="width:14px;height:14px"><use href="#i-chev-r"/></svg></span>
+            </div>
+            <div style="margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px" id="cont-strip">
+              <div><div class="num" style="font-size:19px">65</div><div class="meta" style="margin-top:4px">resting HR</div></div>
+              <div><div class="num" style="font-size:19px">48</div><div class="meta" style="margin-top:4px">HRV ms</div></div>
+              <div><div class="num" style="font-size:19px">7:12</div><div class="meta" style="margin-top:4px">sleep</div></div>
+              <div><div class="num" style="font-size:19px">14.5k</div><div class="meta" style="margin-top:4px">steps</div></div>
+            </div>
+          </div>
+
+          <div class="list">
+            <div class="list-h"><span class="overline">CARDIOVASCULAR</span><span class="meta">4 markers</span></div>
+
+            <div class="row tap" data-go="bp">
+              <div class="nm"><div class="t">Blood pressure</div><div class="s">clinic · 14 Jul</div></div>
+              <svg class="spark" width="36" height="16" viewBox="0 0 36 16"><polyline points="0,5 9,7 18,6 27,9 36,8" fill="none" stroke="#7185bd" stroke-width="1.4"/></svg>
+              <div class="val">124/74<u>mmHg</u></div><div class="st">In range</div>
+              <div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+            </div>
+            <div class="row tap" data-go="cont">
+              <div class="nm"><div class="t">Resting heart rate</div><div class="s">ring · 6 min ago</div></div>
+              <svg class="spark" width="36" height="16" viewBox="0 0 36 16"><polyline points="0,8 9,9 18,7 27,8 36,8" fill="none" stroke="#7185bd" stroke-width="1.4"/></svg>
+              <div class="val">65<u>bpm</u></div><div class="st opt">Optimal</div>
+              <div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+            </div>
+            <div class="row">
+              <div class="nm"><div class="t">Blood oxygen</div><div class="s">ring · overnight mean</div></div>
+              <svg class="spark" width="36" height="16" viewBox="0 0 36 16"><polyline points="0,6 9,5 18,7 27,6 36,5" fill="none" stroke="#7185bd" stroke-width="1.4"/></svg>
+              <div class="val">97<u>%</u></div><div class="st">In range</div><div class="go"></div>
+            </div>
+            <div class="row">
+              <div class="nm"><div class="t">ABI</div><div class="s">clinic · 14 Jul</div></div>
+              <svg class="spark" width="36" height="16" viewBox="0 0 36 16"><polyline points="0,7 9,7 18,6 27,7 36,7" fill="none" stroke="#7185bd" stroke-width="1.4"/></svg>
+              <div class="val">1.1</div><div class="st">In range</div><div class="go"></div>
+            </div>
+
+            <div class="list-h" style="border-top:1px solid var(--divider)"><span class="overline">BIOCHEMISTRY</span><span class="meta">6 markers · 1 Monitor</span></div>
+
+            <div class="row flag">
+              <div class="nm"><div class="t">hs-CRP</div><div class="s">clinic · 14 Jul</div></div>
+              <svg class="spark" width="36" height="16" viewBox="0 0 36 16"><polyline points="0,12 9,10 18,8 27,5 36,3" fill="none" stroke="#b27f00" stroke-width="1.4"/></svg>
+              <div class="val">3.8<u>mg/L</u></div>
+              <div class="st"><span class="chip">Monitor</span></div><div class="go"></div>
+            </div>
+            <div class="row">
+              <div class="nm"><div class="t">HbA1c</div><div class="s">clinic · 14 Jul</div></div>
+              <svg class="spark" width="36" height="16" viewBox="0 0 36 16"><polyline points="0,8 9,8 18,7 27,8 36,8" fill="none" stroke="#7185bd" stroke-width="1.4"/></svg>
+              <div class="val">35<u>mmol/mol</u></div><div class="st opt">Optimal</div><div class="go"></div>
+            </div>
+            <div class="row">
+              <div class="nm"><div class="t">Glucose</div><div class="s">clinic · 14 Jul</div></div>
+              <svg class="spark" width="36" height="16" viewBox="0 0 36 16"><polyline points="0,9 9,8 18,8 27,7 36,7" fill="none" stroke="#7185bd" stroke-width="1.4"/></svg>
+              <div class="val">6.2<u>mmol/L</u></div><div class="st">In range</div><div class="go"></div>
+            </div>
+            <div class="row">
+              <div class="nm"><div class="t">Total cholesterol</div><div class="s">clinic · 14 Jul</div></div>
+              <svg class="spark" width="36" height="16" viewBox="0 0 36 16"><polyline points="0,5 9,6 18,8 27,9 36,10" fill="none" stroke="#7185bd" stroke-width="1.4"/></svg>
+              <div class="val">3.25<u>mmol/L</u></div><div class="st opt">Optimal</div><div class="go"></div>
+            </div>
+            <div class="row">
+              <div class="nm"><div class="t">HDL</div><div class="s">clinic · 14 Jul</div></div>
+              <svg class="spark" width="36" height="16" viewBox="0 0 36 16"><polyline points="0,8 9,7 18,7 27,6 36,6" fill="none" stroke="#7185bd" stroke-width="1.4"/></svg>
+              <div class="val">1.35<u>mmol/L</u></div><div class="st">In range</div><div class="go"></div>
+            </div>
+            <div class="row">
+              <div class="nm"><div class="t">Triglycerides</div><div class="s">clinic · 14 Jul</div></div>
+              <svg class="spark" width="36" height="16" viewBox="0 0 36 16"><polyline points="0,7 9,7 18,8 27,8 36,9" fill="none" stroke="#7185bd" stroke-width="1.4"/></svg>
+              <div class="val">0.72<u>mmol/L</u></div><div class="st">In range</div><div class="go"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- Omics ---------- -->
+      <div class="scroller tabpane hide" id="p-omics">
+        <div class="pad" style="padding-top:10px">
+          <div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:12px">
+            <span class="twin" data-vb="20 6 160 200" style="width:72px;height:90px">
+              <canvas></canvas>
+              <svg class="tw-fb" viewBox="20 6 160 200"><use href="#twinArms" x="0" y="0" width="200" height="560"/></svg>
+              <svg class="tw-ov" viewBox="20 6 160 200">
+                <ellipse cx="100" cy="46" rx="12" ry="13" fill="#435ba1" opacity=".28"/>
+                <ellipse cx="106" cy="118" rx="11" ry="12" fill="#417e1b" opacity=".22"/>
+                <ellipse cx="88" cy="150" rx="12" ry="12" fill="#7a5600" opacity=".3"/>
+                <ellipse cx="112" cy="176" rx="11" ry="11" fill="#435ba1" opacity=".22"/></svg>
+            </span>
+            <div style="flex:1">
+              <div class="overline mute">MULTI-ORGAN · 8 PANELS</div>
+              <div class="note" style="margin-top:5px">Eight molecular layers from the July scan. Proteomics carries the largest change since your first visit.</div>
+            </div>
+          </div>
+
+          <div class="list">
+            <div class="list-h"><span class="overline">SORTED BY MOVEMENT</span><span class="meta">vs first scan</span></div>
+            <div id="omics-rows"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- Body ---------- -->
+      <div class="scroller tabpane hide" id="p-body">
+        <div class="pad" style="padding-top:10px">
+
+          <div class="card primary">
+            <div class="cap"><span class="overline">COMPOSITION</span><span class="chip">BMI Monitor</span></div>
+            <div style="margin-top:8px;display:flex;align-items:flex-end;justify-content:space-between">
+              <div style="display:flex;align-items:baseline;gap:6px"><span class="num" style="font-size:40px">86</span><span style="font-size:13px;color:var(--ink-400)">kg · held since July</span></div>
+              <svg width="120" height="34" viewBox="0 0 120 34"><polyline points="0,20 24,18 48,22 72,17 96,18 118,18" fill="none" stroke="#7185bd" stroke-width="1.6"/><circle cx="118" cy="18" r="3" fill="#203a85"/></svg>
+            </div>
+            <div style="margin-top:12px;height:12px;display:flex;gap:2px;border-radius:6px;overflow:hidden">
+              <div style="width:62%;background:#203a85"></div><div style="width:29%;background:#b27f00b3"></div><div style="width:9%;background:#a9b5d9"></div>
+            </div>
+            <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:11px;color:var(--ink-600)">
+              <span>lean 53.3 kg · 62%</span><span>fat 24.9 kg · 29%</span><span>bone 7.8 kg</span></div>
+            <div class="rule" style="margin-top:11px;padding-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+              <div><div class="meta">Visceral fat index</div><div style="margin-top:3px;font-size:19px">9</div></div>
+              <div><div class="meta">BMI</div><div style="margin-top:3px;font-size:19px">27<span style="margin-left:3px;font-size:11px;color:var(--ink-400)">kg/m²</span></div></div>
+              <div><div class="meta">Liver fat</div><div style="margin-top:3px;font-size:19px">grade 1</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cap"><span class="overline">BONE DENSITY</span><span style="font-size:11px;color:var(--ink-label)">Normal at all sites</span></div>
+            <div style="margin-top:11px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:10px"><span style="width:96px;font-size:12px;color:var(--ink-600)">Lumbar spine</span>
+                <div class="dbar" style="flex:1"><i style="left:0;width:74%;background:#435ba1"></i><u style="left:40%"></u></div>
+                <span class="tnum" style="width:44px;text-align:right;font-size:12px">+0.6</span></div>
+              <div style="display:flex;align-items:center;gap:10px"><span style="width:96px;font-size:12px;color:var(--ink-600)">Hip</span>
+                <div class="dbar" style="flex:1"><i style="left:0;width:58%;background:#435ba1"></i><u style="left:40%"></u></div>
+                <span class="tnum" style="width:44px;text-align:right;font-size:12px">+0.2</span></div>
+              <div style="display:flex;align-items:center;gap:10px"><span style="width:96px;font-size:12px;color:var(--ink-600)">Femoral neck</span>
+                <div class="dbar" style="flex:1"><i style="left:0;width:46%;background:#7185bd"></i><u style="left:40%"></u></div>
+                <span class="tnum" style="width:44px;text-align:right;font-size:12px">−0.1</span></div>
+            </div>
+            <div class="meta" style="margin-top:9px">T-score · marker at the −1.0 osteopenia threshold</div>
+          </div>
+
+          <div class="card" style="display:flex;gap:14px">
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div class="overline">SKIN MAP</div>
+              <div style="margin-top:9px;display:flex;align-items:baseline;gap:6px"><span class="num" style="font-size:30px">727</span><span style="font-size:12px;color:var(--ink-400)">markings</span></div>
+              <div class="note" style="margin-top:9px;font-size:12px">All logged and tracked between visits. None flagged for review.</div>
+              <div style="margin-top:auto;display:flex;gap:14px;font-size:11px;color:var(--ink-400)"><span>+12 since scan 1</span><span>0 flagged</span></div>
+            </div>
+            <span class="twin" data-vb="20 0 160 300" style="width:80px;height:150px">
+              <canvas></canvas>
+              <svg class="tw-fb" viewBox="20 0 160 300"><use href="#twin" x="0" y="0" width="200" height="560"/></svg>
+              <svg class="tw-ov" viewBox="20 0 160 300">
+                <circle cx="86" cy="96" r="2" fill="#435ba1"/><circle cx="118" cy="130" r="2" fill="#435ba1"/>
+                <circle cx="74" cy="160" r="2" fill="#435ba1"/><circle cx="122" cy="190" r="2" fill="#435ba1"/>
+                <circle cx="96" cy="210" r="2" fill="#435ba1"/><circle cx="108" cy="58" r="2" fill="#435ba1"/>
+                <circle cx="60" cy="200" r="2" fill="#435ba1"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 09 · PROFILE ==================== -->
+    <section class="screen" id="s-profile">
+      <div style="padding:6px 16px 12px;flex:none">
+        <div style="font-family:var(--font-serif);font-size:24px">Profile</div>
+        <div class="meta" style="margin-top:5px;font-size:13px">Member since 2024 · age 42 · second scan 14 July</div>
+      </div>
+      <div class="scroller">
+        <div class="pad">
+
+          <div class="list primary">
+            <div class="list-h"><span class="overline">DEVICES</span><span id="dev-state" style="font-size:11px;color:var(--ok-ink)">2 paired · synced 6 min ago</span></div>
+            <div class="row" style="padding:11px 15px">
+              <div class="avatar"><svg class="ic"><use href="#i-ring"/></svg></div>
+              <div class="nm" style="margin-left:2px"><div class="t" style="font-weight:500">Phenome ring</div><div class="s" style="font-size:11px">battery 68% · HR, HRV, SpO₂, temp</div></div>
+              <span class="devdot" style="width:8px;height:8px;border-radius:50%;background:var(--ok-ink)"></span>
+            </div>
+            <div class="row" style="padding:11px 15px">
+              <div class="avatar"><svg class="ic"><use href="#i-watch"/></svg></div>
+              <div class="nm" style="margin-left:2px"><div class="t" style="font-weight:500">Phenome band</div><div class="s" style="font-size:11px">battery 41% · steps, activity, kcal</div></div>
+              <span class="devdot" style="width:8px;height:8px;border-radius:50%;background:var(--ok-ink)"></span>
+            </div>
+            <div class="row" style="padding:11px 15px">
+              <div class="nm"><div class="t">Devices connected</div><div class="s" style="font-size:11px">Turn off to preview the no-device Home</div></div>
+              <button class="sw" id="pair-sw" role="switch" aria-checked="true" aria-label="Devices connected"></button>
+            </div>
+          </div>
+
+          <div class="card flat">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="avatar soft"><svg class="ic"><use href="#i-bt"/></svg></div>
+              <div style="flex:1">
+                <div style="font-size:14px;font-weight:500">No third device</div>
+                <div class="note" style="margin-top:2px;font-size:12px">Home works without one. Continuous readings stay empty until a device is paired.</div>
+              </div>
+            </div>
+            <div style="margin-top:11px;display:flex;gap:8px">
+              <button class="btn">Pair a device</button><button class="btn ghost">Not now</button>
+            </div>
+          </div>
+
+          <div class="list">
+            <div class="list-h"><span class="overline">CARE</span></div>
+            <div class="row tap" style="padding:11px 15px"><div class="nm"><div class="t">Upcoming appointment</div><div class="s" style="font-size:11px">None booked · window opens 14 Jan</div></div><div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div></div>
+            <div class="row tap" style="padding:11px 15px"><div class="nm"><div class="t">Clinician notes</div><div class="s" style="font-size:11px">3 notes · last 14 Jul</div></div><div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div></div>
+            <div class="row tap" style="padding:11px 15px"><div class="nm"><div class="t">Scan history</div><div class="s" style="font-size:11px">2 scans · Feb 24, Jul 26</div></div><div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div></div>
+          </div>
+
+          <div class="list">
+            <div class="list-h"><span class="overline">ACCOUNT</span></div>
+            <div class="row tap" style="padding:11px 15px"><div class="nm"><div class="t">Data sharing</div></div><span class="meta">Clinic only</span><div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div></div>
+            <div class="row tap" style="padding:11px 15px"><div class="nm"><div class="t">Notifications</div></div><span class="meta">Monitor only</span><div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div></div>
+            <div class="row tap" style="padding:11px 15px"><div class="nm"><div class="t">Account and billing</div></div><div class="go"><svg class="ic"><use href="#i-chev-r"/></svg></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 04 · BLOOD PRESSURE ==================== -->
+    <section class="screen detail off" id="s-bp">
+      <div class="navbar">
+        <button class="back" data-back><svg class="ic"><use href="#i-chev-l"/></svg></button>
+        <div class="ttl">Blood pressure</div>
+        <div class="meta">clinic cuff · seated</div>
+      </div>
+      <div class="scroller">
+        <div class="pad" style="padding-top:0">
+
+          <div class="card primary" style="padding:14px 15px;display:flex;gap:12px">
+            <span class="twin" data-vb="40 54 120 158" style="width:92px;height:122px">
+              <canvas></canvas>
+              <svg class="tw-fb" viewBox="40 54 120 158"><use href="#twin" x="0" y="0" width="200" height="560"/></svg>
+              <svg class="tw-ov" viewBox="40 54 120 158">
+                <path d="M104,104 C102,124 100,150 99,176" stroke="#203a85" stroke-width="1.6" fill="none" opacity=".5"/>
+                <circle cx="99" cy="176" r="3.4" fill="#203a85"/></svg>
+            </span>
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+              <div style="display:flex;align-items:baseline;gap:6px"><span class="num" style="font-size:44px">124/74</span><span style="font-size:13px;color:var(--ink-400)">mmHg</span></div>
+              <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+                <span style="font-size:12px;color:var(--ink-label)">In range</span>
+                <span style="width:1px;height:11px;background:var(--border-strong)"></span>
+                <span class="meta" style="font-size:12px">measured 14 July</span>
+              </div>
+              <div class="bp-tabs" id="bp-tabs">
+                <button aria-selected="true" data-bp="sys">Systolic</button>
+                <button aria-selected="false" data-bp="dia">Diastolic</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:14px 15px 16px">
+            <div class="cap"><span class="overline" id="bp-zone-title">SYSTOLIC AGAINST GRADED ZONES</span><span class="meta" id="bp-zone-note">124 mmHg</span></div>
+            <div class="zone"><i class="z1"></i><i class="z2"></i><i class="z3"></i></div>
+            <div style="position:relative;height:0"><div class="zone-mark" id="bp-mark" style="left:40%"></div></div>
+            <div class="zone-scale">
+              <span style="left:0" id="bp-a">90</span>
+              <span style="left:46%;transform:translateX(-50%)" id="bp-b">120</span>
+              <span style="left:66%;transform:translateX(-50%)" id="bp-c">130</span>
+              <span style="right:0" id="bp-d">140</span>
+              <span class="lab is" style="left:22%;transform:translateX(-50%)">Normal</span>
+              <span class="lab" style="left:56%;transform:translateX(-50%)">Elevated</span>
+              <span class="lab" style="left:83%;transform:translateX(-50%)">High</span>
+            </div>
+          </div>
+
+          <div class="card" style="padding:14px 15px">
+            <div class="cap"><span class="overline">SIX VISITS</span><span class="meta">systolic and diastolic</span></div>
+            <svg class="stretch" height="112" viewBox="0 0 330 112" preserveAspectRatio="none" style="margin-top:10px">
+              <line x1="0" y1="20" x2="330" y2="20" stroke="#203a8514" stroke-width="1"/>
+              <line x1="0" y1="56" x2="330" y2="56" stroke="#203a8514" stroke-width="1"/>
+              <line x1="0" y1="92" x2="330" y2="92" stroke="#203a8514" stroke-width="1"/>
+              <polyline id="bp-sys-line" points="12,34 76,28 140,32 204,26 268,30 322,38" fill="none" stroke="#203a85" stroke-width="2"/>
+              <polyline id="bp-dia-line" points="12,80 76,76 140,82 204,74 268,78 322,84" fill="none" stroke="#7185bd" stroke-width="2" stroke-dasharray="4 4"/>
+              <circle cx="322" cy="38" r="4" fill="#203a85"/><circle cx="322" cy="84" r="4" fill="#7185bd"/>
+            </svg>
+            <div class="axis"><span>Feb 24</span><span>Aug 24</span><span>Feb 25</span><span>Aug 25</span><span>Feb 26</span><span>14 Jul</span></div>
+          </div>
+
+          <div class="card">
+            <div class="stats3">
+              <div><div class="k">SINCE SCAN 1</div><div class="v">−4</div><div class="u">systolic</div></div>
+              <div><div class="k">RING, 7-DAY</div><div class="v">flat</div><div class="u">resting trend</div></div>
+              <div><div class="k">COHORT, 42</div><div class="v" style="color:var(--ink-600)">128</div><div class="u">median systolic</div></div>
+            </div>
+            <div class="rule" style="margin-top:12px;padding-top:11px;display:flex;align-items:center;gap:8px">
+              <div style="flex:1;font-size:12px;color:var(--ink-600)">Flagged for your next clinic review.</div>
+              <button class="btn ghost">Add note</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 05 · CONTINUOUS ==================== -->
+    <section class="screen detail off" id="s-cont">
+      <div class="navbar">
+        <button class="back" data-back><svg class="ic"><use href="#i-chev-l"/></svg></button>
+        <div class="ttl">Continuous</div>
+        <div class="meta">ring · 6 min ago</div>
+      </div>
+
+      <div class="seg sm" id="cont-seg" style="--n:4;--i:0">
+        <button aria-selected="true" data-cont="HR">HR</button>
+        <button aria-selected="false" data-cont="HRV">HRV</button>
+        <button aria-selected="false" data-cont="Sleep">Sleep</button>
+        <button aria-selected="false" data-cont="Activity">Activity</button>
+      </div>
+
+      <div class="card primary" style="margin:12px 14px 0;padding:12px 15px;display:flex;align-items:center;gap:12px;flex:none">
+        <span class="twin" data-vb="42 60 116 116" style="width:66px;height:66px">
+          <canvas></canvas>
+          <svg class="tw-fb" viewBox="42 60 116 116"><use href="#twin" x="0" y="0" width="200" height="560"/></svg>
+          <svg class="tw-ov" viewBox="42 60 116 116">
+            <ellipse cx="106" cy="118" rx="15" ry="17" fill="#203a85" opacity=".12"/>
+            <ellipse cx="106" cy="118" rx="6" ry="7" fill="#203a85" opacity=".6"/></svg>
+        </span>
+        <div style="flex:1">
+          <div class="overline mute" id="c-label">RESTING HEART RATE</div>
+          <div style="margin-top:4px;display:flex;align-items:baseline;gap:6px">
+            <span class="num" style="font-size:40px" id="c-value">65</span>
+            <span style="font-size:13px;color:var(--ink-400)" id="c-unit">bpm</span></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:12px;color:var(--ink-label)" id="c-status">Optimal</div>
+          <div class="meta" style="margin-top:3px" id="c-range">52 – 112 bpm</div>
+        </div>
+      </div>
+
+      <div class="scroller">
+        <div class="pad" style="padding-top:10px">
+
+          <div class="card">
+            <div class="cap"><span class="overline" id="c-window">LAST 24 HOURS</span><span class="meta" id="c-range2">52 – 112 bpm</span></div>
+
+            <svg class="stretch c-chart" data-c="HR" height="128" viewBox="0 0 330 128" preserveAspectRatio="none" style="margin-top:12px">
+              <path d="M0,92 C22,94 34,80 52,76 C74,70 88,86 108,84 C128,82 140,50 160,44 C182,38 196,64 216,60 C238,56 250,32 272,36 C292,40 306,66 330,62 L330,128 L0,128 Z" fill="#7185bd2e"/>
+              <path d="M0,92 C22,94 34,80 52,76 C74,70 88,86 108,84 C128,82 140,50 160,44 C182,38 196,64 216,60 C238,56 250,32 272,36 C292,40 306,66 330,62" stroke="#203a85" stroke-width="1.8" fill="none"/>
+              <line x1="0" y1="98" x2="330" y2="98" stroke="#203a8529" stroke-width="1" stroke-dasharray="3 4"/></svg>
+
+            <svg class="stretch c-chart hide" data-c="HRV" height="128" viewBox="0 0 330 128" preserveAspectRatio="none" style="margin-top:12px">
+              <path d="M0,70 C24,58 40,40 62,34 C86,28 100,48 122,52 C146,56 158,30 182,26 C206,22 218,52 242,58 C266,64 286,46 330,40 L330,128 L0,128 Z" fill="#435ba12e"/>
+              <path d="M0,70 C24,58 40,40 62,34 C86,28 100,48 122,52 C146,56 158,30 182,26 C206,22 218,52 242,58 C266,64 286,46 330,40" stroke="#435ba1" stroke-width="1.8" fill="none"/>
+              <line x1="0" y1="62" x2="330" y2="62" stroke="#203a8529" stroke-width="1" stroke-dasharray="3 4"/></svg>
+
+            <svg class="stretch c-chart hide" data-c="Sleep" height="128" viewBox="0 0 330 128" preserveAspectRatio="none" style="margin-top:12px">
+              <rect x="0" y="96" width="46" height="14" rx="3" fill="#a9b5d9"/><rect x="46" y="16" width="58" height="14" rx="3" fill="#203a85"/>
+              <rect x="104" y="70" width="42" height="14" rx="3" fill="#7185bd"/><rect x="146" y="43" width="52" height="14" rx="3" fill="#435ba1"/>
+              <rect x="198" y="70" width="60" height="14" rx="3" fill="#7185bd"/><rect x="258" y="43" width="38" height="14" rx="3" fill="#435ba1"/>
+              <rect x="296" y="96" width="34" height="14" rx="3" fill="#a9b5d9"/></svg>
+
+            <svg class="stretch c-chart hide" data-c="Activity" height="128" viewBox="0 0 330 128" preserveAspectRatio="none" style="margin-top:12px">
+              <line x1="0" y1="60" x2="330" y2="60" stroke="#203a8529" stroke-width="1" stroke-dasharray="3 4"/>
+              <rect x="6" y="104" width="22" height="24" rx="3" fill="#a9b5d9"/><rect x="46" y="88" width="22" height="40" rx="3" fill="#a9b5d9"/>
+              <rect x="86" y="40" width="22" height="88" rx="3" fill="#7185bd"/><rect x="126" y="96" width="22" height="32" rx="3" fill="#a9b5d9"/>
+              <rect x="166" y="64" width="22" height="64" rx="3" fill="#a9b5d9"/><rect x="206" y="20" width="22" height="108" rx="3" fill="#203a85"/>
+              <rect x="246" y="80" width="22" height="48" rx="3" fill="#a9b5d9"/><rect x="286" y="100" width="22" height="28" rx="3" fill="#a9b5d9"/></svg>
+
+            <div class="axis" id="c-axis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>now</span></div>
+            <div class="rule" style="font-size:12px;color:var(--ink-600)" id="c-note">Dashed line marks the 65 bpm resting baseline from your ring.</div>
+          </div>
+
+          <div class="card">
+            <div class="cap"><span class="overline">SLEEP STAGES · LAST NIGHT</span><span class="meta">7 h 12 m</span></div>
+            <div style="margin-top:11px;height:10px;display:flex;gap:2px;border-radius:5px;overflow:hidden">
+              <div style="width:15%;background:#203a85"></div><div style="width:23%;background:#435ba1"></div>
+              <div style="width:52%;background:#7185bd"></div><div style="width:10%;background:#a9b5d9"></div>
+            </div>
+            <div style="margin-top:9px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;color:var(--ink-600)">
+              <span>deep 1:04</span><span>REM 1:38</span><span>light 3:44</span><span>awake 0:46</span></div>
+            <div class="rule legend" style="margin-top:10px"><span>HRV 48 ms</span><span>skin temp −0.2 °C</span><span>SpO₂ 97%</span></div>
+          </div>
+
+          <div class="card">
+            <div class="overline">7-DAY DISTRIBUTION</div>
+            <div style="margin-top:11px;display:flex;align-items:flex-end;gap:6px;height:52px">
+              <div style="flex:1;height:38%;border-radius:3px;background:#a9b5d9"></div>
+              <div style="flex:1;height:56%;border-radius:3px;background:#a9b5d9"></div>
+              <div style="flex:1;height:72%;border-radius:3px;background:#7185bd"></div>
+              <div style="flex:1;height:100%;border-radius:3px;background:#203a85"></div>
+              <div style="flex:1;height:84%;border-radius:3px;background:#7185bd"></div>
+              <div style="flex:1;height:48%;border-radius:3px;background:#a9b5d9"></div>
+              <div style="flex:1;height:30%;border-radius:3px;background:#a9b5d9"></div>
+            </div>
+            <div class="axis"><span>52</span><span>60</span><span>65</span><span>70</span><span>78</span><span>90</span><span>112 bpm</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 07 · PROTEOMICS ORGAN AGES ==================== -->
+    <section class="screen detail off" id="s-organs">
+      <div class="navbar">
+        <button class="back" data-back><svg class="ic"><use href="#i-chev-l"/></svg></button>
+        <div class="ttl">Proteomics · organ ages</div>
+        <div class="meta">you are 42</div>
+      </div>
+
+      <div class="organ-hero">
+        <span class="twin" data-vb="20 0 160 290" style="width:140px;height:150px">
+          <canvas></canvas>
+          <svg class="tw-fb" viewBox="20 0 160 290"><use href="#twinArms" x="0" y="0" width="200" height="560"/></svg>
+          <svg class="tw-ov" viewBox="20 0 160 290">
+            <ellipse cx="100" cy="46" rx="11" ry="12" fill="#417e1b" opacity=".16"/>
+            <ellipse cx="106" cy="118" rx="11" ry="12" fill="#417e1b" opacity=".18"/>
+            <ellipse cx="88" cy="150" rx="12" ry="12" fill="#7a5600" opacity=".18"/>
+            <ellipse cx="112" cy="172" rx="10" ry="10" fill="#7a5600" opacity=".14"/>
+            <ellipse id="tint" cx="100" cy="140" rx="17" ry="18" fill="#7a5600" opacity=".42"/>
+          </svg>
+        </span>
+        <div class="organ-read">
+          <div class="n" id="o-name">Immune</div>
+          <div class="num v" id="o-value">47</div>
+          <div class="meta" id="o-delta">+5 vs chronological</div>
+        </div>
+        <div class="foot">TINTED BY AGE DELTA</div>
+      </div>
+
+      <div style="padding:10px 16px 8px;flex:none"><div class="note">Sorted by distance from your chronological age of 42. Tap a row and the twin tints that organ.</div></div>
+
+      <div class="scroller">
+        <div class="pad" style="padding-top:0">
+          <div class="list">
+            <div class="list-h" style="font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--ink-400)">
+              <span style="flex:1">ORGAN</span><span style="width:96px;text-align:center;white-space:nowrap">YOUNGER · OLDER</span><span style="width:56px;text-align:right">AGE</span>
+            </div>
+            <div id="organ-rows"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /body -->
+
+  <!-- ==================== TAB BAR ==================== -->
+  <nav class="tabbar" id="tabbar">
+    <button aria-selected="true" data-root="home"><svg class="ic"><use href="#i-scan"/></svg><span>Home</span></button>
+    <button aria-selected="false" data-root="health"><svg class="ic"><use href="#i-activity"/></svg><span>Health</span></button>
+    <button aria-selected="false" data-root="profile"><svg class="ic"><use href="#i-user"/></svg><span>Profile</span></button>
+  </nav>
+  </div><!-- /app -->
+
+  <div class="homebar"></div>
+</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const $  = (s,r)=>(r||document).querySelector(s);
+const $$ = (s,r)=>Array.from((r||document).querySelectorAll(s));
+
+/* ------------------------------------------------------------
+   1 · fit the 393×852 device into whatever desktop window we get
+   ------------------------------------------------------------ */
+const stage = $('#stage');
+function fit(){
+  if (window.matchMedia('(max-width:820px)').matches){ stage.style.transform=''; return; }
+  const s = Math.min(1, (window.innerHeight - 56) / 852);
+  stage.style.transform = 'scale(' + s.toFixed(4) + ')';
+  stage.style.marginRight = ((s - 1) * 393 / 2) + 'px';
+  stage.style.marginLeft  = ((s - 1) * 393 / 2) + 'px';
+}
+fit(); window.addEventListener('resize', fit);
+
+/* ------------------------------------------------------------
+   2 · router — three roots, three pushed details
+   ------------------------------------------------------------ */
+const ROOTS = { home:'#s-home', health:'#s-health', profile:'#s-profile' };
+const DETAILS = { bp:'#s-bp', cont:'#s-cont', organs:'#s-organs' };
+let root = 'home', detail = null;
+
+function showRoot(name){
+  root = name;
+  Object.keys(ROOTS).forEach(k => $(ROOTS[k]).classList.toggle('on', k === name));
+  $$('#tabbar button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.root === name)));
+  closeDetail();
+}
+function openDetail(name){
+  if (detail === name) return;
+  const el = $(DETAILS[name]);
+  el.classList.remove('off');
+  // force a frame so the transform transition actually runs
+  void el.offsetWidth;
+  el.classList.add('on');
+  detail = name;
+}
+function closeDetail(){
+  if (!detail) return;
+  const el = $(DETAILS[detail]);
+  el.classList.remove('on');
+  const done = () => { el.classList.add('off'); el.removeEventListener('transitionend', done); };
+  el.addEventListener('transitionend', done);
+  setTimeout(done, 420);
+  detail = null;
+}
+
+$$('#tabbar button').forEach(b => b.addEventListener('click', () => showRoot(b.dataset.root)));
+$$('[data-back]').forEach(b => b.addEventListener('click', closeDetail));
+
+/* every [data-go] target, wherever it lives */
+function go(target){
+  switch(target){
+    case 'vitals': showRoot('health'); setHealthTab('vitals'); break;
+    case 'omics':  showRoot('health'); setHealthTab('omics');  break;
+    case 'body':   showRoot('health'); setHealthTab('body');   break;
+    case 'profile':showRoot('profile'); break;
+    case 'bp':     openDetail('bp'); break;
+    case 'cont':   setCont('HR');       openDetail('cont'); break;
+    case 'cont-act': setCont('Activity'); openDetail('cont'); break;
+    case 'organs': openDetail('organs'); break;
+  }
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-go]');
+  if (t) go(t.dataset.go);
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const t = e.target.closest && e.target.closest('[data-go]');
+  if (t){ e.preventDefault(); go(t.dataset.go); }
+});
+
+/* ------------------------------------------------------------
+   3 · the collapse — the twin docks, it does not leave
+   ------------------------------------------------------------ */
+const scroller = $('#home-scroll'), hero = $('#hero'), dock = $('#dock');
+let ticking = false;
+function onScroll(){
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => {
+    // 320 = hero height (330) + appbar (44) − dock height (54)
+    const p = Math.min(1, Math.max(0, scroller.scrollTop / 320));
+    hero.style.setProperty('--p', p.toFixed(4));
+    dock.style.setProperty('--p', p.toFixed(4));
+    dock.style.pointerEvents = p > .6 ? 'auto' : 'none';
+    ticking = false;
+  });
+}
+scroller.addEventListener('scroll', onScroll, {passive:true});
+onScroll();
+
+/* ------------------------------------------------------------
+   4 · Health segmented tabs
+   ------------------------------------------------------------ */
+const HEALTH = ['vitals','omics','body'];
+function setHealthTab(name){
+  const i = HEALTH.indexOf(name); if (i < 0) return;
+  $('#health-seg').style.setProperty('--i', i);
+  $$('#health-seg button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+  HEALTH.forEach(k => $('#p-' + k).classList.toggle('hide', k !== name));
+}
+$$('#health-seg button').forEach(b => b.addEventListener('click', () => setHealthTab(b.dataset.tab)));
+
+/* ------------------------------------------------------------
+   5 · Omics — sorted by movement, not alphabet
+   ------------------------------------------------------------ */
+const OMICS = [
+  {name:'Proteomics',         sub:'organ ages · 7 organs',     d:'+5 y', w:44, older:true,  status:'Monitor',  go:'organs'},
+  {name:'Gut microbiome',     sub:'diversity · high',          d:'+8%',  w:30, older:false, status:'Optimal'},
+  {name:'Lipidomics',         sub:'cholesterol 3.25 mmol/L',   d:'−6%',  w:24, older:false, status:'Optimal'},
+  {name:'Plasma metabolomics',sub:'glucose 6.2 mmol/L',        d:'+4%',  w:18, older:true,  status:'In range'},
+  {name:'Genomics',           sub:'risk panel · stable',       d:'0',    w:4,  older:true,  status:'In range'},
+  {name:'Transcriptomics',    sub:'expression · stable',       d:'+2%',  w:10, older:true,  status:'In range'},
+  {name:'Oral microbiome',    sub:'balance · stable',          d:'−1%',  w:6,  older:false, status:'In range'},
+  {name:'Urine metabolomics', sub:'clearance · stable',        d:'0',    w:4,  older:false, status:'In range'}
+];
+$('#omics-rows').innerHTML = OMICS.map(o => {
+  const flag = o.status === 'Monitor';
+  const fill = o.older ? (flag ? '#b27f00b3' : '#a9b5d9') : '#7185bdcc';
+  const side = o.older ? 'left:50%' : 'right:50%';
+  const st = flag ? '<span class="chip">Monitor</span>'
+                  : '<span style="font-size:11px;color:' + (o.status === 'Optimal' ? 'var(--ink-label)' : 'var(--ink-400)') + '">' + o.status + '</span>';
+  return '<div class="row' + (flag ? ' flag' : '') + (o.go ? ' tap' : '') + '"' + (o.go ? ' data-go="' + o.go + '"' : '') + ' style="padding:10px 15px">' +
+    '<div class="nm"><div class="t"' + (flag ? ' style="font-weight:500"' : '') + '>' + o.name + '</div><div class="s">' + o.sub + '</div></div>' +
+    '<div class="dbar" style="width:52px"><i style="' + side + ';width:' + o.w + '%;background:' + fill + '"></i><u></u></div>' +
+    '<div style="width:38px;text-align:right;font-size:13px;color:var(--ink-600)" class="tnum">' + o.d + '</div>' +
+    '<div style="width:58px;text-align:right">' + st + '</div>' +
+    '<div class="go">' + (o.go ? '<svg class="ic"><use href="#i-chev-r"/></svg>' : '') + '</div>' +
+  '</div>';
+}).join('');
+
+/* ------------------------------------------------------------
+   6 · Organ ages — tap a row, the twin answers
+   ------------------------------------------------------------ */
+const ORGANS = [
+  {name:'Immune',      value:47, d: 5, x:100, y:140},
+  {name:'Liver',       value:45, d: 3, x:88,  y:150},
+  {name:'Vasculature', value:44, d: 2, x:106, y:118},
+  {name:'Kidney',      value:41, d:-1, x:112, y:172},
+  {name:'Lung',        value:40, d:-2, x:106, y:104},
+  {name:'Brain',       value:39, d:-3, x:100, y:46},
+  {name:'Heart',       value:38, d:-4, x:106, y:118}
+];
+let organ = 'Immune';
+const sign = d => (d > 0 ? '+' : '−') + Math.abs(d);
+
+$('#organ-rows').innerHTML = ORGANS.map(o => {
+  const w = Math.min(46, Math.abs(o.d) * 7 + 5);
+  const side = o.d > 0 ? 'left:50%' : 'right:50%';
+  const fill = o.d > 0 ? '#b27f00b3' : '#7185bdcc';
+  return '<div class="row tap" data-organ="' + o.name + '" style="padding:10px 15px">' +
+    '<div class="nm o-nm" style="font-size:14px">' + o.name + '</div>' +
+    '<div class="dbar" style="width:96px"><i style="' + side + ';width:' + w + '%;background:' + fill + '"></i><u></u></div>' +
+    '<div style="width:56px;text-align:right;font-size:18px" class="tnum">' + o.value +
+      '<span style="margin-left:4px;font-size:11px;color:' + (o.d > 0 ? 'var(--monitor-ink)' : 'var(--ok-ink)') + '">' + sign(o.d) + '</span></div>' +
+  '</div>';
+}).join('');
+
+const tint = $('#tint');
+function setOrgan(name){
+  const o = ORGANS.find(x => x.name === name); if (!o || name === organ) return;
+  organ = name;
+  $$('#organ-rows .row').forEach(r => {
+    const on = r.dataset.organ === name;
+    r.classList.toggle('sel', on);
+    r.querySelector('.o-nm').style.cssText = 'font-size:14px;color:' + (on ? 'var(--ink-900);font-weight:500' : 'var(--ink-label)');
+  });
+  // 160 ms cross-fade — nothing else on the screen animates
+  tint.style.opacity = '0';
+  setTimeout(() => {
+    tint.setAttribute('cx', o.x); tint.setAttribute('cy', o.y);
+    tint.setAttribute('fill', o.d > 0 ? '#7a5600' : '#417e1b');
+    tint.style.opacity = '.42';
+    $('#o-name').textContent = o.name;
+    $('#o-value').textContent = o.value;
+    $('#o-delta').textContent = sign(o.d) + ' vs chronological';
+  }, 160);
+}
+$('#organ-rows').addEventListener('click', e => {
+  const r = e.target.closest('[data-organ]'); if (r) setOrgan(r.dataset.organ);
+});
+// paint the initial selection
+(function(){
+  const r = $('#organ-rows .row'); r.classList.add('sel');
+  r.querySelector('.o-nm').style.cssText = 'font-size:14px;color:var(--ink-900);font-weight:500';
+})();
+
+/* ------------------------------------------------------------
+   7 · Continuous — four metric tabs swap the chart in place
+   ------------------------------------------------------------ */
+const DAY = ['00:00','06:00','12:00','18:00','now'];
+const CONT = {
+  HR:      {label:'RESTING HEART RATE',      value:'65',     unit:'bpm',   status:'Optimal',  range:'52 – 112 bpm',      note:'Dashed line marks the 65 bpm resting baseline from your ring.', window:'LAST 24 HOURS', axis:DAY},
+  HRV:     {label:'HEART RATE VARIABILITY',  value:'48',     unit:'ms',    status:'In range', range:'28 – 74 ms',        note:'Overnight mean. Your 7-day average is 46 ms.',                  window:'LAST 24 HOURS', axis:DAY},
+  Sleep:   {label:'SLEEP',                   value:'7:12',   unit:'hours', status:'Optimal',  range:'23:04 – 06:16',     note:'Stages from ring accelerometer and temperature.',               window:'LAST NIGHT',    axis:['23:00','01:00','03:00','05:00','06:16']},
+  Activity:{label:'ACTIVITY',                value:'14,504', unit:'steps', status:'Goal met', range:'447 kcal · 151 min',note:'Bars are hourly steps. Dashed line is your hourly goal.',       window:'TODAY',         axis:DAY}
+};
+const CONT_KEYS = ['HR','HRV','Sleep','Activity'];
+function setCont(k){
+  const c = CONT[k]; if (!c) return;
+  $('#cont-seg').style.setProperty('--i', CONT_KEYS.indexOf(k));
+  $$('#cont-seg button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.cont === k)));
+  $('#c-label').textContent = c.label; $('#c-value').textContent = c.value; $('#c-unit').textContent = c.unit;
+  $('#c-status').textContent = c.status; $('#c-range').textContent = c.range; $('#c-range2').textContent = c.range;
+  $('#c-note').textContent = c.note;
+  $('#c-window').textContent = c.window;
+  $('#c-axis').innerHTML = c.axis.map(t => '<span>' + t + '</span>').join('');
+  $$('.c-chart').forEach(s => s.classList.toggle('hide', s.dataset.c !== k));
+}
+$$('#cont-seg button').forEach(b => b.addEventListener('click', () => setCont(b.dataset.cont)));
+
+/* ------------------------------------------------------------
+   8 · Blood pressure — the switch moves the marker, not the bar
+   ------------------------------------------------------------ */
+/* Bands are fixed-width, so the marker is placed linearly inside its own band.
+   Both values land in Normal, which is what the scan status says — the marker is
+   never allowed to sit in a band the status line contradicts. */
+const BP = {
+  sys:{title:'SYSTOLIC AGAINST GRADED ZONES', note:'124 mmHg', mark:'39%', a:'90', b:'130', c:'140', d:'180'},
+  dia:{title:'DIASTOLIC AGAINST GRADED ZONES',note:'74 mmHg',  mark:'32%', a:'60', b:'80',  c:'85',  d:'100'}
+};
+function setBP(k){
+  const v = BP[k];
+  $$('#bp-tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.bp === k)));
+  $('#bp-zone-title').textContent = v.title; $('#bp-zone-note').textContent = v.note;
+  $('#bp-mark').style.left = v.mark;
+  $('#bp-a').textContent = v.a; $('#bp-b').textContent = v.b; $('#bp-c').textContent = v.c; $('#bp-d').textContent = v.d;
+  $('#bp-sys-line').style.opacity = k === 'sys' ? '1' : '.35';
+  $('#bp-dia-line').style.opacity = k === 'dia' ? '1' : '.35';
+}
+$$('#bp-tabs button').forEach(b => b.addEventListener('click', () => setBP(b.dataset.bp)));
+setBP('sys');
+
+/* ------------------------------------------------------------
+   9 · device pairing — Home stays coherent with nothing paired
+   ------------------------------------------------------------ */
+const sw = $('#pair-sw');
+function setPaired(on){
+  sw.setAttribute('aria-checked', String(on));
+  $('#paired-block').classList.toggle('hide', !on);
+  $('#unpaired-block').classList.toggle('hide', on);
+  $('#sync').classList.toggle('off', !on);
+  $('#sync-txt').textContent = on ? 'Ring · band synced 6 min ago' : 'No device paired';
+  $('#dev-state').textContent = on ? '2 paired · synced 6 min ago' : 'None paired';
+  $('#dev-state').style.color = on ? 'var(--ok-ink)' : 'var(--ink-400)';
+  $$('.devdot').forEach(d => d.style.background = on ? 'var(--ok-ink)' : '#203a8529');
+  $('#cont-strip').style.opacity = on ? '1' : '.35';
+  if (on){ $('#sync').classList.add('pulse'); setTimeout(() => $('#sync').classList.remove('pulse'), 1200); }
+}
+sw.addEventListener('click', () => setPaired(sw.getAttribute('aria-checked') !== 'true'));
+$$('[data-pair]').forEach(b => b.addEventListener('click', () => { setPaired(true); }));
+
+})();
+</script>
+
+<script type="module">
+/* ============================================================================
+   THE REAL TWIN · Male.glb → tone buffer → screen-space halftone
+
+   Lifted from the Phenome web viewer: its hand-rolled GLB reader (no
+   GLTFLoader), its two-pass Contour Fade pipeline, and its preset numbers.
+   The figure is static — no rotation, no orbit, no cast shadow — and the
+   half-body crops dissolve on an alpha ramp in WORLD height, never a hard cut.
+
+   Camera framing is derived from each figure's SVG viewBox, so every badge,
+   organ tint and skin marking keeps the coordinates it already had.
+   ========================================================================== */
+const BASE = 'https://tiffanydesign.github.io/phenome-digital-twin/';
+const SRC  = [BASE + 'vendor/three.module.js',
+              'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js'];
+
+let THREE = null;
+for (const url of SRC) { try { THREE = await import(url); break; } catch (e) { /* next */ } }
+if (!THREE) throw new Error('three.js unavailable — inline SVG figure stands');
+
+/* ---- viewBox ⇄ world -------------------------------------------------------
+   The inline figure puts the crown at svgY 10 and the soles at svgY 530 inside
+   a 200×560 box. The GLB is fitted to BODY_H with its feet at y=0, so one SVG
+   unit is 2.6/520 = 0.005 world units and svgY 0 sits at 2.65. */
+const BODY_H = 2.6, K = 0.005, TOP = 2.65, FOV = 30;
+/* the tmask ramp the inline figure uses, restated in world height */
+const FADE_HI = TOP - 325 * K;   // 1.025 — solid to the hips
+const FADE_LO = TOP - 500 * K;   // 0.150 — gone below the knee
+
+/* ---- GLB reader (verbatim from the viewer) -------------------------------- */
+const COMP = {
+  5120:{A:Int8Array,s:1,get:(d,o)=>d.getInt8(o)},        5121:{A:Uint8Array,s:1,get:(d,o)=>d.getUint8(o)},
+  5122:{A:Int16Array,s:2,get:(d,o)=>d.getInt16(o,true)}, 5123:{A:Uint16Array,s:2,get:(d,o)=>d.getUint16(o,true)},
+  5125:{A:Uint32Array,s:4,get:(d,o)=>d.getUint32(o,true)},5126:{A:Float32Array,s:4,get:(d,o)=>d.getFloat32(o,true)},
+};
+const NUM = {SCALAR:1,VEC2:2,VEC3:3,VEC4:4,MAT2:4,MAT3:9,MAT4:16};
+
+function parseContainer(buffer){
+  const head = new Uint32Array(buffer, 0, 3);
+  if (head[0] !== 0x46546c67) return {json:JSON.parse(new TextDecoder().decode(new Uint8Array(buffer))), bin:null};
+  let json = null, bin = null, p = 12;
+  const dv = new DataView(buffer);
+  while (p + 8 <= buffer.byteLength) {
+    const len = dv.getUint32(p,true), type = dv.getUint32(p+4,true), start = p + 8;
+    if (type === 0x4e4f534a) json = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer,start,len)));
+    else if (type === 0x004e4942) bin = buffer.slice(start, start+len);
+    p = start + len + ((4 - (len % 4)) % 4);
+  }
+  if (!json) throw new Error('no glTF chunk');
+  return {json, bin};
+}
+function readTyped(json, bin, bvIndex, byteOffset, componentType, count, num){
+  const comp = COMP[componentType], out = new comp.A(count * num);
+  if (bvIndex === undefined || !bin) return out;
+  const bv = json.bufferViews[bvIndex];
+  const base = (bv.byteOffset || 0) + (byteOffset || 0);
+  const elem = num * comp.s, stride = bv.byteStride || elem;
+  if (stride === elem && base % comp.s === 0) out.set(new comp.A(bin, base, count * num));
+  else { const dv = new DataView(bin);
+    for (let i = 0; i < count; i++) for (let j = 0; j < num; j++) out[i*num+j] = comp.get(dv, base + i*stride + j*comp.s); }
+  return out;
+}
+function readAccessor(json, bin, index){
+  const acc = json.accessors[index], num = NUM[acc.type];
+  return {array:readTyped(json,bin,acc.bufferView,acc.byteOffset,acc.componentType,acc.count,num), itemSize:num};
+}
+const nullMat = new THREE.MeshBasicMaterial({visible:false});
+function buildGeometries(json, bin, meshIndex, cache){
+  if (cache.has(meshIndex)) return cache.get(meshIndex);
+  const list = [];
+  for (const prim of json.meshes[meshIndex].primitives) {
+    if ((prim.mode === undefined ? 4 : prim.mode) !== 4) continue;
+    const geo = new THREE.BufferGeometry(), attrs = prim.attributes || {};
+    for (const [k, v] of [['POSITION','position'],['NORMAL','normal']]) {
+      if (attrs[k] === undefined) continue;
+      const acc = readAccessor(json, bin, attrs[k]);
+      geo.setAttribute(v, new THREE.BufferAttribute(acc.array, acc.itemSize));
+    }
+    if (!geo.getAttribute('position')) continue;
+    if (prim.indices !== undefined) { const i = readAccessor(json,bin,prim.indices); geo.setIndex(new THREE.BufferAttribute(i.array,1)); }
+    if (!geo.getAttribute('normal')) geo.computeVertexNormals();
+    list.push(geo);
+  }
+  cache.set(meshIndex, list);
+  return list;
+}
+function buildNode(json, bin, index, cache, seen){
+  if (seen.has(index)) return null;
+  seen.add(index);
+  const n = json.nodes[index], obj = new THREE.Group();
+  if (n.matrix) new THREE.Matrix4().fromArray(n.matrix).decompose(obj.position, obj.quaternion, obj.scale);
+  else { if (n.translation) obj.position.fromArray(n.translation);
+         if (n.rotation) obj.quaternion.fromArray(n.rotation);
+         if (n.scale) obj.scale.fromArray(n.scale); }
+  if (n.mesh !== undefined) for (const g of buildGeometries(json,bin,n.mesh,cache)) obj.add(new THREE.Mesh(g, nullMat));
+  if (n.children) for (const c of n.children) { const k = buildNode(json,bin,c,cache,seen); if (k) obj.add(k); }
+  seen.delete(index);
+  return obj;
+}
+async function loadGLB(url){
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(url + ' → HTTP ' + res.status);
+  const {json, bin} = parseContainer(await res.arrayBuffer());
+  const root = new THREE.Group(), cache = new Map();
+  const sceneDef = json.scenes?.[json.scene ?? 0];
+  const roots = sceneDef ? sceneDef.nodes : json.nodes.map((_, i) => i);
+  for (const i of roots) { const n = buildNode(json,bin,i,cache,new Set()); if (n) root.add(n); }
+  root.updateMatrixWorld(true);
+  return root;
+}
+function fitToFloor(root, targetH){
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  const size = box.getSize(new THREE.Vector3()), centre = box.getCenter(new THREE.Vector3());
+  const holder = new THREE.Group();
+  root.position.set(-centre.x, -box.min.y, -centre.z);
+  holder.add(root);
+  holder.scale.setScalar(targetH / Math.max(size.y, 1e-6));
+  holder.updateMatrixWorld(true);
+  return holder;
+}
+
+/* ---- pass 1 · shade the body into a buffer -------------------------------- */
+const matTone = new THREE.ShaderMaterial({
+  side: THREE.DoubleSide, blending: THREE.NoBlending,
+  uniforms: { uLightMix:{value:0}, uLightDir:{value:new THREE.Vector3(0.5,0.7,0.5)},
+              uFadeLo:{value:FADE_LO}, uFadeHi:{value:FADE_HI} },
+  vertexShader: `
+    varying vec3 vN; varying vec3 vV; varying float vY;
+    void main(){
+      vec4 mv = modelViewMatrix * vec4(position,1.0);
+      vN = normalize(normalMatrix * normal);
+      vV = normalize(-mv.xyz);
+      vY = (modelMatrix * vec4(position,1.0)).y;
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: `
+    varying vec3 vN; varying vec3 vV; varying float vY;
+    uniform float uLightMix, uFadeLo, uFadeHi; uniform vec3 uLightDir;
+    void main(){
+      vec3 nv = normalize(vN);
+      float facing = clamp(abs(dot(nv, normalize(vV))), 0.0, 1.0);
+      float ndl = clamp(dot(nv, normalize(uLightDir)) * 0.5 + 0.5, 0.0, 1.0);
+      float bright = mix(facing, ndl, uLightMix);
+      gl_FragColor = vec4(bright, bright, bright, smoothstep(uFadeLo, uFadeHi, vY));
+    }`,
+});
+
+/* ---- pass 2 · one dot per screen cell, radius from the tone underneath ----- */
+function v3(hex){ const c = new THREE.Color(hex); return new THREE.Vector3(c.r, c.g, c.b); }
+const matHalftone = new THREE.ShaderMaterial({
+  uniforms: { uTone:{value:null}, uRes:{value:new THREE.Vector2(2,2)},
+    uPitch:{value:10}, uAngle:{value:0}, uFill:{value:0.95}, uSoft:{value:0.1},
+    /* uFloor is the lab's own 0.045, not the viewer home page's 0.190. That
+       page raised it so its default paint matched the preset on a 1366px
+       stage; at 115px the same floor fills every covered cell and the figure
+       reads as a solid block instead of a point field. */
+    uContrast:{value:1.8}, uFloor:{value:0.055}, uInvert:{value:1},
+    uOpacity:{value:1}, uGlow:{value:1},
+    /* Contour Fade's own #c8d9ef → #33518f is tuned for the viewer's dark stage
+       and disappears on this near-white field. Same ramp, moved onto the app's
+       own tokens: blue-300 body, blue-500 tip. */
+    uColor:{value:v3('#7185bd')}, uTip:{value:v3('#203a85')} },
+  transparent:true, depthTest:false, depthWrite:false,
+  vertexShader:`varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy,0.0,1.0); }`,
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform sampler2D uTone; uniform vec2 uRes; uniform vec3 uColor, uTip;
+    uniform float uPitch, uAngle, uFill, uSoft, uContrast, uInvert, uOpacity, uGlow, uFloor;
+    void main(){
+      vec2 px = vUv * uRes;
+      float c = cos(uAngle), s = sin(uAngle);
+      vec2 g = vec2(c*px.x + s*px.y, -s*px.x + c*px.y) / uPitch;
+      vec2 id = floor(g) + 0.5;
+      vec2 cpx = vec2(c*id.x - s*id.y, s*id.x + c*id.y) * uPitch;
+      float tsum = 0.0, asum = 0.0;
+      for (int j = -1; j <= 1; j++) {
+        for (int i = -1; i <= 1; i++) {
+          vec2 o = vec2(float(i), float(j)) * uPitch * 0.34;
+          vec4 sm = texture2D(uTone, (cpx + o) / uRes);
+          tsum += sm.r * sm.a; asum += sm.a;
+        }
+      }
+      float av = asum / 9.0;
+      float tv = asum > 0.0001 ? tsum / asum : 0.0;
+      float bright = mix(tv, 1.0 - tv, uInvert);
+      float cov = av * (uFloor + (1.0 - uFloor) * pow(clamp(bright,0.0,1.0), uContrast));
+      if (cov <= 0.0008) discard;
+      float r = 0.5 * uFill * sqrt(cov);
+      float d = length(g - id);
+      float aa = max(0.8 / uPitch, 0.0005);
+      float a = 1.0 - smoothstep(max(r - aa - uSoft*r, 0.0), r + aa, d);
+      if (a <= 0.003) discard;
+      gl_FragColor = vec4(mix(uColor, uTip, clamp(bright,0.0,1.0)) * uGlow, a * uOpacity);
+    }`,
+});
+
+/* ---- renderer ------------------------------------------------------------- */
+const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.autoClear = false;
+renderer.setClearColor(0x000000, 0);
+renderer.setPixelRatio(1);
+
+const scene = new THREE.Scene(), stage = new THREE.Group();
+scene.add(stage);
+const camera = new THREE.PerspectiveCamera(FOV, 1, 0.05, 200);
+const quadScene = new THREE.Scene();
+const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+quadScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), matHalftone));
+
+const body = fitToFloor(await loadGLB(BASE + 'GLB/Male.glb'), BODY_H);
+body.traverse(o => { if (o.isMesh) o.material = matTone; });
+stage.add(body);
+
+let toneRT = null;
+function renderInto(el){
+  const vb = el.dataset.vb.split(/\s+/).map(Number);
+  const bw = parseFloat(el.style.width), bh = parseFloat(el.style.height);
+  const ar = vb[2] / vb[3];
+  /* match the SVG's own preserveAspectRatio=meet box, so the figure lands at
+     the same size and place the inline one did */
+  let w = bw, h = bw / ar;
+  if (h > bh + 0.01) { h = bh; w = h * ar; }
+
+  const PW = Math.max(2, Math.round(w * DPR)), PH = Math.max(2, Math.round(h * DPR));
+
+  /* camera straight out of the viewBox */
+  const cx = vb[0] + vb[2] / 2, cy = vb[1] + vb[3] / 2;
+  const tx = (cx - 100) * K, ty = TOP - cy * K;
+  const dist = (vb[3] * K / 2) / Math.tan(FOV * Math.PI / 360);
+  camera.aspect = ar;
+  camera.position.set(tx, ty, dist);
+  camera.lookAt(tx, ty, 0);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+
+  /* The dot grid is measured in device pixels. Pitch scales with the crop so
+     every figure carries roughly the same number of dots across its body —
+     the inline SVG's own density — rather than going solid when it is small. */
+  matHalftone.uniforms.uPitch.value = Math.max(2.2, Math.min(5.5, w / 20)) * DPR;
+  matHalftone.uniforms.uRes.value.set(PW, PH);
+
+  renderer.setSize(PW, PH, false);
+  if (toneRT) toneRT.dispose();
+  toneRT = new THREE.WebGLRenderTarget(PW, PH, {
+    minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter,
+    wrapS:THREE.ClampToEdgeWrapping, wrapT:THREE.ClampToEdgeWrapping,
+    depthBuffer:true, stencilBuffer:false,
+  });
+
+  renderer.setViewport(0, 0, PW, PH);
+  body.traverse(o => { if (o.isMesh) o.visible = true; });
+  renderer.setRenderTarget(toneRT);
+  renderer.clear(true, true, true);
+  renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
+  body.traverse(o => { if (o.isMesh) o.visible = false; });
+
+  matHalftone.uniforms.uTone.value = toneRT.texture;
+  renderer.clear(true, true, true);
+  renderer.render(quadScene, quadCam);
+
+  const cv = el.querySelector('canvas');
+  cv.width = PW; cv.height = PH;
+  cv.getContext('2d').drawImage(renderer.domElement, 0, 0);
+  el.classList.add('ready');
+}
+
+for (const el of document.querySelectorAll('.twin')) {
+  try { renderInto(el); } catch (e) { console.warn('twin render failed', e); }
+}
+
+/* static figure — nothing left to drive, so give the context back */
+if (toneRT) toneRT.dispose();
+renderer.dispose();
+</script>
+</body>
+</html>

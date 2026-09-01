@@ -40,6 +40,9 @@ Double-clicking the HTML file will **not** load the 3D models.
 ```
 index.html                 redirect to digitaltwin.html, for the Pages root
 digitaltwin.html           design system + the home and body pages
+phenome-twin-mobile.html   the same twin as a phone app, 393×852. Home is the
+                           figure at 55% of the device, docking into the header
+                           on scroll; below it, one result card per organ.
 
 organ-material-lab.html    material bench — drop in any .glb to swap the specimen;
                            the source of truth for material values
@@ -74,6 +77,13 @@ GLB/
   skeletal/
     lumbar-hip.glb                   L1-L5, lumbar discs, sacrum, hips & femurs
     NOTICE.md                        skeletal asset attribution and licence
+cards/                     eight frames captured out of the Pose Lab, one per
+                           organ card on the mobile home page. Transparent WebP,
+                           trimmed to the halftone's own alpha bounds. They are
+                           renders of the models above, not new artwork —
+                           regenerate one by opening
+                           digitaltwin.html?view=pose&study=<id> and capturing
+                           #poseGL once the flight has settled.
 ```
 
 The three lab pages share the same root-relative paths (`vendor/`, `GLB/`) as `digitaltwin.html`, so they belong at the repo root and run off the same server — `http://localhost:8777/organ-material-lab.html` and so on.
